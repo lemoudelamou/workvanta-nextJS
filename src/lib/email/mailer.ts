@@ -418,3 +418,103 @@ export async function sendPasswordResetEmail({
 
 
 
+export async function sendEmailVerificationEmail({
+    email,
+    verificationUrl,
+}: {
+    email: string;
+    verificationUrl: string;
+}) {
+    const { transporter, from } = createTransporter();
+
+    await transporter.sendMail({
+        from,
+        to: email,
+        subject: "Verify your Workvanta email",
+
+        text: [
+            "Verify your Workvanta email",
+            "",
+            "Welcome to Workvanta.",
+            "",
+            "Please verify your email address:",
+            verificationUrl,
+            "",
+            "This link expires in 30 minutes.",
+            "",
+            "If you did not create a Workvanta account, you can safely ignore this email.",
+            "",
+            "Workvanta",
+        ].join("\n"),
+
+        html: emailLayout({
+            content: `
+                <p
+                    style="
+                        margin:0 0 12px 0;
+                        font-size:13px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:#6b7280;
+                        text-transform:uppercase;
+                        letter-spacing:0.08em;
+                    "
+                >
+                    Welcome to Workvanta
+                </p>
+
+                <h1
+                    style="
+                        margin:0 0 16px 0;
+                        font-size:28px;
+                        line-height:36px;
+                        color:#111827;
+                    "
+                >
+                    Verify your email
+                </h1>
+
+                <p
+                    style="
+                        margin:0;
+                        font-size:16px;
+                        line-height:26px;
+                        color:#4b5563;
+                    "
+                >
+                    Thanks for creating your Workvanta account.
+                    Please verify your email address to finish setting up
+                    your account.
+                </p>
+
+                ${primaryButton({
+                href: verificationUrl,
+                label: "Verify email",
+            })}
+
+                <p
+                    style="
+                        margin:28px 0 0 0;
+                        font-size:14px;
+                        line-height:22px;
+                        color:#6b7280;
+                    "
+                >
+                    This verification link expires in 30 minutes.
+                </p>
+
+                <p
+                    style="
+                        margin:20px 0 0 0;
+                        font-size:13px;
+                        line-height:21px;
+                        color:#9ca3af;
+                    "
+                >
+                    If you did not create a Workvanta account, you can safely
+                    ignore this email.
+                </p>
+            `,
+        }),
+    });
+}
