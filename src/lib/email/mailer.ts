@@ -130,7 +130,7 @@ function emailLayout({
                                     ${appUrl
             ? `
                                     <img
-                                        src="/workvanta-planet.svg"
+                                        src="${appUrl}/workvanta-planet.svg"
                                         width="44"
                                         height="44"
                                         alt="Workvanta"
