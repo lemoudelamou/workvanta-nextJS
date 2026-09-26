@@ -34,6 +34,9 @@ export type SessionMinAggregateOutputType = {
   device: string | null
   browser: string | null
   ipAddress: string | null
+  city: string | null
+  region: string | null
+  country: string | null
 }
 
 export type SessionMaxAggregateOutputType = {
@@ -46,6 +49,9 @@ export type SessionMaxAggregateOutputType = {
   device: string | null
   browser: string | null
   ipAddress: string | null
+  city: string | null
+  region: string | null
+  country: string | null
 }
 
 export type SessionCountAggregateOutputType = {
@@ -58,6 +64,9 @@ export type SessionCountAggregateOutputType = {
   device: number
   browser: number
   ipAddress: number
+  city: number
+  region: number
+  country: number
   _all: number
 }
 
@@ -72,6 +81,9 @@ export type SessionMinAggregateInputType = {
   device?: true
   browser?: true
   ipAddress?: true
+  city?: true
+  region?: true
+  country?: true
 }
 
 export type SessionMaxAggregateInputType = {
@@ -84,6 +96,9 @@ export type SessionMaxAggregateInputType = {
   device?: true
   browser?: true
   ipAddress?: true
+  city?: true
+  region?: true
+  country?: true
 }
 
 export type SessionCountAggregateInputType = {
@@ -96,6 +111,9 @@ export type SessionCountAggregateInputType = {
   device?: true
   browser?: true
   ipAddress?: true
+  city?: true
+  region?: true
+  country?: true
   _all?: true
 }
 
@@ -181,6 +199,9 @@ export type SessionGroupByOutputType = {
   device: string | null
   browser: string | null
   ipAddress: string | null
+  city: string | null
+  region: string | null
+  country: string | null
   _count: SessionCountAggregateOutputType | null
   _min: SessionMinAggregateOutputType | null
   _max: SessionMaxAggregateOutputType | null
@@ -214,6 +235,9 @@ export type SessionWhereInput = {
   device?: Prisma.StringNullableFilter<"Session"> | string | null
   browser?: Prisma.StringNullableFilter<"Session"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Session"> | string | null
+  city?: Prisma.StringNullableFilter<"Session"> | string | null
+  region?: Prisma.StringNullableFilter<"Session"> | string | null
+  country?: Prisma.StringNullableFilter<"Session"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
@@ -227,6 +251,9 @@ export type SessionOrderByWithRelationInput = {
   device?: Prisma.SortOrderInput | Prisma.SortOrder
   browser?: Prisma.SortOrderInput | Prisma.SortOrder
   ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
+  city?: Prisma.SortOrderInput | Prisma.SortOrder
+  region?: Prisma.SortOrderInput | Prisma.SortOrder
+  country?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
 }
 
@@ -243,6 +270,9 @@ export type SessionWhereUniqueInput = Prisma.AtLeast<{
   device?: Prisma.StringNullableFilter<"Session"> | string | null
   browser?: Prisma.StringNullableFilter<"Session"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Session"> | string | null
+  city?: Prisma.StringNullableFilter<"Session"> | string | null
+  region?: Prisma.StringNullableFilter<"Session"> | string | null
+  country?: Prisma.StringNullableFilter<"Session"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "id" | "tokenHash">
 
@@ -256,6 +286,9 @@ export type SessionOrderByWithAggregationInput = {
   device?: Prisma.SortOrderInput | Prisma.SortOrder
   browser?: Prisma.SortOrderInput | Prisma.SortOrder
   ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
+  city?: Prisma.SortOrderInput | Prisma.SortOrder
+  region?: Prisma.SortOrderInput | Prisma.SortOrder
+  country?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SessionCountOrderByAggregateInput
   _max?: Prisma.SessionMaxOrderByAggregateInput
   _min?: Prisma.SessionMinOrderByAggregateInput
@@ -274,6 +307,9 @@ export type SessionScalarWhereWithAggregatesInput = {
   device?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
   browser?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
   ipAddress?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
+  city?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
+  region?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
+  country?: Prisma.StringNullableWithAggregatesFilter<"Session"> | string | null
 }
 
 export type SessionCreateInput = {
@@ -285,6 +321,9 @@ export type SessionCreateInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
   user: Prisma.UserCreateNestedOneWithoutSessionsInput
 }
 
@@ -298,6 +337,9 @@ export type SessionUncheckedCreateInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
 }
 
 export type SessionUpdateInput = {
@@ -309,6 +351,9 @@ export type SessionUpdateInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutSessionsNestedInput
 }
 
@@ -322,6 +367,9 @@ export type SessionUncheckedUpdateInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionCreateManyInput = {
@@ -334,6 +382,9 @@ export type SessionCreateManyInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
 }
 
 export type SessionUpdateManyMutationInput = {
@@ -345,6 +396,9 @@ export type SessionUpdateManyMutationInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionUncheckedUpdateManyInput = {
@@ -357,6 +411,9 @@ export type SessionUncheckedUpdateManyInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionListRelationFilter = {
@@ -379,6 +436,9 @@ export type SessionCountOrderByAggregateInput = {
   device?: Prisma.SortOrder
   browser?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
+  city?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  country?: Prisma.SortOrder
 }
 
 export type SessionMaxOrderByAggregateInput = {
@@ -391,6 +451,9 @@ export type SessionMaxOrderByAggregateInput = {
   device?: Prisma.SortOrder
   browser?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
+  city?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  country?: Prisma.SortOrder
 }
 
 export type SessionMinOrderByAggregateInput = {
@@ -403,6 +466,9 @@ export type SessionMinOrderByAggregateInput = {
   device?: Prisma.SortOrder
   browser?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
+  city?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  country?: Prisma.SortOrder
 }
 
 export type SessionCreateNestedManyWithoutUserInput = {
@@ -456,6 +522,9 @@ export type SessionCreateWithoutUserInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
 }
 
 export type SessionUncheckedCreateWithoutUserInput = {
@@ -467,6 +536,9 @@ export type SessionUncheckedCreateWithoutUserInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
 }
 
 export type SessionCreateOrConnectWithoutUserInput = {
@@ -508,6 +580,9 @@ export type SessionScalarWhereInput = {
   device?: Prisma.StringNullableFilter<"Session"> | string | null
   browser?: Prisma.StringNullableFilter<"Session"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Session"> | string | null
+  city?: Prisma.StringNullableFilter<"Session"> | string | null
+  region?: Prisma.StringNullableFilter<"Session"> | string | null
+  country?: Prisma.StringNullableFilter<"Session"> | string | null
 }
 
 export type SessionCreateManyUserInput = {
@@ -519,6 +594,9 @@ export type SessionCreateManyUserInput = {
   device?: string | null
   browser?: string | null
   ipAddress?: string | null
+  city?: string | null
+  region?: string | null
+  country?: string | null
 }
 
 export type SessionUpdateWithoutUserInput = {
@@ -530,6 +608,9 @@ export type SessionUpdateWithoutUserInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionUncheckedUpdateWithoutUserInput = {
@@ -541,6 +622,9 @@ export type SessionUncheckedUpdateWithoutUserInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SessionUncheckedUpdateManyWithoutUserInput = {
@@ -552,6 +636,9 @@ export type SessionUncheckedUpdateManyWithoutUserInput = {
   device?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browser?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -566,6 +653,9 @@ export type SessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   device?: boolean
   browser?: boolean
   ipAddress?: boolean
+  city?: boolean
+  region?: boolean
+  country?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
@@ -579,6 +669,9 @@ export type SessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   device?: boolean
   browser?: boolean
   ipAddress?: boolean
+  city?: boolean
+  region?: boolean
+  country?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
@@ -592,6 +685,9 @@ export type SessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   device?: boolean
   browser?: boolean
   ipAddress?: boolean
+  city?: boolean
+  region?: boolean
+  country?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["session"]>
 
@@ -605,9 +701,12 @@ export type SessionSelectScalar = {
   device?: boolean
   browser?: boolean
   ipAddress?: boolean
+  city?: boolean
+  region?: boolean
+  country?: boolean
 }
 
-export type SessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "tokenHash" | "userId" | "expiresAt" | "lastUsedAt" | "createdAt" | "device" | "browser" | "ipAddress", ExtArgs["result"]["session"]>
+export type SessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "tokenHash" | "userId" | "expiresAt" | "lastUsedAt" | "createdAt" | "device" | "browser" | "ipAddress" | "city" | "region" | "country", ExtArgs["result"]["session"]>
 export type SessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -633,6 +732,9 @@ export type $SessionPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     device: string | null
     browser: string | null
     ipAddress: string | null
+    city: string | null
+    region: string | null
+    country: string | null
   }, ExtArgs["result"]["session"]>
   composites: {}
 }
@@ -1066,6 +1168,9 @@ export interface SessionFieldRefs {
   readonly device: Prisma.FieldRef<"Session", 'String'>
   readonly browser: Prisma.FieldRef<"Session", 'String'>
   readonly ipAddress: Prisma.FieldRef<"Session", 'String'>
+  readonly city: Prisma.FieldRef<"Session", 'String'>
+  readonly region: Prisma.FieldRef<"Session", 'String'>
+  readonly country: Prisma.FieldRef<"Session", 'String'>
 }
     
 

@@ -1270,7 +1270,10 @@ export const SessionScalarFieldEnum = {
   createdAt: 'createdAt',
   device: 'device',
   browser: 'browser',
-  ipAddress: 'ipAddress'
+  ipAddress: 'ipAddress',
+  city: 'city',
+  region: 'region',
+  country: 'country'
 } as const
 
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
