@@ -7,10 +7,31 @@ import {
   loginWithPassword,
   verifyLoginTwoFactor,
   verifyLoginBackupCode,
-} from "@/app/signin/actions";
-import SocialLoginButton from "@/components/ui/SocialLoginButton"
+} from "@/app/(auth)/signin/actions";
+import { Eye, EyeOff } from "lucide-react";
+
+import SocialLoginButton from "@/components/ui/SocialLoginButton";
+
+// Error codes sent by the OAuth callback route
+const oauthErrorMessages: Record<string, string> = {
+  oauth_cancelled: "Sign in was cancelled.",
+  oauth_failed: "Unable to complete the social sign-in. Please try again.",
+  oauth_invalid: "Unable to start the social sign-in. Please try again.",
+  oauth_no_email:
+    "Your provider account has no verified email address, so we can't sign you in with it.",
+
+  // Auth.js-style codes, kept in case anything still sends them
+  OAuthAccountNotLinked:
+    "An account with this email already exists. Sign in with your existing method first, then connect this provider from your account settings.",
+  AccessDenied: "Sign in was cancelled.",
+  Configuration: "There is a problem with the authentication configuration.",
+  OAuthSignin: "Unable to start the social sign-in process.",
+  OAuthCallback: "Unable to complete the social sign-in process.",
+};
 
 export default function CredentialsLoginForm() {
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -19,53 +40,26 @@ export default function CredentialsLoginForm() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const searchParams = useSearchParams();
-
-  const [requiresTwoFactor, setRequiresTwoFactor] =
-    useState(false);
+  // The Google/GitHub callback sends users here with ?twoFactor=1 after it
+  // has set the challenge cookie. Password login sets this from its result.
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(
+    searchParams.get("twoFactor") === "1",
+  );
 
   const [twoFactorCode, setTwoFactorCode] = useState("");
-
   const [useBackupCode, setUseBackupCode] = useState(false);
-
-  const [rememberDevice, setRememberDevice] =
-    useState(false);
-
-
-  /* ------------------------------------------------------------------ */
-  /* OAUTH ERROR                                                        */
-  /* ------------------------------------------------------------------ */
-
+  const [rememberDevice, setRememberDevice] = useState(false);
 
   const oauthError = searchParams.get("error");
-
-  const oauthErrorMessages: Record<string, string> = {
-    OAuthAccountNotLinked:
-      "An account with this email already exists. Sign in with your existing method first, then connect this provider from your account settings.",
-
-    AccessDenied:
-      "Sign in was cancelled.",
-
-    Configuration:
-      "There is a problem with the authentication configuration.",
-
-    OAuthSignin:
-      "Unable to start the social sign-in process.",
-
-    OAuthCallback:
-      "Unable to complete the social sign-in process.",
-  };
 
   const oauthErrorMessage = oauthError
     ? oauthErrorMessages[oauthError] ??
     "Unable to sign in. Please try again."
     : "";
 
-
-  /* ------------------------------------------------------------------ */
-  /* CREDENTIALS LOGIN                                                  */
-  /* ------------------------------------------------------------------ */
-
+  /* -------------------------------------------------------------- */
+  /* Password login                                                  */
+  /* -------------------------------------------------------------- */
 
   async function handleCredentialsLogin(
     event: React.FormEvent<HTMLFormElement>,
@@ -83,8 +77,6 @@ export default function CredentialsLoginForm() {
 
     try {
       const result = await loginWithPassword(email.trim(), password);
-
-      console.log("LOGIN RESULT:", result);
 
       if (!result.success) {
         setError(result.error);
@@ -112,10 +104,9 @@ export default function CredentialsLoginForm() {
     }
   }
 
-
-  /* ------------------------------------------------------------------ */
-  /* TWO-FACTOR LOGIN                                                   */
-  /* ------------------------------------------------------------------ */
+  /* -------------------------------------------------------------- */
+  /* Two-factor step (password AND Google/GitHub logins)             */
+  /* -------------------------------------------------------------- */
 
   async function handleTwoFactorLogin(
     event: React.FormEvent<HTMLFormElement>,
@@ -138,16 +129,16 @@ export default function CredentialsLoginForm() {
     setIsLoading(true);
 
     try {
-      if (useBackupCode) {
-        await verifyLoginBackupCode(
-          code,
-          rememberDevice,
-        );
-      } else {
-        await verifyLoginTwoFactor(
-          code,
-          rememberDevice,
-        );
+      const result = useBackupCode
+        ? await verifyLoginBackupCode(code, rememberDevice)
+        : await verifyLoginTwoFactor(code, rememberDevice);
+
+      // The actions return { success: false, error } instead of throwing,
+      // so the result must be checked or wrong codes fail silently.
+      if (!result.success) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
       }
 
       window.location.href = "/signin";
@@ -155,19 +146,16 @@ export default function CredentialsLoginForm() {
       console.error("2FA ERROR:", error);
 
       setError(
-        error instanceof Error
-          ? error.message
-          : "Verification failed.",
+        error instanceof Error ? error.message : "Verification failed.",
       );
 
       setIsLoading(false);
     }
   }
 
-
-  /* ------------------------------------------------------------------ */
-  /* 2FA SCREEN                                                         */
-  /* ------------------------------------------------------------------ */
+  /* -------------------------------------------------------------- */
+  /* 2FA screen                                                      */
+  /* -------------------------------------------------------------- */
 
   if (requiresTwoFactor) {
     return (
@@ -193,46 +181,31 @@ export default function CredentialsLoginForm() {
           </div>
         )}
 
-        <form
-          onSubmit={handleTwoFactorLogin}
-          className="space-y-5"
-        >
+        <form onSubmit={handleTwoFactorLogin} className="space-y-5">
           <div>
             <label
               htmlFor="two-factor-code"
               className="mb-2 block text-sm font-medium text-slate-700"
             >
-              {useBackupCode
-                ? "Backup code"
-                : "Authentication code"}
+              {useBackupCode ? "Backup code" : "Authentication code"}
             </label>
 
             <input
               id="two-factor-code"
               name="code"
               type="text"
-              inputMode={
-                useBackupCode ? "text" : "numeric"
-              }
+              inputMode={useBackupCode ? "text" : "numeric"}
               autoComplete="one-time-code"
               autoFocus
               required
               disabled={isLoading}
               value={twoFactorCode}
-              onChange={(event) =>
-                setTwoFactorCode(event.target.value)
-              }
+              onChange={(event) => setTwoFactorCode(event.target.value)}
               placeholder={
-                useBackupCode
-                  ? "Enter your backup code"
-                  : "000000"
+                useBackupCode ? "Enter your backup code" : "000000"
               }
-              maxLength={
-                useBackupCode ? 20 : 6
-              }
-              className={`h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70 ${!useBackupCode
-                ? "text-center text-lg tracking-[0.3em]"
-                : ""
+              maxLength={useBackupCode ? 20 : 6}
+              className={`h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70 ${!useBackupCode ? "text-center text-lg tracking-[0.3em]" : ""
                 }`}
             />
           </div>
@@ -241,11 +214,7 @@ export default function CredentialsLoginForm() {
             <input
               type="checkbox"
               checked={rememberDevice}
-              onChange={(event) =>
-                setRememberDevice(
-                  event.target.checked,
-                )
-              }
+              onChange={(event) => setRememberDevice(event.target.checked)}
               disabled={isLoading}
               className="mt-0.5 size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
@@ -256,8 +225,7 @@ export default function CredentialsLoginForm() {
               </span>
 
               <span className="mt-0.5 block text-xs text-slate-400">
-                Don&apos;t ask for a code again for 30
-                days.
+                Don&apos;t ask for a code again for 30 days.
               </span>
             </span>
           </label>
@@ -267,9 +235,7 @@ export default function CredentialsLoginForm() {
             disabled={isLoading}
             className="flex h-12 w-full items-center justify-center rounded-xl bg-[#101828] text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D2939] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading
-              ? "Verifying..."
-              : "Verify and sign in"}
+            {isLoading ? "Verifying..." : "Verify and sign in"}
           </button>
         </form>
 
@@ -277,9 +243,7 @@ export default function CredentialsLoginForm() {
           type="button"
           disabled={isLoading}
           onClick={() => {
-            setUseBackupCode(
-              (value) => !value,
-            );
+            setUseBackupCode((value) => !value);
             setTwoFactorCode("");
             setError("");
           }}
@@ -308,11 +272,9 @@ export default function CredentialsLoginForm() {
     );
   }
 
-  /*
-   * ================================================
-   * NORMAL LOGIN SCREEN
-   * ================================================
-   */
+  /* -------------------------------------------------------------- */
+  /* Normal login screen                                             */
+  /* -------------------------------------------------------------- */
 
   return (
     <div className="w-full">
@@ -326,10 +288,7 @@ export default function CredentialsLoginForm() {
         </div>
       )}
 
-      <form
-        onSubmit={handleCredentialsLogin}
-        className="space-y-5"
-      >
+      <form onSubmit={handleCredentialsLogin} className="space-y-5">
         {/* Email */}
         <div>
           <label
@@ -344,9 +303,7 @@ export default function CredentialsLoginForm() {
             name="email"
             type="email"
             value={email}
-            onChange={(event) =>
-              setEmail(event.target.value)
-            }
+            onChange={(event) => setEmail(event.target.value)}
             placeholder="you@company.com"
             autoComplete="email"
             required
@@ -377,17 +334,9 @@ export default function CredentialsLoginForm() {
             <input
               id="login-password"
               name="password"
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
+              type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="Enter your password"
               autoComplete="current-password"
               required
@@ -397,16 +346,15 @@ export default function CredentialsLoginForm() {
 
             <button
               type="button"
-              onClick={() =>
-                setShowPassword(
-                  (value) => !value,
-                )
-              }
+              onClick={() => setShowPassword((value) => !value)}
               disabled={isLoading}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-500 hover:text-slate-800"
+                className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:pointer-events-none disabled:opacity-50"
             >
-              {showPassword ? "Hide" : "Show"}
-            </button>
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}            </button>
           </div>
         </div>
 
@@ -416,9 +364,7 @@ export default function CredentialsLoginForm() {
           disabled={isLoading}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-[#101828] text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D2939] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading
-            ? "Signing in..."
-            : "Sign in"}
+          {isLoading ? "Signing in..." : "Sign in"}
         </button>
       </form>
 

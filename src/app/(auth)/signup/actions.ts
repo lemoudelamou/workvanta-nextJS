@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/db/prisma";
 import bcrypt from "bcryptjs";
 
+import { createEmailVerificationToken } from "@/lib/auth/email-verification";
+import { sendEmailVerificationEmail } from "@/lib/email/mailer";
+
 type SignupResult =
     | {
         success: true;
@@ -17,6 +20,10 @@ type SignupResult =
         error: string;
     };
 
+function getAppUrl() {
+    return (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+}
+
 export async function signup(
     name: string,
     email: string,
@@ -27,7 +34,7 @@ export async function signup(
     const cleanEmail =
         typeof email === "string" ? email.trim().toLowerCase() : "";
 
-
+    // Name validation
     if (!cleanName) {
         return { success: false, error: "Enter your name." };
     }
@@ -39,6 +46,7 @@ export async function signup(
         };
     }
 
+    // Email validation
     if (!cleanEmail) {
         return { success: false, error: "Enter your email address." };
     }
@@ -47,6 +55,7 @@ export async function signup(
         return { success: false, error: "Enter a valid email address." };
     }
 
+    // Password validation
     if (!password) {
         return { success: false, error: "Create a password." };
     }
@@ -76,6 +85,8 @@ export async function signup(
         return { success: false, error: "The passwords do not match." };
     }
 
+    // All database and hashing work is inside one try/catch so a failure
+    // is logged (visible in Vercel Runtime Logs) instead of crashing with a 500.
     try {
         const existingUser = await prisma.user.findUnique({
             where: { email: cleanEmail },
@@ -103,6 +114,22 @@ export async function signup(
                 email: true,
             },
         });
+
+        
+        try {
+            const { token } = await createEmailVerificationToken(user.id);
+            const verificationUrl = `${getAppUrl()}/verify-mail?token=${token}`; 
+
+            await sendEmailVerificationEmail({
+                email: user.email,
+                verificationUrl,
+            });
+        } catch (emailError) {
+            console.error(
+                "SIGNUP VERIFICATION EMAIL ERROR:",
+                emailError,
+            );
+        }
 
         return { success: true, user };
     } catch (error) {

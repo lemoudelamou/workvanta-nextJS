@@ -1,7 +1,7 @@
 
 import Link from "next/link";
 import SigninForm from "./signin-form";
-import LoginBrandPanel from "@/components/layout/workvanta-panel";
+import LoginBrandPanel from "@/components/ui/workvanta-panel";
 import WorkvantaBrand from "@/components/ui/workvanta-brand";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
@@ -12,6 +12,7 @@ export default async function SigninPage() {
   if (session?.user?.id) {
     redirect("/dashboard");
   }
+
 
 
   return (

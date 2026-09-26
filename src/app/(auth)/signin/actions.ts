@@ -1,6 +1,5 @@
 "use server";
 
-import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,20 +11,20 @@ import {
 import {
     decryptTwoFactorSecret,
     verifyTwoFactorCode,
-    verifyBackupCode,
+    hashBackupCode,
 } from "@/lib/auth/two-factor";
+import {
+    TWO_FACTOR_CHALLENGE_COOKIE,
+    createTwoFactorChallenge,
+    createTwoFactorRememberToken,
+    getChallenge,
+    hasValidRememberedDevice,
+} from "@/lib/auth/two-factor-login";
 
-const IS_PROD = process.env.NODE_ENV === "production";
+// NOTE: a "use server" file may only export async server actions.
+// Every export here is callable from the browser, so helpers live in
+// "@/lib/auth/two-factor-login" instead.
 
-const TWO_FACTOR_CHALLENGE_COOKIE = IS_PROD
-    ? "__Host-workvanta-2fa-challenge"
-    : "workvanta-2fa-challenge";
-const TWO_FACTOR_REMEMBER_COOKIE = IS_PROD
-    ? "__Host-workvanta-2fa-remember"
-    : "workvanta-2fa-remember";
-
-const TWO_FACTOR_CHALLENGE_MINUTES = 5;
-const TWO_FACTOR_REMEMBER_DAYS = 30;
 const MAX_TWO_FACTOR_ATTEMPTS = 5;
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -51,112 +50,9 @@ function toErrorResult(error: unknown, logLabel: string) {
     };
 }
 
-function sha256(value: string) {
-    return crypto.createHash("sha256").update(value).digest("hex");
-}
-
-function getCookieOptions(expires: Date) {
-    return {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        secure: IS_PROD,
-        path: "/",
-        expires,
-    };
-}
-
 /* ------------------------------------------------------------------ */
-/* 2FA helpers                                                         */
+/* Challenge bookkeeping                                               */
 /* ------------------------------------------------------------------ */
-
-async function createTwoFactorChallenge(userId: string) {
-    await prisma.twoFactorChallenge.deleteMany({ where: { userId } });
-
-    const rawToken = crypto.randomBytes(32).toString("base64url");
-    const expiresAt = new Date(
-        Date.now() + TWO_FACTOR_CHALLENGE_MINUTES * 60 * 1000,
-    );
-
-    await prisma.twoFactorChallenge.create({
-        data: { userId, tokenHash: sha256(rawToken), expiresAt },
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set(
-        TWO_FACTOR_CHALLENGE_COOKIE,
-        rawToken,
-        getCookieOptions(expiresAt),
-    );
-}
-
-async function createTwoFactorRememberToken(userId: string) {
-    const rawToken = crypto.randomBytes(32).toString("base64url");
-    const expiresAt = new Date(
-        Date.now() + TWO_FACTOR_REMEMBER_DAYS * 24 * 60 * 60 * 1000,
-    );
-
-    await prisma.twoFactorRememberToken.create({
-        data: { userId, tokenHash: sha256(rawToken), expiresAt },
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set(
-        TWO_FACTOR_REMEMBER_COOKIE,
-        rawToken,
-        getCookieOptions(expiresAt),
-    );
-}
-
-async function hasValidRememberedDevice(userId: string) {
-    const cookieStore = await cookies();
-    const rawToken = cookieStore.get(TWO_FACTOR_REMEMBER_COOKIE)?.value;
-
-    if (!rawToken) return false;
-
-    const remembered = await prisma.twoFactorRememberToken.findUnique({
-        where: { tokenHash: sha256(rawToken) },
-    });
-
-    if (!remembered) {
-        cookieStore.delete(TWO_FACTOR_REMEMBER_COOKIE);
-        return false;
-    }
-
-    if (remembered.userId !== userId || remembered.expiresAt <= new Date()) {
-        await prisma.twoFactorRememberToken.deleteMany({
-            where: { id: remembered.id },
-        });
-        cookieStore.delete(TWO_FACTOR_REMEMBER_COOKIE);
-        return false;
-    }
-
-    return true;
-}
-
-/** Call when 2FA is disabled. */
-export async function revokeAllTwoFactorRememberTokens(userId: string) {
-    await prisma.twoFactorRememberToken.deleteMany({ where: { userId } });
-
-    const cookieStore = await cookies();
-    cookieStore.delete(TWO_FACTOR_REMEMBER_COOKIE);
-}
-
-async function getChallenge() {
-    const cookieStore = await cookies();
-    const rawToken = cookieStore.get(TWO_FACTOR_CHALLENGE_COOKIE)?.value;
-
-    if (!rawToken) return null;
-
-    const challenge = await prisma.twoFactorChallenge.findUnique({
-        where: { tokenHash: sha256(rawToken) },
-    });
-
-    if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) {
-        return null;
-    }
-
-    return challenge;
-}
 
 async function registerFailedAttempt(challengeId: string) {
     const updated = await prisma.twoFactorChallenge.update({
@@ -323,7 +219,7 @@ export async function loginWithPassword(
 }
 
 /* ------------------------------------------------------------------ */
-/* 2FA verification                                                    */
+/* 2FA verification (used by password AND Google/GitHub logins)        */
 /* ------------------------------------------------------------------ */
 
 type TwoFactorResult =
@@ -335,6 +231,10 @@ export async function verifyLoginTwoFactor(
     rememberDevice = false,
 ): Promise<TwoFactorResult> {
     try {
+        if (typeof code !== "string") {
+            throw new AuthFlowError("Invalid authentication code.");
+        }
+
         const challenge = await getChallenge();
 
         if (!challenge) {
@@ -381,6 +281,10 @@ export async function verifyLoginBackupCode(
     rememberDevice = false,
 ): Promise<TwoFactorResult> {
     try {
+        if (typeof code !== "string") {
+            throw new AuthFlowError("Invalid backup code.");
+        }
+
         const challenge = await getChallenge();
 
         if (!challenge) {
@@ -391,13 +295,7 @@ export async function verifyLoginBackupCode(
 
         const auth = await prisma.twoFactorAuth.findUnique({
             where: { userId: challenge.userId },
-            select: {
-                enabled: true,
-                backupCodes: {
-                    where: { usedAt: null },
-                    select: { id: true, codeHash: true },
-                },
-            },
+            select: { id: true, enabled: true },
         });
 
         if (!auth || !auth.enabled) {
@@ -406,14 +304,15 @@ export async function verifyLoginBackupCode(
             );
         }
 
-        const matched = await verifyBackupCode(
-            code,
-            auth.backupCodes.map((backup) => backup.codeHash),
-        );
-
-        const matchingCode = matched
-            ? auth.backupCodes.find((backup) => backup.codeHash === matched)
-            : undefined;
+        // One indexed lookup instead of loading and comparing every code
+        const matchingCode = await prisma.twoFactorBackupCode.findFirst({
+            where: {
+                twoFactorAuthId: auth.id,
+                codeHash: hashBackupCode(code),
+                usedAt: null,
+            },
+            select: { id: true },
+        });
 
         if (!matchingCode) {
             await registerFailedAttempt(challenge.id);
