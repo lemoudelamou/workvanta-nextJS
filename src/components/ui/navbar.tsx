@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { focusRing, glass } from "@/app/style/ui-tokens"
 import WorkvantaBrand from "@/components/ui/workvanta-brand";
-import { logout } from "@/app/signin/actions";
+import { logout } from "@/app/(auth)/signin/actions";
 
 
 type NavbarProps = {
