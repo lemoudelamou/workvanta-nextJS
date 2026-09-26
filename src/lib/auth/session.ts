@@ -52,6 +52,45 @@ function getDeviceAndBrowser(userAgent: string) {
 }
 
 /**
+ * Reads Vercel's built-in geolocation headers. Only populated on an
+ * actual Vercel deployment — empty in local dev and behind other
+ * proxies in front of Vercel (see
+ * https://vercel.com/kb/guide/geo-ip-headers-geolocation-vercel-functions).
+ * City names can be percent-encoded, so decode before storing.
+ */
+/**
+ * Reads Vercel's built-in geolocation headers. Only populated on an
+ * actual Vercel deployment — empty in local dev and behind other
+ * proxies in front of Vercel (see
+ * https://vercel.com/kb/guide/geo-ip-headers-geolocation-vercel-functions).
+ * City names can be percent-encoded, so decode before storing.
+ *
+ * In local dev these headers don't exist at all, so a fixed fallback
+ * is used instead — purely so "Location unavailable" doesn't show up
+ * on every session while testing locally.
+ */
+function getGeoLocation(requestHeaders: Headers) {
+    const rawCity = requestHeaders.get("x-vercel-ip-city");
+    const rawRegion = requestHeaders.get("x-vercel-ip-country-region");
+    const rawCountry = requestHeaders.get("x-vercel-ip-country");
+
+    const city = rawCity ? decodeURIComponent(rawCity) : null;
+    const region = rawRegion;
+    const country = rawCountry;
+
+    const hasRealGeo = Boolean(city || region || country);
+
+    if (hasRealGeo || process.env.NODE_ENV === "production") {
+        return { city, region, country };
+    }
+
+    // Dev-only fallback — never used in production, so a real visitor
+    // missing geo data (e.g. behind a VPN Vercel can't resolve) still
+    // correctly shows "Location unavailable" rather than a fake city.
+    return { city: "Berlin", region: "B", country: "DE" };
+}
+
+/**
  * Creates a new session for a user who has fully authenticated
  * (password, and 2FA if enabled).
  *
@@ -78,6 +117,7 @@ export async function createSession(userId: string) {
 
     const userAgent = requestHeaders.get("user-agent") ?? "";
     const { device, browser } = getDeviceAndBrowser(userAgent);
+    const { city, region, country } = getGeoLocation(requestHeaders);
 
     await prisma.session.create({
         data: {
@@ -88,6 +128,9 @@ export async function createSession(userId: string) {
             device,
             browser,
             ipAddress: getIpAddress(requestHeaders),
+            city,
+            region,
+            country,
         },
     });
 
@@ -132,7 +175,7 @@ export const getSession = cache(async () => {
             expiresAt: true,
             lastUsedAt: true,
             user: {
-                select: { id: true, name: true, email: true },
+                select: { id: true, name: true, email: true, image: true },
             },
         },
     });
@@ -192,7 +235,7 @@ export async function destroyAllSessions(userId: string, keepSessionId?: string)
     });
 }
 
-/** run from a cron job to delete expired rows. */
+/** Optional: run from a cron job to delete expired rows. */
 export async function deleteExpiredSessions() {
     await prisma.session.deleteMany({
         where: { expiresAt: { lte: new Date() } },

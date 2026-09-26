@@ -92,6 +92,10 @@ model Session {
   browser   String?
   ipAddress String?
 
+  city      String?
+  region    String?
+  country   String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
