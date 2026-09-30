@@ -84,10 +84,7 @@ function getGeoLocation(requestHeaders: Headers) {
         return { city, region, country };
     }
 
-    // Dev-only fallback — never used in production, so a real visitor
-    // missing geo data (e.g. behind a VPN Vercel can't resolve) still
-    // correctly shows "Location unavailable" rather than a fake city.
-    return { city: "Berlin", region: "B", country: "DE" };
+    return { city: "", region: "", country: "" };
 }
 
 /**
@@ -235,7 +232,6 @@ export async function destroyAllSessions(userId: string, keepSessionId?: string)
     });
 }
 
-/** Optional: run from a cron job to delete expired rows. */
 export async function deleteExpiredSessions() {
     await prisma.session.deleteMany({
         where: { expiresAt: { lte: new Date() } },

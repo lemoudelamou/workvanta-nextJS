@@ -4,8 +4,8 @@ import SignupGate from "./signup-gate";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 
-import BrandPanel from "@/components/ui/workvanta-panel";
-import WorkvantaBrand from "@/components/ui/workvanta-brand";
+import BrandPanel from "@/components/ui/WorkvantaPanel";
+import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 
 export default async function SignupPage() {
     const session = await getSession();

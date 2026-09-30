@@ -1,8 +1,8 @@
 
 import Link from "next/link";
 import SigninForm from "./signin-form";
-import LoginBrandPanel from "@/components/ui/workvanta-panel";
-import WorkvantaBrand from "@/components/ui/workvanta-brand";
+import LoginBrandPanel from "@/components/ui/WorkvantaPanel";
+import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 

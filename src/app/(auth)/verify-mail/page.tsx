@@ -6,7 +6,7 @@ import {
     CheckCircle2,
 } from "lucide-react";
 
-import WorkvantaBrand from "@/components/ui/workvanta-brand";
+import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import {
     authButton,
     ghostButton,
