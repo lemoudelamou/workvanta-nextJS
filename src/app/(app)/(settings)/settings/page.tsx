@@ -190,7 +190,6 @@ export default async function SettingsPage({
 
     return (
         <PageBody>
-            <div className="relative mx-auto w-full max-w-4xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
 
 
                 <header className="mb-8">
@@ -203,7 +202,7 @@ export default async function SettingsPage({
                 </header>
 
 
-                <div className="space-y-6">
+                <div className="space-y-7">
 
 
                     <section className={sectionClass}>
@@ -402,7 +401,6 @@ export default async function SettingsPage({
                     </section>
 
                 </div>
-            </div>
         </PageBody>
     );
 }
