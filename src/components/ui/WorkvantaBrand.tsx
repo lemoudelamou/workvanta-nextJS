@@ -11,7 +11,7 @@ export default function WorkvantaBrand({
 }: WorkvantaBrandProps) {
   return (
     <Link
-      href="/"
+      href="/dashboard"
       className={`flex items-center gap-3 ${className}`}
       aria-label="Workvanta home"
     >
