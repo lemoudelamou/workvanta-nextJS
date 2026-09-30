@@ -9,7 +9,7 @@ import {
     Settings,
 } from "lucide-react";
 import { focusRing, glass } from "@/app/style/ui-tokens"
-import WorkvantaBrand from "@/components/ui/workvanta-brand";
+import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import { logout } from "@/app/(auth)/signin/actions";
 
 

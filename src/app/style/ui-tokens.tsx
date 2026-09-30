@@ -33,3 +33,28 @@ export const ghostButton =
 
 export const primaryButton =
     "bg-slate-950 text-white shadow-lg shadow-slate-950/10 hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200";
+
+
+export const iconTile =
+    "flex shrink-0 items-center justify-center border border-slate-200 bg-white/80 text-slate-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300";
+
+export const sectionClass = `${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-2xl sm:rounded-[28px]`;
+
+
+export const cardClass =
+    "rounded-xl border border-slate-200/80 bg-white/60 p-4 transition-all duration-300 hover:border-slate-300 hover:bg-white/90 hover:shadow-sm dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/[0.12] dark:hover:bg-white/[0.05]";
+
+export const labelClass =
+    "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
+
+export const inputClass =
+    "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:focus:border-white/[0.2] dark:focus:ring-white/[0.08]";
+
+export const primaryButtonClass =
+    "shrink-0 rounded-lg bg-slate-950 px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200";
+
+export const secondaryButtonClass =
+    "shrink-0 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300 dark:hover:bg-white/[0.08]";
+
+export const connectedBadgeClass =
+    "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/[0.08] dark:text-emerald-300";
