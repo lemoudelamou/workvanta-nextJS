@@ -4,15 +4,18 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
+
 import {
     createSession,
     destroyCurrentSession,
 } from "@/lib/auth/session";
+
 import {
     decryptTwoFactorSecret,
     verifyTwoFactorCode,
     hashBackupCode,
 } from "@/lib/auth/two-factor";
+
 import {
     TWO_FACTOR_CHALLENGE_COOKIE,
     createTwoFactorChallenge,
@@ -21,72 +24,182 @@ import {
     hasValidRememberedDevice,
 } from "@/lib/auth/two-factor-login";
 
-// NOTE: a "use server" file may only export async server actions.
-// Every export here is callable from the browser, so helpers live in
-// "@/lib/auth/two-factor-login" instead.
+import {
+    rateLimit,
+    rateLimitByIp,
+} from "@/lib/redis/rate-limit";
 
-const MAX_TWO_FACTOR_ATTEMPTS = 5;
+
 
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_MS = 15 * 60 * 1000;
+const MAX_TWO_FACTOR_ATTEMPTS = 5;
 
-// Used when the email does not exist, so the response time is the same
-// as for a real account (prevents finding out which emails are registered).
-const DUMMY_HASH = bcrypt.hashSync("workvanta-dummy-password", 12);
+const LOCKOUT_DURATION = 15 * 60 * 1000;
 
-/** Errors of this type are safe to show to the user. */
-class AuthFlowError extends Error { }
 
-function toErrorResult(error: unknown, logLabel: string) {
+const LOGIN_IP_LIMIT = 10;
+const LOGIN_IP_WINDOW = 20;
+
+
+const LOGIN_EMAIL_LIMIT = 10;
+const LOGIN_EMAIL_WINDOW = 5 * 60;
+
+
+const TWO_FACTOR_IP_LIMIT = 30;
+const TWO_FACTOR_IP_WINDOW = 60;
+
+
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
+    "workvanta-dummy-password",
+    12,
+);
+
+
+class AuthFlowError extends Error {}
+
+
+function handleAuthError<T extends { success: false }>(
+    error: unknown,
+    logMessage: string,
+): T {
     if (error instanceof AuthFlowError) {
-        return { success: false as const, error: error.message };
+        return {
+            success: false,
+            error: error.message,
+        } as unknown as T;
     }
 
-    console.error(logLabel, error);
+    console.error(logMessage, error);
 
     return {
-        success: false as const,
+        success: false,
         error: "Something went wrong. Please try again.",
-    };
+    } as unknown as T;
 }
 
-/* ------------------------------------------------------------------ */
-/* Challenge bookkeeping                                               */
-/* ------------------------------------------------------------------ */
 
-async function registerFailedAttempt(challengeId: string) {
-    const updated = await prisma.twoFactorChallenge.update({
-        where: { id: challengeId },
-        data: { failedAttempts: { increment: 1 } },
-        select: { failedAttempts: true },
-    });
 
-    if (updated.failedAttempts >= MAX_TWO_FACTOR_ATTEMPTS) {
-        await prisma.twoFactorChallenge.updateMany({
-            where: { id: challengeId, consumedAt: null },
-            data: { consumedAt: new Date() },
-        });
+async function checkLoginIpRateLimit() {
+    const result = await rateLimitByIp(
+        "rate-limit:login",
+        {
+            limit: LOGIN_IP_LIMIT,
+            windowSeconds: LOGIN_IP_WINDOW,
+        },
+    );
 
-        const cookieStore = await cookies();
-        cookieStore.delete(TWO_FACTOR_CHALLENGE_COOKIE);
-
+    if (!result.success) {
         throw new AuthFlowError(
-            "Too many failed attempts. Please sign in again.",
+            "Too many login attempts. Please try again shortly.",
         );
     }
 }
 
-async function consumeChallenge(challengeId: string) {
-    const consumedAt = new Date();
 
-    const result = await prisma.twoFactorChallenge.updateMany({
+
+async function checkFailedLoginRateLimit(
+    email: string,
+) {
+    const result = await rateLimit({
+        key: `rate-limit:login:email:${email}`,
+        limit: LOGIN_EMAIL_LIMIT,
+        windowSeconds: LOGIN_EMAIL_WINDOW,
+    });
+
+    if (!result.success) {
+        throw new AuthFlowError(
+            "Too many login attempts. Please try again later.",
+        );
+    }
+}
+
+async function checkTwoFactorRateLimit() {
+    const result = await rateLimitByIp(
+        "rate-limit:2fa",
+        {
+            limit: TWO_FACTOR_IP_LIMIT,
+            windowSeconds: TWO_FACTOR_IP_WINDOW,
+        },
+    );
+
+    if (!result.success) {
+        throw new AuthFlowError(
+            "Too many verification attempts. Please try again shortly.",
+        );
+    }
+}
+
+async function recordFailedTwoFactorAttempt(
+    challengeId: string,
+) {
+    const challenge =
+        await prisma.twoFactorChallenge.update({
+            where: {
+                id: challengeId,
+            },
+            data: {
+                failedAttempts: {
+                    increment: 1,
+                },
+            },
+            select: {
+                failedAttempts: true,
+            },
+        });
+
+
+    if (
+        challenge.failedAttempts <
+        MAX_TWO_FACTOR_ATTEMPTS
+    ) {
+        return;
+    }
+
+
+    await prisma.twoFactorChallenge.updateMany({
         where: {
             id: challengeId,
             consumedAt: null,
-            expiresAt: { gt: consumedAt },
         },
-        data: { consumedAt },
+        data: {
+            consumedAt: new Date(),
+        },
     });
+
+
+    const cookieStore = await cookies();
+
+    cookieStore.delete(
+        TWO_FACTOR_CHALLENGE_COOKIE,
+    );
+
+
+    throw new AuthFlowError(
+        "Too many failed attempts. Please sign in again.",
+    );
+}
+
+
+async function consumeTwoFactorChallenge(
+    challengeId: string,
+) {
+    const now = new Date();
+
+
+    const result =
+        await prisma.twoFactorChallenge.updateMany({
+            where: {
+                id: challengeId,
+                consumedAt: null,
+                expiresAt: {
+                    gt: now,
+                },
+            },
+            data: {
+                consumedAt: now,
+            },
+        });
+
 
     if (result.count !== 1) {
         throw new AuthFlowError(
@@ -94,16 +207,21 @@ async function consumeChallenge(challengeId: string) {
         );
     }
 
+
     const cookieStore = await cookies();
-    cookieStore.delete(TWO_FACTOR_CHALLENGE_COOKIE);
+
+    cookieStore.delete(
+        TWO_FACTOR_CHALLENGE_COOKIE,
+    );
 }
 
-/* ------------------------------------------------------------------ */
-/* Password login                                                      */
-/* ------------------------------------------------------------------ */
 
 type LoginResult =
-    | { success: true; requiresTwoFactor: boolean; rememberedDevice: boolean }
+    | {
+        success: true;
+        requiresTwoFactor: boolean;
+        rememberedDevice: boolean;
+    }
     | {
         success: false;
         requiresTwoFactor: false;
@@ -111,85 +229,175 @@ type LoginResult =
         error: string;
     };
 
+
+
 export async function loginWithPassword(
     email: string,
     password: string,
 ): Promise<LoginResult> {
-    const fail = (error: string): LoginResult => ({
+    const failure = (
+        error: string,
+    ): LoginResult => ({
         success: false,
         requiresTwoFactor: false,
         rememberedDevice: false,
         error,
     });
 
+
     try {
+
         const normalizedEmail =
-            typeof email === "string" ? email.trim().toLowerCase() : "";
-        const plainPassword = typeof password === "string" ? password : "";
+            typeof email === "string"
+                ? email.trim().toLowerCase()
+                : "";
 
-        if (!normalizedEmail || !plainPassword) {
-            return fail("Enter your email and password.");
+
+        const plainPassword =
+            typeof password === "string"
+                ? password
+                : "";
+
+
+        if (
+            !normalizedEmail ||
+            !plainPassword
+        ) {
+            return failure(
+                "Enter your email and password.",
+            );
         }
 
-        // Prevent bcrypt DoS with huge inputs (bcrypt only uses 72 bytes anyway)
+
         if (plainPassword.length > 200) {
-            return fail("Invalid email or password.");
+            return failure(
+                "Invalid email or password.",
+            );
         }
 
-        const user = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
-            select: {
-                id: true,
-                passwordHash: true,
-                failedLoginCount: true,
-                lockedUntil: true,
-                twoFactorAuth: { select: { enabled: true } },
-            },
-        });
 
-        if (user?.lockedUntil && user.lockedUntil > new Date()) {
-            return fail("Too many failed attempts. Try again in 15 minutes.");
+        await checkLoginIpRateLimit();
+
+
+        const user =
+            await prisma.user.findUnique({
+                where: {
+                    email: normalizedEmail,
+                },
+                select: {
+                    id: true,
+                    passwordHash: true,
+                    failedLoginCount: true,
+                    lockedUntil: true,
+                    twoFactorAuth: {
+                        select: {
+                            enabled: true,
+                        },
+                    },
+                },
+            });
+
+        if (
+            user?.lockedUntil &&
+            user.lockedUntil > new Date()
+        ) {
+            return failure(
+                "Too many failed attempts. Try again in 15 minutes.",
+            );
         }
 
-        // Always run bcrypt, even when the user does not exist
-        const matches = await bcrypt.compare(
-            plainPassword,
-            user?.passwordHash ?? DUMMY_HASH,
-        );
 
-        if (!user || !user.passwordHash || !matches) {
+        const passwordMatches =
+            await bcrypt.compare(
+                plainPassword,
+                user?.passwordHash ??
+                    DUMMY_PASSWORD_HASH,
+            );
+
+        if (
+            !user ||
+            !user.passwordHash ||
+            !passwordMatches
+        ) {
+          
+            await checkFailedLoginRateLimit(
+                normalizedEmail,
+            );
+
+
             if (user) {
-                const updated = await prisma.user.update({
-                    where: { id: user.id },
-                    data: { failedLoginCount: { increment: 1 } },
-                    select: { failedLoginCount: true },
-                });
-
-                if (updated.failedLoginCount >= MAX_LOGIN_ATTEMPTS) {
+                const updatedUser =
                     await prisma.user.update({
-                        where: { id: user.id },
+                        where: {
+                            id: user.id,
+                        },
+                        data: {
+                            failedLoginCount: {
+                                increment: 1,
+                            },
+                        },
+                        select: {
+                            failedLoginCount: true,
+                        },
+                    });
+
+
+                if (
+                    updatedUser.failedLoginCount >=
+                    MAX_LOGIN_ATTEMPTS
+                ) {
+                    await prisma.user.update({
+                        where: {
+                            id: user.id,
+                        },
                         data: {
                             failedLoginCount: 0,
-                            lockedUntil: new Date(Date.now() + LOCKOUT_MS),
+                            lockedUntil:
+                                new Date(
+                                    Date.now() +
+                                        LOCKOUT_DURATION,
+                                ),
                         },
                     });
                 }
             }
 
-            return fail("Invalid email or password.");
+
+            return failure(
+                "Invalid email or password.",
+            );
         }
 
-        // Correct password: reset the counters
-        if (user.failedLoginCount > 0 || user.lockedUntil) {
+        if (
+            user.failedLoginCount > 0 ||
+            user.lockedUntil
+        ) {
             await prisma.user.update({
-                where: { id: user.id },
-                data: { failedLoginCount: 0, lockedUntil: null },
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    failedLoginCount: 0,
+                    lockedUntil: null,
+                },
             });
         }
 
         if (user.twoFactorAuth?.enabled) {
-            if (await hasValidRememberedDevice(user.id)) {
-                await createSession(user.id);
+            /*
+             * Check whether this device was
+             * previously remembered.
+             */
+            if (
+                await hasValidRememberedDevice(
+                    user.id,
+                )
+            ) {
+                await createSession(
+                    user.id,
+                );
+
+
                 return {
                     success: true,
                     requiresTwoFactor: false,
@@ -197,7 +405,15 @@ export async function loginWithPassword(
                 };
             }
 
-            await createTwoFactorChallenge(user.id);
+
+            /*
+             * Create a new 2FA challenge.
+             */
+            await createTwoFactorChallenge(
+                user.id,
+            );
+
+
             return {
                 success: true,
                 requiresTwoFactor: true,
@@ -205,7 +421,10 @@ export async function loginWithPassword(
             };
         }
 
-        await createSession(user.id);
+        await createSession(
+            user.id,
+        );
+
 
         return {
             success: true,
@@ -213,18 +432,23 @@ export async function loginWithPassword(
             rememberedDevice: false,
         };
     } catch (error) {
-        console.error("LOGIN ERROR:", error);
-        return fail("Something went wrong. Please try again.");
+        return handleAuthError(
+            error,
+            "LOGIN ERROR:",
+        );
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* 2FA verification (used by password AND Google/GitHub logins)        */
-/* ------------------------------------------------------------------ */
-
 type TwoFactorResult =
-    | { success: true; rememberedDevice: boolean }
-    | { success: false; error: string };
+    | {
+        success: true;
+        rememberedDevice: boolean;
+    }
+    | {
+        success: false;
+        error: string;
+    };
+
 
 export async function verifyLoginTwoFactor(
     code: string,
@@ -232,10 +456,18 @@ export async function verifyLoginTwoFactor(
 ): Promise<TwoFactorResult> {
     try {
         if (typeof code !== "string") {
-            throw new AuthFlowError("Invalid authentication code.");
+            throw new AuthFlowError(
+                "Invalid authentication code.",
+            );
         }
 
-        const challenge = await getChallenge();
+
+        await checkTwoFactorRateLimit();
+
+
+        const challenge =
+            await getChallenge();
+
 
         if (!challenge) {
             throw new AuthFlowError(
@@ -243,36 +475,84 @@ export async function verifyLoginTwoFactor(
             );
         }
 
-        const auth = await prisma.twoFactorAuth.findUnique({
-            where: { userId: challenge.userId },
-            select: { enabled: true, secretCiphertext: true },
-        });
 
-        if (!auth || !auth.enabled) {
+        // Get 2FA configuration
+        const auth =
+            await prisma.twoFactorAuth.findUnique({
+                where: {
+                    userId: challenge.userId,
+                },
+                select: {
+                    enabled: true,
+                    secretCiphertext: true,
+                },
+            });
+
+
+        if (!auth?.enabled) {
             throw new AuthFlowError(
                 "Two-factor authentication is no longer enabled.",
             );
         }
 
-        const secret = decryptTwoFactorSecret(auth.secretCiphertext);
-        const valid = await verifyTwoFactorCode(secret, code);
 
-        if (!valid) {
-            await registerFailedAttempt(challenge.id);
-            throw new AuthFlowError("Invalid authentication code.");
+        // Decrypt secret
+        const secret =
+            decryptTwoFactorSecret(
+                auth.secretCiphertext,
+            );
+
+
+        // Verify TOTP
+        const codeIsValid =
+            await verifyTwoFactorCode(
+                secret,
+                code,
+            );
+
+
+        // Invalid TOTP
+        if (!codeIsValid) {
+            await recordFailedTwoFactorAttempt(
+                challenge.id,
+            );
+
+
+            throw new AuthFlowError(
+                "Invalid authentication code.",
+            );
         }
 
-        await consumeChallenge(challenge.id);
 
+        // Consume challenge
+        await consumeTwoFactorChallenge(
+            challenge.id,
+        );
+
+
+        // Remember device
         if (rememberDevice) {
-            await createTwoFactorRememberToken(challenge.userId);
+            await createTwoFactorRememberToken(
+                challenge.userId,
+            );
         }
 
-        await createSession(challenge.userId);
 
-        return { success: true, rememberedDevice: rememberDevice };
+        // Create session
+        await createSession(
+            challenge.userId,
+        );
+
+
+        return {
+            success: true,
+            rememberedDevice: rememberDevice,
+        };
     } catch (error) {
-        return toErrorResult(error, "2FA VERIFY ERROR:");
+        return handleAuthError(
+            error,
+            "2FA VERIFY ERROR:",
+        );
     }
 }
 
@@ -282,10 +562,20 @@ export async function verifyLoginBackupCode(
 ): Promise<TwoFactorResult> {
     try {
         if (typeof code !== "string") {
-            throw new AuthFlowError("Invalid backup code.");
+            throw new AuthFlowError(
+                "Invalid backup code.",
+            );
         }
 
-        const challenge = await getChallenge();
+
+        // Redis IP protection
+        await checkTwoFactorRateLimit();
+
+
+        // Get challenge
+        const challenge =
+            await getChallenge();
+
 
         if (!challenge) {
             throw new AuthFlowError(
@@ -293,80 +583,153 @@ export async function verifyLoginBackupCode(
             );
         }
 
-        const auth = await prisma.twoFactorAuth.findUnique({
-            where: { userId: challenge.userId },
-            select: { id: true, enabled: true },
-        });
 
-        if (!auth || !auth.enabled) {
+        // Get 2FA configuration
+        const auth =
+            await prisma.twoFactorAuth.findUnique({
+                where: {
+                    userId: challenge.userId,
+                },
+                select: {
+                    id: true,
+                    enabled: true,
+                },
+            });
+
+
+        if (!auth?.enabled) {
             throw new AuthFlowError(
                 "Two-factor authentication is no longer enabled.",
             );
         }
 
-        // One indexed lookup instead of loading and comparing every code
-        const matchingCode = await prisma.twoFactorBackupCode.findFirst({
-            where: {
-                twoFactorAuthId: auth.id,
-                codeHash: hashBackupCode(code),
-                usedAt: null,
-            },
-            select: { id: true },
-        });
 
-        if (!matchingCode) {
-            await registerFailedAttempt(challenge.id);
-            throw new AuthFlowError("Invalid backup code.");
+        // Hash supplied backup code
+        const backupCodeHash =
+            hashBackupCode(code);
+
+
+        // Find unused backup code
+        const backupCode =
+            await prisma.twoFactorBackupCode.findFirst({
+                where: {
+                    twoFactorAuthId: auth.id,
+                    codeHash: backupCodeHash,
+                    usedAt: null,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+
+        // Invalid backup code
+        if (!backupCode) {
+            await recordFailedTwoFactorAttempt(
+                challenge.id,
+            );
+
+
+            throw new AuthFlowError(
+                "Invalid backup code.",
+            );
         }
+
 
         const now = new Date();
 
-        await prisma.$transaction(async (tx) => {
-            const backupResult = await tx.twoFactorBackupCode.updateMany({
-                where: { id: matchingCode.id, usedAt: null },
-                data: { usedAt: now },
-            });
 
-            if (backupResult.count !== 1) {
-                throw new AuthFlowError("This backup code has already been used.");
-            }
+        // ─────────────────────────────────────
+        // Consume backup code + challenge
+        // atomically
+        // ─────────────────────────────────────
 
-            const challengeResult = await tx.twoFactorChallenge.updateMany({
-                where: {
-                    id: challenge.id,
-                    consumedAt: null,
-                    expiresAt: { gt: now },
-                },
-                data: { consumedAt: now },
-            });
+        await prisma.$transaction(
+            async (tx) => {
+                const backupCodeResult =
+                    await tx.twoFactorBackupCode.updateMany({
+                        where: {
+                            id: backupCode.id,
+                            usedAt: null,
+                        },
+                        data: {
+                            usedAt: now,
+                        },
+                    });
 
-            if (challengeResult.count !== 1) {
-                throw new AuthFlowError(
-                    "This verification request has already been used or expired.",
-                );
-            }
-        });
 
+                if (
+                    backupCodeResult.count !== 1
+                ) {
+                    throw new AuthFlowError(
+                        "This backup code has already been used.",
+                    );
+                }
+
+
+                const challengeResult =
+                    await tx.twoFactorChallenge.updateMany({
+                        where: {
+                            id: challenge.id,
+                            consumedAt: null,
+                            expiresAt: {
+                                gt: now,
+                            },
+                        },
+                        data: {
+                            consumedAt: now,
+                        },
+                    });
+
+
+                if (
+                    challengeResult.count !== 1
+                ) {
+                    throw new AuthFlowError(
+                        "This verification request has already been used or expired.",
+                    );
+                }
+            },
+        );
+
+
+        // Delete challenge cookie
         const cookieStore = await cookies();
-        cookieStore.delete(TWO_FACTOR_CHALLENGE_COOKIE);
 
+        cookieStore.delete(
+            TWO_FACTOR_CHALLENGE_COOKIE,
+        );
+
+
+        // Remember device
         if (rememberDevice) {
-            await createTwoFactorRememberToken(challenge.userId);
+            await createTwoFactorRememberToken(
+                challenge.userId,
+            );
         }
 
-        await createSession(challenge.userId);
 
-        return { success: true, rememberedDevice: rememberDevice };
+        // Create session
+        await createSession(
+            challenge.userId,
+        );
+
+
+        return {
+            success: true,
+            rememberedDevice: rememberDevice,
+        };
     } catch (error) {
-        return toErrorResult(error, "2FA BACKUP CODE ERROR:");
+        return handleAuthError(
+            error,
+            "2FA BACKUP CODE ERROR:",
+        );
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* Logout                                                              */
-/* ------------------------------------------------------------------ */
 
 export async function logout() {
     await destroyCurrentSession();
+
     redirect("/signin");
 }

@@ -115,10 +115,10 @@ export async function signup(
             },
         });
 
-        
+
         try {
             const { token } = await createEmailVerificationToken(user.id);
-            const verificationUrl = `${getAppUrl()}/verify-mail?token=${token}`; 
+            const verificationUrl = `${getAppUrl()}/verify-mail?token=${token}`;
 
             await sendEmailVerificationEmail({
                 email: user.email,
