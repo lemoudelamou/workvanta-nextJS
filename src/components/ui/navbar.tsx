@@ -24,9 +24,6 @@ type NavbarProps = {
 };
 
 
-/* -------------------------------------------------------------------------- */
-/*  Navbar                                                                    */
-/* -------------------------------------------------------------------------- */
 
 export function Navbar({
     session
@@ -66,19 +63,7 @@ export function Navbar({
             <div className="border-b border-slate-200/70 bg-white/80 backdrop-blur-2xl dark:border-white/[0.07] dark:bg-slate-950/80">
                 <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
 
-                    {/* ====================================================== */}
-                    {/* Brand                                                   */}
-                    {/* ====================================================== */}
-
-
                     <WorkvantaBrand />
-
-
-
-
-                    {/* ====================================================== */}
-                    {/* Desktop navigation                                      */}
-                    {/* ====================================================== */}
 
                     {session && (
                         <nav className="ml-8 hidden items-center gap-1 md:flex">
@@ -95,10 +80,6 @@ export function Navbar({
                     )}
 
                     <div className="flex-1" />
-
-                    {/* ====================================================== */}
-                    {/* Logged-in controls                                      */}
-                    {/* ====================================================== */}
 
                     {session ? (
                         <div className="flex items-center gap-2">
@@ -150,10 +131,6 @@ export function Navbar({
                         </div>
                     ) : (
 
-                        /* ================================================== */
-                        /* Logged-out controls                                 */
-                        /* ================================================== */
-
                         <div className="flex items-center gap-1.5">
 
                             <Link
@@ -175,10 +152,6 @@ export function Navbar({
                     )}
                 </div>
 
-                {/* ========================================================== */}
-                {/* Mobile navigation                                          */}
-                {/* ========================================================== */}
-
                 {session && (
                     <div className="border-t border-slate-200/60 bg-slate-50/50 md:hidden dark:border-white/[0.06] dark:bg-white/[0.015]">
                         <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2 sm:px-6">
@@ -198,10 +171,6 @@ export function Navbar({
         </header>
     );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Desktop nav                                                               */
-/* -------------------------------------------------------------------------- */
 
 function NavLink({
     href,
@@ -225,10 +194,6 @@ function NavLink({
         </Link>
     );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Mobile nav                                                                */
-/* -------------------------------------------------------------------------- */
 
 function MobileNavLink({
     href,
