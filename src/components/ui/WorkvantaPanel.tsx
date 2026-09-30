@@ -1,4 +1,4 @@
-import WorkvantaBrand from "@/components/ui/workvanta-brand";
+import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 
 export default function LoginBrandPanel() {
   return (
