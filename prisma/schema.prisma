@@ -13,7 +13,23 @@ enum ThemePreference {
   SYSTEM
 }
 
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
 
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum ProjectVisibility {
+  WORKSPACE
+  PRIVATE
+}
 
 model User {
   id            String    @id @default(cuid())
@@ -34,14 +50,16 @@ model User {
   twoFactorChallenges     TwoFactorChallenge[]
   twoFactorRememberTokens TwoFactorRememberToken[]
 
-  preferences UserPreference?
+  preferences      UserPreference?
+  workspaceMembers WorkspaceMember[]
+  projectMembers   ProjectMember[]
 
   @@index([email])
 }
 
 model EmailVerificationToken {
   id        String    @id @default(cuid())
-  userId    String
+  userId    String    @unique
   tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
@@ -49,7 +67,6 @@ model EmailVerificationToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([expiresAt])
 }
 
@@ -182,9 +199,8 @@ model UserPreference {
   id     String @id @default(cuid())
   userId String @unique
 
-  language   String               @default("en")
-  theme      ThemePreference      @default(SYSTEM)
-
+  language String          @default("en")
+  theme    ThemePreference @default(SYSTEM)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -192,4 +208,64 @@ model UserPreference {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Workspace {
+  id             String   @id @default(cuid())
+  name           String
+  normalizedName String   @unique
+  slug           String   @unique
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  members  WorkspaceMember[]
+  projects Project[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  name           String
+  normalizedName String   @unique
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members   ProjectMember[]
+  visibility     ProjectVisibility @default(WORKSPACE) 
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(VIEWER)
+  createdAt DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId])
 }
