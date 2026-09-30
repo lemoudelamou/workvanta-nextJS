@@ -60,7 +60,8 @@ export const ModelName = {
   TwoFactorAuth: 'TwoFactorAuth',
   TwoFactorBackupCode: 'TwoFactorBackupCode',
   TwoFactorChallenge: 'TwoFactorChallenge',
-  TwoFactorRememberToken: 'TwoFactorRememberToken'
+  TwoFactorRememberToken: 'TwoFactorRememberToken',
+  UserPreference: 'UserPreference'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -207,6 +208,18 @@ export const TwoFactorRememberTokenScalarFieldEnum = {
 } as const
 
 export type TwoFactorRememberTokenScalarFieldEnum = (typeof TwoFactorRememberTokenScalarFieldEnum)[keyof typeof TwoFactorRememberTokenScalarFieldEnum]
+
+
+export const UserPreferenceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  language: 'language',
+  theme: 'theme',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserPreferenceScalarFieldEnum = (typeof UserPreferenceScalarFieldEnum)[keyof typeof UserPreferenceScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -7,17 +7,24 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id                      String                   @id @default(cuid())
-  name                    String?
-  email                   String                   @unique
-  emailVerified           DateTime?
-  image                   String?
-  passwordHash            String?
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
 
-  // NEW: login lockout
-  failedLoginCount        Int                      @default(0)
-  lockedUntil             DateTime?
+
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
 
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
@@ -26,6 +33,8 @@ model User {
   twoFactorAuth           TwoFactorAuth?
   twoFactorChallenges     TwoFactorChallenge[]
   twoFactorRememberTokens TwoFactorRememberToken[]
+
+  preferences UserPreference?
 
   @@index([email])
 }
@@ -78,8 +87,6 @@ model Account {
   @@index([userId])
 }
 
-// CHANGED: sessionToken -> tokenHash (SHA-256 of the cookie token),
-// expires -> expiresAt, added lastUsedAt + createdAt, removed location.
 model Session {
   id         String   @id @default(cuid())
   tokenHash  String   @unique
@@ -92,9 +99,9 @@ model Session {
   browser   String?
   ipAddress String?
 
-  city      String?
-  region    String?
-  country   String?
+  city    String?
+  region  String?
+  country String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -169,4 +176,20 @@ model TwoFactorRememberToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model UserPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  language   String               @default("en")
+  theme      ThemePreference      @default(SYSTEM)
+
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

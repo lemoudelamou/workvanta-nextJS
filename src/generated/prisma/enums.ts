@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const ThemePreference = {
+  LIGHT: 'LIGHT',
+  DARK: 'DARK',
+  SYSTEM: 'SYSTEM'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type ThemePreference = (typeof ThemePreference)[keyof typeof ThemePreference]

@@ -247,6 +247,7 @@ export type UserWhereInput = {
   twoFactorAuth?: Prisma.XOR<Prisma.TwoFactorAuthNullableScalarRelationFilter, Prisma.TwoFactorAuthWhereInput> | null
   twoFactorChallenges?: Prisma.TwoFactorChallengeListRelationFilter
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenListRelationFilter
+  preferences?: Prisma.XOR<Prisma.UserPreferenceNullableScalarRelationFilter, Prisma.UserPreferenceWhereInput> | null
 }
 
 export type UserOrderByWithRelationInput = {
@@ -265,6 +266,7 @@ export type UserOrderByWithRelationInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthOrderByWithRelationInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeOrderByRelationAggregateInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenOrderByRelationAggregateInput
+  preferences?: Prisma.UserPreferenceOrderByWithRelationInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -286,6 +288,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   twoFactorAuth?: Prisma.XOR<Prisma.TwoFactorAuthNullableScalarRelationFilter, Prisma.TwoFactorAuthWhereInput> | null
   twoFactorChallenges?: Prisma.TwoFactorChallengeListRelationFilter
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenListRelationFilter
+  preferences?: Prisma.XOR<Prisma.UserPreferenceNullableScalarRelationFilter, Prisma.UserPreferenceWhereInput> | null
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -334,6 +337,7 @@ export type UserCreateInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -352,6 +356,7 @@ export type UserUncheckedCreateInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -370,6 +375,7 @@ export type UserUpdateInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -388,6 +394,7 @@ export type UserUncheckedUpdateInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -587,6 +594,20 @@ export type UserUpdateOneRequiredWithoutTwoFactorRememberTokensNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTwoFactorRememberTokensInput, Prisma.UserUpdateWithoutTwoFactorRememberTokensInput>, Prisma.UserUncheckedUpdateWithoutTwoFactorRememberTokensInput>
 }
 
+export type UserCreateNestedOneWithoutPreferencesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPreferencesInput, Prisma.UserUncheckedCreateWithoutPreferencesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPreferencesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutPreferencesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPreferencesInput, Prisma.UserUncheckedCreateWithoutPreferencesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPreferencesInput
+  upsert?: Prisma.UserUpsertWithoutPreferencesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPreferencesInput, Prisma.UserUpdateWithoutPreferencesInput>, Prisma.UserUncheckedUpdateWithoutPreferencesInput>
+}
+
 export type UserCreateWithoutEmailVerificationTokensInput = {
   id?: string
   name?: string | null
@@ -602,6 +623,7 @@ export type UserCreateWithoutEmailVerificationTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -619,6 +641,7 @@ export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -652,6 +675,7 @@ export type UserUpdateWithoutEmailVerificationTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -669,6 +693,7 @@ export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutPasswordResetTokensInput = {
@@ -686,6 +711,7 @@ export type UserCreateWithoutPasswordResetTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -703,6 +729,7 @@ export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -736,6 +763,7 @@ export type UserUpdateWithoutPasswordResetTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -753,6 +781,7 @@ export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -770,6 +799,7 @@ export type UserCreateWithoutAccountsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -787,6 +817,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -820,6 +851,7 @@ export type UserUpdateWithoutAccountsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -837,6 +869,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -854,6 +887,7 @@ export type UserCreateWithoutSessionsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -871,6 +905,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -904,6 +939,7 @@ export type UserUpdateWithoutSessionsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -921,6 +957,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTwoFactorAuthInput = {
@@ -938,6 +975,7 @@ export type UserCreateWithoutTwoFactorAuthInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTwoFactorAuthInput = {
@@ -955,6 +993,7 @@ export type UserUncheckedCreateWithoutTwoFactorAuthInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTwoFactorAuthInput = {
@@ -988,6 +1027,7 @@ export type UserUpdateWithoutTwoFactorAuthInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTwoFactorAuthInput = {
@@ -1005,6 +1045,7 @@ export type UserUncheckedUpdateWithoutTwoFactorAuthInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTwoFactorChallengesInput = {
@@ -1022,6 +1063,7 @@ export type UserCreateWithoutTwoFactorChallengesInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTwoFactorChallengesInput = {
@@ -1039,6 +1081,7 @@ export type UserUncheckedCreateWithoutTwoFactorChallengesInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTwoFactorChallengesInput = {
@@ -1072,6 +1115,7 @@ export type UserUpdateWithoutTwoFactorChallengesInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTwoFactorChallengesInput = {
@@ -1089,6 +1133,7 @@ export type UserUncheckedUpdateWithoutTwoFactorChallengesInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTwoFactorRememberTokensInput = {
@@ -1106,6 +1151,7 @@ export type UserCreateWithoutTwoFactorRememberTokensInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceCreateNestedOneWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTwoFactorRememberTokensInput = {
@@ -1123,6 +1169,7 @@ export type UserUncheckedCreateWithoutTwoFactorRememberTokensInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
+  preferences?: Prisma.UserPreferenceUncheckedCreateNestedOneWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTwoFactorRememberTokensInput = {
@@ -1156,6 +1203,7 @@ export type UserUpdateWithoutTwoFactorRememberTokensInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUpdateOneWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTwoFactorRememberTokensInput = {
@@ -1173,6 +1221,95 @@ export type UserUncheckedUpdateWithoutTwoFactorRememberTokensInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
   twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
+  preferences?: Prisma.UserPreferenceUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutPreferencesInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  image?: string | null
+  passwordHash?: string | null
+  failedLoginCount?: number
+  lockedUntil?: Date | string | null
+  emailVerificationTokens?: Prisma.EmailVerificationTokenCreateNestedManyWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  twoFactorAuth?: Prisma.TwoFactorAuthCreateNestedOneWithoutUserInput
+  twoFactorChallenges?: Prisma.TwoFactorChallengeCreateNestedManyWithoutUserInput
+  twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutPreferencesInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  image?: string | null
+  passwordHash?: string | null
+  failedLoginCount?: number
+  lockedUntil?: Date | string | null
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  twoFactorAuth?: Prisma.TwoFactorAuthUncheckedCreateNestedOneWithoutUserInput
+  twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedCreateNestedManyWithoutUserInput
+  twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPreferencesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPreferencesInput, Prisma.UserUncheckedCreateWithoutPreferencesInput>
+}
+
+export type UserUpsertWithoutPreferencesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPreferencesInput, Prisma.UserUncheckedUpdateWithoutPreferencesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPreferencesInput, Prisma.UserUncheckedCreateWithoutPreferencesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPreferencesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPreferencesInput, Prisma.UserUncheckedUpdateWithoutPreferencesInput>
+}
+
+export type UserUpdateWithoutPreferencesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUpdateManyWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  twoFactorAuth?: Prisma.TwoFactorAuthUpdateOneWithoutUserNestedInput
+  twoFactorChallenges?: Prisma.TwoFactorChallengeUpdateManyWithoutUserNestedInput
+  twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPreferencesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  emailVerificationTokens?: Prisma.EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  twoFactorAuth?: Prisma.TwoFactorAuthUncheckedUpdateOneWithoutUserNestedInput
+  twoFactorChallenges?: Prisma.TwoFactorChallengeUncheckedUpdateManyWithoutUserNestedInput
+  twoFactorRememberTokens?: Prisma.TwoFactorRememberTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1267,6 +1404,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   twoFactorAuth?: boolean | Prisma.User$twoFactorAuthArgs<ExtArgs>
   twoFactorChallenges?: boolean | Prisma.User$twoFactorChallengesArgs<ExtArgs>
   twoFactorRememberTokens?: boolean | Prisma.User$twoFactorRememberTokensArgs<ExtArgs>
+  preferences?: boolean | Prisma.User$preferencesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1312,6 +1450,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   twoFactorAuth?: boolean | Prisma.User$twoFactorAuthArgs<ExtArgs>
   twoFactorChallenges?: boolean | Prisma.User$twoFactorChallengesArgs<ExtArgs>
   twoFactorRememberTokens?: boolean | Prisma.User$twoFactorRememberTokensArgs<ExtArgs>
+  preferences?: boolean | Prisma.User$preferencesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1327,6 +1466,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     twoFactorAuth: Prisma.$TwoFactorAuthPayload<ExtArgs> | null
     twoFactorChallenges: Prisma.$TwoFactorChallengePayload<ExtArgs>[]
     twoFactorRememberTokens: Prisma.$TwoFactorRememberTokenPayload<ExtArgs>[]
+    preferences: Prisma.$UserPreferencePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1738,6 +1878,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   twoFactorAuth<T extends Prisma.User$twoFactorAuthArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$twoFactorAuthArgs<ExtArgs>>): Prisma.Prisma__TwoFactorAuthClient<runtime.Types.Result.GetResult<Prisma.$TwoFactorAuthPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   twoFactorChallenges<T extends Prisma.User$twoFactorChallengesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$twoFactorChallengesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TwoFactorChallengePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   twoFactorRememberTokens<T extends Prisma.User$twoFactorRememberTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$twoFactorRememberTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TwoFactorRememberTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  preferences<T extends Prisma.User$preferencesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$preferencesArgs<ExtArgs>>): Prisma.Prisma__UserPreferenceClient<runtime.Types.Result.GetResult<Prisma.$UserPreferencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2328,6 +2469,25 @@ export type User$twoFactorRememberTokensArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.TwoFactorRememberTokenScalarFieldEnum | Prisma.TwoFactorRememberTokenScalarFieldEnum[]
+}
+
+/**
+ * User.preferences
+ */
+export type User$preferencesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserPreference
+   */
+  select?: Prisma.UserPreferenceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserPreference
+   */
+  omit?: Prisma.UserPreferenceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserPreferenceInclude<ExtArgs> | null
+  where?: Prisma.UserPreferenceWhereInput
 }
 
 /**

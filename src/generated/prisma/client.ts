@@ -91,3 +91,8 @@ export type TwoFactorChallenge = Prisma.TwoFactorChallengeModel
  * 
  */
 export type TwoFactorRememberToken = Prisma.TwoFactorRememberTokenModel
+/**
+ * Model UserPreference
+ * 
+ */
+export type UserPreference = Prisma.UserPreferenceModel
