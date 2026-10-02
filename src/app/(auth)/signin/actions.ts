@@ -55,26 +55,53 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
 );
 
 
-class AuthFlowError extends Error {}
+class AuthFlowError extends Error { }
+
+function loginFailure(error: string): LoginResult {
+    return {
+        success: false,
+        requiresTwoFactor: false,
+        rememberedDevice: false,
+        error,
+    };
+}
+function handleLoginError(
+    error: unknown,
+): LoginResult {
+    if (error instanceof AuthFlowError) {
+        return loginFailure(error.message);
+    }
+
+    console.error("LOGIN ERROR:", error);
+
+    return loginFailure(
+        "Something went wrong. Please try again.",
+    );
+}
+
+function twoFactorFailure(
+    error: string,
+): TwoFactorResult {
+    return {
+        success: false,
+        error,
+    };
+}
 
 
-function handleAuthError<T extends { success: false }>(
+function handleTwoFactorError(
     error: unknown,
     logMessage: string,
-): T {
+): TwoFactorResult {
     if (error instanceof AuthFlowError) {
-        return {
-            success: false,
-            error: error.message,
-        } as unknown as T;
+        return twoFactorFailure(error.message);
     }
 
     console.error(logMessage, error);
 
-    return {
-        success: false,
-        error: "Something went wrong. Please try again.",
-    } as unknown as T;
+    return twoFactorFailure(
+        "Something went wrong. Please try again.",
+    );
 }
 
 
@@ -311,7 +338,7 @@ export async function loginWithPassword(
             await bcrypt.compare(
                 plainPassword,
                 user?.passwordHash ??
-                    DUMMY_PASSWORD_HASH,
+                DUMMY_PASSWORD_HASH,
             );
 
         if (
@@ -319,7 +346,7 @@ export async function loginWithPassword(
             !user.passwordHash ||
             !passwordMatches
         ) {
-          
+
             await checkFailedLoginRateLimit(
                 normalizedEmail,
             );
@@ -355,7 +382,7 @@ export async function loginWithPassword(
                             lockedUntil:
                                 new Date(
                                     Date.now() +
-                                        LOCKOUT_DURATION,
+                                    LOCKOUT_DURATION,
                                 ),
                         },
                     });
@@ -432,10 +459,7 @@ export async function loginWithPassword(
             rememberedDevice: false,
         };
     } catch (error) {
-        return handleAuthError(
-            error,
-            "LOGIN ERROR:",
-        );
+        return handleLoginError(error);
     }
 }
 
@@ -549,7 +573,7 @@ export async function verifyLoginTwoFactor(
             rememberedDevice: rememberDevice,
         };
     } catch (error) {
-        return handleAuthError(
+        return handleTwoFactorError(
             error,
             "2FA VERIFY ERROR:",
         );
@@ -720,7 +744,7 @@ export async function verifyLoginBackupCode(
             rememberedDevice: rememberDevice,
         };
     } catch (error) {
-        return handleAuthError(
+        return handleTwoFactorError(
             error,
             "2FA BACKUP CODE ERROR:",
         );
