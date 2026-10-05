@@ -7,6 +7,7 @@ import {
     Home,
     LogOut,
     Settings,
+    BriefcaseBusiness,
 } from "lucide-react";
 import { focusRing, glass } from "@/app/style/ui-tokens"
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
@@ -47,6 +48,11 @@ export function Navbar({
                 href: "/dashboard",
                 label: "Dashboard",
                 icon: <Home className="size-[15px]" />,
+            },
+              {
+                href: "/workspace",
+                label: "Workspace",
+                icon: <BriefcaseBusiness className="size-[15px]" />,
             },
             {
                 href: "/settings",
