@@ -1725,6 +1725,7 @@ export type UserPreferenceScalarFieldEnum = (typeof UserPreferenceScalarFieldEnu
 export const WorkspaceScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  ownerId: 'ownerId',
   normalizedName: 'normalizedName',
   slug: 'slug',
   description: 'description',

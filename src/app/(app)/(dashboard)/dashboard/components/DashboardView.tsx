@@ -18,7 +18,7 @@ import type {
     RecentProject,
 } from "@/app/(app)/(dashboard)/dashboard/components/types";
 
-import { Kpi } from "./Kpi";
+import { Kpi } from "@/app/style/Kpi";
 import { ProjectRow } from "./ProjectRow";
 import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";

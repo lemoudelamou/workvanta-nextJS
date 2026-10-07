@@ -213,6 +213,7 @@ model UserPreference {
 model Workspace {
   id             String   @id @default(cuid())
   name           String
+  ownerId String
   normalizedName String   @unique
   slug           String   @unique
   description    String?

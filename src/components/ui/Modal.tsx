@@ -15,6 +15,7 @@ type ModalProps = {
     loadingLabel?: string;
     error?: string | null;
 
+    // @ts-ignore
     onConfirm: () => void | Promise<void>;
     onClose: () => void;
 };

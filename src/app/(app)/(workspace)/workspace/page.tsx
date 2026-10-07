@@ -7,7 +7,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Kpi } from "./components/Kpi";
+import { Kpi } from "@/app/style/Kpi";
 import { WorkspaceSection } from "./components/WorkspaceSection";
 import { NewWorkspaceTile } from "./components/NewWorspaceTile";
 import { WorkspaceRole } from "@/generated/prisma/enums";
