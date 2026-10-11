@@ -518,3 +518,217 @@ export async function sendEmailVerificationEmail({
         }),
     });
 }
+
+
+export async function sendWorkspaceInvitationEmail({
+                                                       email,
+                                                       workspaceName,
+                                                       invitationUrl,
+                                                   }: {
+    email: string;
+    workspaceName: string;
+    invitationUrl: string;
+}) {
+    const { transporter, from } = createTransporter();
+
+    const safeWorkspaceName = escapeHtml(workspaceName);
+
+    await transporter.sendMail({
+        from,
+        to: email,
+        subject: `You've been invited to ${workspaceName}`,
+
+        text: [
+            "You're invited to Workvanta.",
+            "",
+            `${workspaceName} has invited you to join their workspace.`,
+            "",
+            `Accept invitation: ${invitationUrl}`,
+            "",
+            "This invitation expires in 7 days.",
+            "",
+            "Workvanta",
+        ].join("\n"),
+
+        html: emailLayout({
+            content: `
+                <p
+                    style="
+                        margin:0 0 12px 0;
+                        font-size:13px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:#6b7280;
+                        text-transform:uppercase;
+                        letter-spacing:0.08em;
+                    "
+                >
+                    Workspace invitation
+                </p>
+
+                <h1
+                    style="
+                        margin:0 0 16px 0;
+                        font-size:28px;
+                        line-height:36px;
+                        color:#111827;
+                    "
+                >
+                    You're invited
+                </h1>
+
+                <p
+                    style="
+                        margin:0;
+                        font-size:16px;
+                        line-height:26px;
+                        color:#4b5563;
+                    "
+                >
+                    <strong style="color:#111827;">
+                        ${safeWorkspaceName}
+                    </strong>
+                    has invited you to join their Workvanta workspace.
+                </p>
+
+                ${primaryButton({
+                href: invitationUrl,
+                label: "Accept invitation",
+            })}
+
+                <p
+                    style="
+                        margin:28px 0 0 0;
+                        font-size:14px;
+                        line-height:22px;
+                        color:#6b7280;
+                    "
+                >
+                    This invitation expires in 7 days.
+                </p>
+
+                <p
+                    style="
+                        margin:20px 0 0 0;
+                        font-size:13px;
+                        line-height:21px;
+                        color:#9ca3af;
+                    "
+                >
+                    If you were not expecting this invitation, you can safely
+                    ignore this email.
+                </p>
+            `,
+        }),
+    });
+}
+
+export async function sendProjectInvitationEmail({
+                                                     email,
+                                                     workspaceName,
+                                                     projectName,
+                                                     invitationUrl,
+                                                 }: {
+    email: string;
+    workspaceName: string;
+    projectName: string;
+    invitationUrl: string;
+}) {
+    const { transporter, from } = createTransporter();
+
+    const safeWorkspaceName = escapeHtml(workspaceName);
+    const safeProjectName = escapeHtml(projectName);
+
+    await transporter.sendMail({
+        from,
+        to: email,
+        subject: `You've been invited to the "${projectName}" project`,
+
+        text: [
+            "You're invited to Workvanta.",
+            "",
+            `${workspaceName} has invited you to join the "${projectName}" project.`,
+            "",
+            `Accept invitation: ${invitationUrl}`,
+            "",
+            "This invitation expires in 7 days.",
+            "",
+            "Workvanta",
+        ].join("\n"),
+
+        html: emailLayout({
+            content: `
+                <p
+                    style="
+                        margin:0 0 12px 0;
+                        font-size:13px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:#6b7280;
+                        text-transform:uppercase;
+                        letter-spacing:0.08em;
+                    "
+                >
+                    Project invitation
+                </p>
+
+                <h1
+                    style="
+                        margin:0 0 16px 0;
+                        font-size:28px;
+                        line-height:36px;
+                        color:#111827;
+                    "
+                >
+                    You're invited
+                </h1>
+
+                <p
+                    style="
+                        margin:0;
+                        font-size:16px;
+                        line-height:26px;
+                        color:#4b5563;
+                    "
+                >
+                    <strong style="color:#111827;">
+                        ${safeWorkspaceName}
+                    </strong>
+                    has invited you to join the
+                    <strong style="color:#111827;">
+                        ${safeProjectName}
+                    </strong>
+                    project on Workvanta.
+                </p>
+
+                ${primaryButton({
+                href: invitationUrl,
+                label: "Accept invitation",
+            })}
+
+                <p
+                    style="
+                        margin:28px 0 0 0;
+                        font-size:14px;
+                        line-height:22px;
+                        color:#6b7280;
+                    "
+                >
+                    This invitation expires in 7 days.
+                </p>
+
+                <p
+                    style="
+                        margin:20px 0 0 0;
+                        font-size:13px;
+                        line-height:21px;
+                        color:#9ca3af;
+                    "
+                >
+                    If you were not expecting this invitation, you can safely
+                    ignore this email.
+                </p>
+            `,
+        }),
+    });
+}
