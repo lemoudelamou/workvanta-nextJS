@@ -44,7 +44,7 @@ export function ProjectCard({
 
     return (
         <Link
-            href={`/workspace/${workspaceSlug}/projects/${project.id}`}
+            href={`/workspace/${workspaceSlug}/project/${project.id}`}
             className="
                 group block h-full rounded-2xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring

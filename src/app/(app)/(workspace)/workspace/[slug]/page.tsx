@@ -104,7 +104,7 @@ export default async function WorkspacePage({
     const accessibleCount = projects.filter((p) => p.accessible).length;
 
     const canCreateProject = !isGuest;
-    const newProjectHref = `/workspace/${workspace.slug}/projects/new`;
+    const newProjectHref = `/workspace/${workspace.slug}/project/new`;
     const roleLabel = role[0] + role.slice(1).toLowerCase();
 
     return (
