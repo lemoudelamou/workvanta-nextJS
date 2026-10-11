@@ -47,6 +47,31 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
+ * Model Workspace
+ * 
+ */
+export type Workspace = Prisma.WorkspaceModel
+/**
+ * Model WorkspaceMember
+ * 
+ */
+export type WorkspaceMember = Prisma.WorkspaceMemberModel
+/**
+ * Model Project
+ * 
+ */
+export type Project = Prisma.ProjectModel
+/**
+ * Model ProjectMember
+ * 
+ */
+export type ProjectMember = Prisma.ProjectMemberModel
+/**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
  * Model EmailVerificationToken
  * 
  */
@@ -97,22 +122,37 @@ export type TwoFactorRememberToken = Prisma.TwoFactorRememberTokenModel
  */
 export type UserPreference = Prisma.UserPreferenceModel
 /**
- * Model Workspace
+ * Model NotificationPreference
  * 
  */
-export type Workspace = Prisma.WorkspaceModel
+export type NotificationPreference = Prisma.NotificationPreferenceModel
 /**
- * Model WorkspaceMember
+ * Model Invitation
  * 
  */
-export type WorkspaceMember = Prisma.WorkspaceMemberModel
+export type Invitation = Prisma.InvitationModel
 /**
- * Model Project
+ * Model Activity
  * 
  */
-export type Project = Prisma.ProjectModel
+export type Activity = Prisma.ActivityModel
 /**
- * Model ProjectMember
+ * Model Subtask
  * 
  */
-export type ProjectMember = Prisma.ProjectMemberModel
+export type Subtask = Prisma.SubtaskModel
+/**
+ * Model Comment
+ * 
+ */
+export type Comment = Prisma.CommentModel
+/**
+ * Model Attachment
+ * 
+ */
+export type Attachment = Prisma.AttachmentModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel

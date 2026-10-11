@@ -18,6 +18,15 @@ export const ThemePreference = {
 export type ThemePreference = (typeof ThemePreference)[keyof typeof ThemePreference]
 
 
+export const DateFormatPreference = {
+  DD_MM_YYYY: 'DD_MM_YYYY',
+  MM_DD_YYYY: 'MM_DD_YYYY',
+  YYYY_MM_DD: 'YYYY_MM_DD'
+} as const
+
+export type DateFormatPreference = (typeof DateFormatPreference)[keyof typeof DateFormatPreference]
+
+
 export const WorkspaceRole = {
   OWNER: 'OWNER',
   ADMIN: 'ADMIN',
@@ -29,7 +38,7 @@ export type WorkspaceRole = (typeof WorkspaceRole)[keyof typeof WorkspaceRole]
 
 
 export const ProjectRole = {
-  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
   EDITOR: 'EDITOR',
   VIEWER: 'VIEWER'
 } as const
@@ -43,3 +52,34 @@ export const ProjectVisibility = {
 } as const
 
 export type ProjectVisibility = (typeof ProjectVisibility)[keyof typeof ProjectVisibility]
+
+
+export const TaskStatus = {
+  TODO: 'TODO',
+  IN_PROGRESS: 'IN_PROGRESS',
+  IN_REVIEW: 'IN_REVIEW',
+  DONE: 'DONE'
+} as const
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
+
+
+export const TaskPriority = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority]
+
+
+export const NotificationType = {
+  TASK_ASSIGNED: 'TASK_ASSIGNED',
+  TASK_COMMENTED: 'TASK_COMMENTED',
+  MENTION: 'MENTION',
+  PROJECT_UPDATED: 'PROJECT_UPDATED',
+  INVITATION: 'INVITATION'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

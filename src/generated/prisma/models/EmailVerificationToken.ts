@@ -381,10 +381,6 @@ export type EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.EmailVerificationTokenScalarWhereInput | Prisma.EmailVerificationTokenScalarWhereInput[]
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type EmailVerificationTokenCreateWithoutUserInput = {
   id?: string
   tokenHash: string

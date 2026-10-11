@@ -237,7 +237,7 @@ export type ProjectMemberCreateInput = {
   role?: $Enums.ProjectRole
   createdAt?: Date | string
   project: Prisma.ProjectCreateNestedOneWithoutMembersInput
-  user: Prisma.UserCreateNestedOneWithoutProjectMembersInput
+  user: Prisma.UserCreateNestedOneWithoutProjectMembershipsInput
 }
 
 export type ProjectMemberUncheckedCreateInput = {
@@ -253,7 +253,7 @@ export type ProjectMemberUpdateInput = {
   role?: Prisma.EnumProjectRoleFieldUpdateOperationsInput | $Enums.ProjectRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutMembersNestedInput
-  user?: Prisma.UserUpdateOneRequiredWithoutProjectMembersNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutProjectMembershipsNestedInput
 }
 
 export type ProjectMemberUncheckedUpdateInput = {
@@ -468,7 +468,7 @@ export type ProjectMemberCreateWithoutProjectInput = {
   id?: string
   role?: $Enums.ProjectRole
   createdAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutProjectMembersInput
+  user: Prisma.UserCreateNestedOneWithoutProjectMembershipsInput
 }
 
 export type ProjectMemberUncheckedCreateWithoutProjectInput = {
@@ -543,7 +543,7 @@ export type ProjectMemberUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumProjectRoleFieldUpdateOperationsInput | $Enums.ProjectRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutProjectMembersNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutProjectMembershipsNestedInput
 }
 
 export type ProjectMemberUncheckedUpdateWithoutProjectInput = {
