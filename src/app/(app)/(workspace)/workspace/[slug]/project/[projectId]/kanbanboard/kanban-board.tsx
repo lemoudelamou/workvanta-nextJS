@@ -1,0 +1,547 @@
+"use client";
+
+import { useMemo, useRef, useState, useTransition } from "react";
+import {
+    DndContext,
+    DragOverlay,
+    KeyboardSensor,
+    PointerSensor,
+    closestCorners,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    type DragOverEvent,
+    type DragStartEvent,
+} from "@dnd-kit/core";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Filter, Plus, Search, UserRound, X } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { buttonStyles } from "@/app/style/button-style";
+import type { TaskFormMember } from "@/components/ui/TaskFormFields";
+import { TASK_COLUMNS, TASK_STATUSES, type TaskStatus } from "@/lib/task-status";
+import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
+import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
+import { getPriorityLabel, getStatusLabel, getAssigneeLabel } from "./kanban-helpers";
+import { findColumn, groupTasks, idsOf } from "./board-utils";
+import { Column } from "./kanban-column";
+import { FilterChip } from "./filter-chip";
+import { FilterSelect } from "./filter-select";
+import { TaskCard } from "./task-card";
+import type { BoardTask, Columns, Filters } from "./kanban-types";
+
+export type { BoardTask } from "./kanban-types";
+
+const EMPTY_FILTERS: Filters = {
+    search: "",
+    priority: "ALL",
+    status: "ALL",
+    assignee: "ALL",
+};
+
+export function KanbanBoard({
+                                slug,
+                                projectId,
+                                tasks,
+                                members,
+                                canEdit,
+                            }: {
+    slug: string;
+    projectId: string;
+    tasks: BoardTask[];
+    members: TaskFormMember[];
+    canEdit: boolean;
+}) {
+    const [columns, setColumns] = useState(() => groupTasks(tasks));
+    const [syncedFrom, setSyncedFrom] = useState(tasks);
+
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const [dialog, setDialog] = useState<{ open: boolean; status: TaskStatus }>({
+        open: false,
+        status: "TODO",
+    });
+
+    const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    const [showFilters, setShowFilters] = useState(false);
+
+    const [, startTransition] = useTransition();
+
+    const dragStart = useRef<{
+        status: TaskStatus;
+        snapshot: Columns;
+    } | null>(null);
+
+    if (tasks !== syncedFrom) {
+        setSyncedFrom(tasks);
+        setColumns(groupTasks(tasks));
+    }
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 4 },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+    );
+
+    const allTasks = useMemo(
+        () => TASK_STATUSES.flatMap((status) => columns[status]),
+        [columns],
+    );
+
+    const filteredTasks = useMemo(() => {
+        const search = filters.search.trim().toLowerCase();
+
+        return allTasks.filter((task) => {
+            const matchesSearch =
+                !search || task.title.toLowerCase().includes(search);
+
+            const matchesPriority =
+                filters.priority === "ALL" || task.priority === filters.priority;
+
+            const matchesStatus =
+                filters.status === "ALL" || task.status === filters.status;
+
+            const matchesAssignee =
+                filters.assignee === "ALL" ||
+                (filters.assignee === "UNASSIGNED"
+                    ? !task.assignee
+                    : task.assignee?.email === filters.assignee);
+
+            return (
+                matchesSearch &&
+                matchesPriority &&
+                matchesStatus &&
+                matchesAssignee
+            );
+        });
+    }, [allTasks, filters]);
+
+    const filteredColumns = useMemo(() => {
+        const filteredIds = new Set(filteredTasks.map((task) => task.id));
+
+        return Object.fromEntries(
+            TASK_STATUSES.map((status) => [
+                status,
+                columns[status].filter((task) => filteredIds.has(task.id)),
+            ]),
+        ) as Columns;
+    }, [columns, filteredTasks]);
+
+    const hasFilters =
+        filters.search.trim() !== "" ||
+        filters.priority !== "ALL" ||
+        filters.status !== "ALL" ||
+        filters.assignee !== "ALL";
+
+    const uniqueAssignees = useMemo(() => {
+        const map = new Map<string, { email: string; name: string | null }>();
+
+        for (const task of allTasks) {
+            if (!task.assignee) continue;
+
+            if (!map.has(task.assignee.email)) {
+                map.set(task.assignee.email, {
+                    email: task.assignee.email,
+                    name: task.assignee.name,
+                });
+            }
+        }
+
+        return Array.from(map.values()).sort((a, b) =>
+            (a.name ?? a.email).localeCompare(b.name ?? b.email),
+        );
+    }, [allTasks]);
+
+    function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
+        setFilters((current) => ({ ...current, [key]: value }));
+    }
+
+    function clearFilters() {
+        setFilters(EMPTY_FILTERS);
+    }
+
+    function openDialog(status: TaskStatus) {
+        setDialog({ open: true, status });
+    }
+
+    function closeDialog() {
+        setDialog((current) => ({ ...current, open: false }));
+    }
+
+    function handleDragStart({ active }: DragStartEvent) {
+        const id = String(active.id);
+        const status = findColumn(columns, id);
+
+        if (!status) return;
+
+        dragStart.current = { status, snapshot: columns };
+
+        setActiveId(id);
+        setError(null);
+    }
+
+    function handleDragOver({ active, over }: DragOverEvent) {
+        if (!over) return;
+
+        const activeKey = String(active.id);
+        const overKey = String(over.id);
+
+        setColumns((prev) => {
+            const from = findColumn(prev, activeKey);
+            const to = findColumn(prev, overKey);
+
+            if (!from || !to || from === to) {
+                return prev;
+            }
+
+            const item = prev[from].find((task) => task.id === activeKey);
+
+            if (!item) return prev;
+
+            const overIndex = prev[to].findIndex((task) => task.id === overKey);
+            const insertAt = overIndex >= 0 ? overIndex : prev[to].length;
+
+            return {
+                ...prev,
+                [from]: prev[from].filter((task) => task.id !== activeKey),
+                [to]: [
+                    ...prev[to].slice(0, insertAt),
+                    { ...item, status: to },
+                    ...prev[to].slice(insertAt),
+                ],
+            };
+        });
+    }
+
+    function handleDragEnd({ active, over }: DragEndEvent) {
+        const start = dragStart.current;
+
+        dragStart.current = null;
+        setActiveId(null);
+
+        if (!start) return;
+
+        const taskId = String(active.id);
+        const to = findColumn(columns, taskId);
+
+        if (!to) return;
+
+        let next = columns;
+
+        if (over) {
+            const overId = String(over.id);
+
+            if (findColumn(columns, overId) === to) {
+                const oldIndex = columns[to].findIndex((task) => task.id === taskId);
+                const newIndex = columns[to].findIndex((task) => task.id === overId);
+
+                if (newIndex >= 0 && oldIndex !== newIndex) {
+                    next = {
+                        ...columns,
+                        [to]: arrayMove(columns[to], oldIndex, newIndex),
+                    };
+                }
+            }
+        }
+
+        setColumns(next);
+
+        const from = start.status;
+        const sameColumn = from === to;
+
+        if (
+            sameColumn &&
+            idsOf(next[to]).join() === idsOf(start.snapshot[to]).join()
+        ) {
+            return;
+        }
+
+        startTransition(async () => {
+            try {
+                await moveCardAction(slug, projectId, taskId, to);
+            } catch {
+                setColumns(start.snapshot);
+                setError("Couldn't move that task. Please try again.");
+            }
+        });
+    }
+
+    function handleDragCancel() {
+        if (dragStart.current) {
+            setColumns(dragStart.current.snapshot);
+        }
+
+        dragStart.current = null;
+        setActiveId(null);
+    }
+
+    const activeTask = activeId
+        ? (allTasks.find((task) => task.id === activeId) ?? null)
+        : null;
+
+    const activeFilterCount = [
+        filters.search,
+        filters.priority !== "ALL" ? filters.priority : "",
+        filters.status !== "ALL" ? filters.status : "",
+        filters.assignee !== "ALL" ? filters.assignee : "",
+    ].filter(Boolean).length;
+
+    return (
+        <div>
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold">Tasks</h2>
+
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/[0.06] dark:text-slate-400">
+                            {hasFilters
+                                ? `${filteredTasks.length}/${allTasks.length}`
+                                : allTasks.length}
+                        </span>
+                    </div>
+
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {canEdit
+                            ? "Drag cards to change status or reorder them."
+                            : "You have view-only access to this board."}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters((value) => !value)}
+                        className={cn(
+                            buttonStyles(),
+                            "gap-2",
+                            showFilters &&
+                            "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/10 dark:text-violet-300",
+                        )}
+                    >
+                        <Filter className="size-4" />
+                        Filters
+                        {hasFilters && (
+                            <span className="flex size-5 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {canEdit && (
+                        <button
+                            type="button"
+                            onClick={() => openDialog("TODO")}
+                            className={buttonStyles()}
+                        >
+                            <Plus className="size-4" />
+                            New task
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {showFilters && (
+                <div className="mb-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+
+                            <input
+                                type="text"
+                                value={filters.search}
+                                onChange={(event) =>
+                                    updateFilter("search", event.target.value)
+                                }
+                                placeholder="Search tasks..."
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/[0.06]"
+                            />
+                        </div>
+
+                        <FilterSelect
+                            icon={<span className="size-2 rounded-full bg-amber-500" />}
+                            value={filters.priority}
+                            onChange={(value) => updateFilter("priority", value)}
+                        >
+                            <option value="ALL">All priorities</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                        </FilterSelect>
+
+                        <FilterSelect
+                            icon={<span className="size-2 rounded-full bg-blue-500" />}
+                            value={filters.status}
+                            onChange={(value) => updateFilter("status", value)}
+                        >
+                            <option value="ALL">All statuses</option>
+                            {TASK_COLUMNS.map((column) => (
+                                <option key={column.status} value={column.status}>
+                                    {column.label}
+                                </option>
+                            ))}
+                        </FilterSelect>
+
+                        <FilterSelect
+                            icon={<UserRound className="size-3.5 text-slate-400" />}
+                            value={filters.assignee}
+                            onChange={(value) => updateFilter("assignee", value)}
+                        >
+                            <option value="ALL">All assignees</option>
+                            <option value="UNASSIGNED">Unassigned</option>
+                            {uniqueAssignees.map((assignee) => (
+                                <option key={assignee.email} value={assignee.email}>
+                                    {assignee.name ?? assignee.email}
+                                </option>
+                            ))}
+                        </FilterSelect>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/[0.06]">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Showing{" "}
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                {filteredTasks.length}
+                            </span>{" "}
+                            of{" "}
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                {allTasks.length}
+                            </span>{" "}
+                            tasks
+                        </p>
+
+                        {hasFilters && (
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            >
+                                <X className="size-3.5" />
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {hasFilters && !showFilters && (
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                    {filters.search && (
+                        <FilterChip
+                            label={`Search: ${filters.search}`}
+                            onRemove={() => updateFilter("search", "")}
+                        />
+                    )}
+
+                    {filters.priority !== "ALL" && (
+                        <FilterChip
+                            label={`Priority: ${getPriorityLabel(filters.priority)}`}
+                            onRemove={() => updateFilter("priority", "ALL")}
+                        />
+                    )}
+
+                    {filters.status !== "ALL" && (
+                        <FilterChip
+                            label={`Status: ${getStatusLabel(filters.status)}`}
+                            onRemove={() => updateFilter("status", "ALL")}
+                        />
+                    )}
+
+                    {filters.assignee !== "ALL" && (
+                        <FilterChip
+                            label={`Assignee: ${
+                                filters.assignee === "UNASSIGNED"
+                                    ? "Unassigned"
+                                    : getAssigneeLabel(filters.assignee, uniqueAssignees)
+                            }`}
+                            onRemove={() => updateFilter("assignee", "ALL")}
+                        />
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-medium text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-200"
+                    >
+                        Clear all
+                    </button>
+                </div>
+            )}
+
+            {error && (
+                <p
+                    role="alert"
+                    className="mb-4 rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-300"
+                >
+                    {error}
+                </p>
+            )}
+
+            {filteredTasks.length === 0 && allTasks.length > 0 && (
+                <div className="mb-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                    <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/[0.06]">
+                        <Search className="size-5 text-slate-400" />
+                    </div>
+
+                    <h3 className="mt-3 text-sm font-semibold">No tasks found</h3>
+
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Try changing your filters or search.
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="mt-4 text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300"
+                    >
+                        Clear filters
+                    </button>
+                </div>
+            )}
+
+            <DndContext
+                id="project-kanban"
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+            >
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {TASK_COLUMNS.map((column) => (
+                        <Column
+                            key={column.status}
+                            status={column.status}
+                            label={column.label}
+                            tasks={filteredColumns[column.status]}
+                            slug={slug}
+                            projectId={projectId}
+                            canEdit={canEdit}
+                            onAdd={openDialog}
+                        />
+                    ))}
+                </div>
+
+                <DragOverlay>
+                    {activeTask ? <TaskCard task={activeTask} overlay /> : null}
+                </DragOverlay>
+            </DndContext>
+
+            {canEdit && (
+                <CreateTaskDialog
+                    open={dialog.open}
+                    onClose={closeDialog}
+                    slug={slug}
+                    projectId={projectId}
+                    defaultStatus={dialog.status}
+                    members={members}
+                />
+            )}
+        </div>
+    );
+}
