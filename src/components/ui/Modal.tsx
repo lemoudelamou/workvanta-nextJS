@@ -15,7 +15,6 @@ type ModalProps = {
     loadingLabel?: string;
     error?: string | null;
 
-    // @ts-ignore
     onConfirm: () => void | Promise<void>;
     onClose: () => void;
 };
@@ -44,8 +43,12 @@ export default function Modal({
     const closeRef = useRef(onClose);
     const isLoadingRef = useRef(loading);
 
-    closeRef.current = onClose;
-    isLoadingRef.current = loading;
+    // Keep the latest callbacks for the keyboard handler without re-running
+    // the open/close effect. Updated after render, as React requires.
+    useEffect(() => {
+        closeRef.current = onClose;
+        isLoadingRef.current = loading;
+    });
 
     useEffect(() => {
         if (!open) {

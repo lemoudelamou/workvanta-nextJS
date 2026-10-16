@@ -1,4 +1,4 @@
-import { MessageSquare, Paperclip, Pencil, TriangleAlert } from "lucide-react";
+import { Paperclip, Pencil, TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";

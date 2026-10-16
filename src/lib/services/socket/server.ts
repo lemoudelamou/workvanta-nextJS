@@ -190,6 +190,7 @@ type RealtimeEvent = {
         | "workspace-access-revoked"
         | "session-revoked";
     workspaceId?: string;
+    recipientIds?: string[];
     data: {
         userId?: string;
         sessionId?: string;
@@ -215,12 +216,18 @@ function handleRealtimeMessage(channel: string, message: string) {
 
     switch (event.type) {
         case "comment-created": {
-            if (!event.workspaceId) {
-                console.error("Comment event is missing workspaceId:", event);
+            // Delivered per user, never to the whole workspace: private
+            // projects must not leak activity to people who can't open them.
+            const recipients = Array.isArray(event.recipientIds)
+                ? event.recipientIds.filter((id): id is string => typeof id === "string")
+                : [];
+
+            if (recipients.length === 0) {
+                console.error("Comment event has no recipients:", event);
                 return;
             }
 
-            io.to(workspaceRoom(event.workspaceId)).emit("comment-created", event.data);
+            io.to(recipients.map(userRoom)).emit("comment-created", event.data);
             return;
         }
 

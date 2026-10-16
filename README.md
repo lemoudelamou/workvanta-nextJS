@@ -237,7 +237,7 @@ src/
 npm test
 ```
 
-GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the tests, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint also runs there but doesn't block merges yet, because the codebase still has existing lint errors.
+GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the tests, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error.
 
 Tests sit next to the code they cover, as `*.test.ts(x)` files. Pages and server actions are tested with mocked Prisma and auth. The permission rules have their own unit tests in `src/lib/auth/permissions.test.ts`.
 

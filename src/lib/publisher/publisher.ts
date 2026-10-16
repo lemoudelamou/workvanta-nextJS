@@ -14,6 +14,8 @@ export type RealtimeEvent =
     | {
     type: "comment-created";
     workspaceId: string;
+    /** Only these users receive the event: people who can open the project. */
+    recipientIds: string[];
     data: {
         commentId: string;
         taskId: string;
