@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
     Activity as ActivityGlyph,
     ArrowRight,
@@ -29,6 +30,9 @@ type Activity = {
 
 type ActivitySectionProps = {
     activities: Activity[];
+    /** Total entries on the task; more than shown adds a "show all" link. */
+    totalCount?: number;
+    showAllHref?: string;
 };
 
 type ActivityMetadata = {
@@ -109,7 +113,13 @@ function getActivityText({ action, metadata }: Activity) {
     }
 }
 
-export function ActivitySection({ activities }: ActivitySectionProps) {
+export function ActivitySection({
+    activities,
+    totalCount = activities.length,
+    showAllHref,
+}: ActivitySectionProps) {
+    const hiddenCount = Math.max(0, totalCount - activities.length);
+
     return (
         <section
             className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-2xl`}
@@ -180,6 +190,18 @@ export function ActivitySection({ activities }: ActivitySectionProps) {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {hiddenCount > 0 && showAllHref && (
+                <div className="border-t border-slate-200/70 px-5 py-3 text-center sm:px-6 dark:border-white/[0.06]">
+                    <Link
+                        href={showAllHref}
+                        scroll={false}
+                        className="text-sm font-medium text-slate-600 hover:text-slate-950 hover:underline dark:text-slate-300 dark:hover:text-white"
+                    >
+                        Show {hiddenCount} older {hiddenCount === 1 ? "change" : "changes"}
+                    </Link>
                 </div>
             )}
         </section>

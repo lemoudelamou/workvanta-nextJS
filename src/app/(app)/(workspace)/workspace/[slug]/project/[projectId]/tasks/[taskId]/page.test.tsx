@@ -88,11 +88,16 @@ jest.mock("./components/comment-section", () => ({
                           members,
                           deleteComment,
                           updateComment,
+                          totalCount,
+                          showAllHref,
                       }: any) => (
         <div
             data-testid="comments"
             data-user={currentUserId}
             data-count={comments.length}
+            data-total={totalCount}
+            data-href={showAllHref}
+            data-order={comments.map((c: any) => c.id).join(",")}
             data-members={members.length}
         >
             {form}
@@ -113,8 +118,13 @@ jest.mock("./components/subtasks-section", () => ({
     ),
 }));
 jest.mock("./components/activity-section", () => ({
-    ActivitySection: ({ activities }: any) => (
-        <div data-testid="activity" data-count={activities.length} />
+    ActivitySection: ({ activities, totalCount, showAllHref }: any) => (
+        <div
+            data-testid="activity"
+            data-count={activities.length}
+            data-total={totalCount}
+            data-href={showAllHref}
+        />
     ),
 }));
 jest.mock("./components/attachement-upload", () => ({
@@ -168,8 +178,8 @@ const NOW = new Date("2026-10-16T12:00:00Z");
 const ada = { id: "u2", name: "Ada Lovelace", email: "ada@x.com", image: null };
 const bob = { id: "u3", name: null, email: "bob@x.com", image: null };
 
-function makeTask(overrides: Record<string, unknown> = {}) {
-    return {
+function makeTask(overrides: Record<string, any> = {}) {
+    const task = {
         id: "t1",
         title: "Ship it",
         description: "Line one\nLine two",
@@ -187,11 +197,20 @@ function makeTask(overrides: Record<string, unknown> = {}) {
         activities: [],
         ...overrides,
     };
+    return {
+        ...task,
+        _count: {
+            comments: task.comments.length,
+            activities: task.activities.length,
+            ...overrides._count,
+        },
+    };
 }
 
-async function renderPage() {
+async function renderPage(query: { comments?: string; activity?: string } = {}) {
     const ui = await TaskPage({
         params: Promise.resolve({ slug: "acme", projectId: "p1", taskId: "t1" }),
+        searchParams: Promise.resolve(query),
     });
     return render(ui);
 }
@@ -639,5 +658,53 @@ describe("TaskPage – edit panel and danger zone", () => {
 
         expect(screen.getByText("Delete this task")).toBeInTheDocument();
         expect(actions.deleteTask).toHaveBeenCalledWith("acme", "p1", "t1");
+    });
+});
+
+describe("TaskPage – long discussions", () => {
+    const include = () => db.task.findFirst.mock.calls[0][0].include;
+
+    it("loads only the newest 50 comments and 20 activity entries by default", async () => {
+        await renderPage();
+
+        expect(include().comments).toMatchObject({ orderBy: { createdAt: "desc" }, take: 50 });
+        expect(include().activities).toMatchObject({ orderBy: { createdAt: "desc" }, take: 20 });
+        expect(include()._count).toEqual({ select: { comments: true, activities: true } });
+    });
+
+    it("loads everything when asked", async () => {
+        await renderPage({ comments: "all", activity: "all" });
+
+        expect(include().comments).not.toHaveProperty("take");
+        expect(include().activities).not.toHaveProperty("take");
+    });
+
+    it("shows comments oldest-first and passes the real totals", async () => {
+        db.task.findFirst.mockResolvedValue(
+            makeTask({
+                comments: [{ id: "c3" }, { id: "c2" }],
+                _count: { comments: 120, activities: 45 },
+            }),
+        );
+
+        await renderPage();
+
+        const comments = screen.getByTestId("comments");
+        expect(comments).toHaveAttribute("data-order", "c2,c3");
+        expect(comments).toHaveAttribute("data-total", "120");
+        expect(comments).toHaveAttribute(
+            "data-href",
+            "/workspace/acme/project/p1/tasks/t1?comments=all",
+        );
+        expect(screen.getByTestId("activity")).toHaveAttribute("data-total", "45");
+    });
+
+    it("keeps the other list expanded when expanding one", async () => {
+        await renderPage({ activity: "all" });
+
+        expect(screen.getByTestId("comments")).toHaveAttribute(
+            "data-href",
+            "/workspace/acme/project/p1/tasks/t1?comments=all&activity=all",
+        );
     });
 });

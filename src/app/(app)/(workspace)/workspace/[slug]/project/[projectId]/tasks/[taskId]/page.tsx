@@ -166,14 +166,29 @@ function Field({
 
 type TaskPageProps = {
     params: Promise<{ slug: string; projectId: string; taskId: string }>;
+    searchParams?: Promise<{ comments?: string; activity?: string }>;
 };
 
-export default async function TaskPage({ params }: TaskPageProps) {
+/** Newest comments / activity entries shown before "show all". */
+const COMMENT_PAGE_SIZE = 50;
+const ACTIVITY_PAGE_SIZE = 20;
+
+export default async function TaskPage({ params, searchParams }: TaskPageProps) {
     const session = await getSession();
     if (!session?.user?.id) redirect("/signin");
 
     const userId = session.user.id;
     const { slug, projectId, taskId } = await params;
+    const query = (await searchParams) ?? {};
+    const showAllComments = query.comments === "all";
+    const showAllActivity = query.activity === "all";
+    const taskHref = `/workspace/${slug}/project/${projectId}/tasks/${taskId}`;
+    const withParam = (key: string) => {
+        const next = new URLSearchParams();
+        if (showAllComments || key === "comments") next.set("comments", "all");
+        if (showAllActivity || key === "activity") next.set("activity", "all");
+        return `${taskHref}?${next.toString()}`;
+    };
 
     // Check project access first so private projects never load task data
     // for people who can't open them.
@@ -214,15 +229,19 @@ export default async function TaskPage({ params }: TaskPageProps) {
             creator: true,
             assignee: true,
             subtasks: { orderBy: { position: "asc" } },
+            // Newest first so "take" keeps the latest; flipped back below.
             comments: {
-                orderBy: { createdAt: "asc" },
+                orderBy: { createdAt: "desc" },
+                ...(showAllComments ? {} : { take: COMMENT_PAGE_SIZE }),
                 include: { author: { select: USER_SELECT } },
             },
             attachments: { orderBy: { createdAt: "desc" } },
             activities: {
                 orderBy: { createdAt: "desc" },
+                ...(showAllActivity ? {} : { take: ACTIVITY_PAGE_SIZE }),
                 include: { user: { select: USER_SELECT } },
             },
+            _count: { select: { comments: true, activities: true } },
         },
     });
 
@@ -394,7 +413,9 @@ export default async function TaskPage({ params }: TaskPageProps) {
                     <div className="relative z-20">
                         <CommentsSection
                             form={<CommentForm action={createComment} members={people} />}
-                            comments={task.comments}
+                            comments={[...task.comments].reverse()}
+                            totalCount={task._count.comments}
+                            showAllHref={withParam("comments")}
                             currentUserId={userId}
                             deleteComment={deleteComment}
                             updateComment={updateComment}
@@ -404,7 +425,11 @@ export default async function TaskPage({ params }: TaskPageProps) {
                     </div>
 
                     <div className="relative z-0">
-                        <ActivitySection activities={task.activities} />
+                        <ActivitySection
+                            activities={task.activities}
+                            totalCount={task._count.activities}
+                            showAllHref={withParam("activity")}
+                        />
                     </div>
                 </div>
 
