@@ -3,6 +3,8 @@
 import { useTransition } from "react";
 import { Globe2, Lock } from "lucide-react";
 
+import { buttonStyles } from "@/app/style/button-style";
+
 export function ToggleVisibilityButton({
                                                   visibility,
                                                   onToggle,
@@ -26,17 +28,17 @@ export function ToggleVisibilityButton({
             disabled={isPending}
             title={
                 isPrivate
-                    ? "Only invited members can view this project"
-                    : "Visible to everyone in the workspace"
+                    ? "Only people added to this project can see it. Click to share it with the whole workspace."
+                    : "Everyone in the workspace can see this project. Click to make it private."
             }
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className={buttonStyles({ variant: "secondary" })}
         >
             {isPrivate ? (
-                <Lock className="size-4" />
+                <Lock className="size-4" aria-hidden="true" />
             ) : (
-                <Globe2 className="size-4" />
+                <Globe2 className="size-4" aria-hidden="true" />
             )}
-            {isPending ? "Updating…" : isPrivate ? "Private" : "Workspace"}
+            {isPending ? "Updating…" : isPrivate ? "Private" : "Visible to workspace"}
         </button>
     );
 }

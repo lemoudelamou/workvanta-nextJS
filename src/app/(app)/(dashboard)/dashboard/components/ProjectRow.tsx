@@ -55,7 +55,7 @@ export function ProjectRow({ project }: { project: RecentProject }) {
             href={`/workspace/${project.workspace.slug}`}
             style={accentVars(accentFor(project.workspace.slug))}
             className="
-                group flex items-center gap-4 rounded-xl px-3 py-3.5
+                group flex items-center gap-3 rounded-lg px-2.5 py-3 sm:gap-4 sm:px-3 sm:py-3.5
                 outline-none transition-colors
                 hover:bg-[rgb(var(--accent)/0.07)]
                 focus-visible:bg-[rgb(var(--accent)/0.07)]
@@ -74,10 +74,9 @@ export function ProjectRow({ project }: { project: RecentProject }) {
                     <VisibilityPill visibility={project.visibility} />
                 </div>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/70">
+                    <span className="mr-2 font-medium text-foreground/70">
                         {project.workspace.name}
                     </span>
-                    {"  "}
                     {project.description || "No description yet"}
                 </p>
             </div>

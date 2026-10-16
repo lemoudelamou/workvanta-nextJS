@@ -36,9 +36,9 @@ const variantConfig: Record<
     error: {
         icon: AlertTriangle,
         container:
-            "border-rose-500/30 bg-rose-50 dark:border-rose-400/30 dark:bg-rose-500/10",
+            "border-danger/30 bg-danger/[0.06]",
         iconColor:
-            "text-rose-600 dark:text-rose-400",
+            "text-danger",
     },
     warning: {
         icon: AlertTriangle,

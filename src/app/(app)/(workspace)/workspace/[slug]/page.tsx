@@ -34,7 +34,7 @@ import { LeaveWorkspaceButton } from "@/app/(app)/(workspace)/workspace/[slug]/c
 
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3";
+    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
 
 
 

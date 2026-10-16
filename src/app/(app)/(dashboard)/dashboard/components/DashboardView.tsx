@@ -24,7 +24,7 @@ import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4";
+    "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border xl:grid-cols-4";
 
 
 
@@ -110,7 +110,7 @@ export function DashboardView({
             </section>
 
             {memberships.length ? (
-                <div className="mt-12 grid gap-x-12 gap-y-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+                <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-10 sm:mt-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
                     <section aria-labelledby="recent-projects">
                         <div className="flex items-end justify-between gap-4">
                             <div id="recent-projects">

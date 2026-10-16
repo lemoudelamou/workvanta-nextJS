@@ -37,7 +37,7 @@ export function Column({
         <section
             aria-label={label}
             className={cn(
-                "flex min-h-[320px] flex-col rounded-xl bg-muted/60 p-2 transition-colors",
+                "flex min-h-[240px] w-[84%] shrink-0 snap-start flex-col rounded-xl bg-muted/60 p-2 transition-colors sm:min-h-[320px] sm:w-auto",
                 isOver && "bg-brand-soft ring-1 ring-brand/30",
             )}
         >

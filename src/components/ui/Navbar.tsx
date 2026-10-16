@@ -89,7 +89,7 @@ export function Navbar({
                     <WorkvantaBrand />
 
                     {session && (
-                        <nav className="ml-8 hidden items-center gap-1 md:flex">
+                        <nav className="ml-6 hidden items-center gap-1 md:flex lg:ml-8">
                             {links.map((link) => (
                                 <NavLink
                                     key={link.href}
@@ -219,12 +219,12 @@ function UserMenu({
                         className="size-8 rounded-lg object-cover"
                     />
                 ) : (
-                    <div className="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-white/[0.08] dark:text-white">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-brand-soft text-xs font-semibold text-brand dark:bg-brand/15">
                         {userInitial}
                     </div>
                 )}
 
-                <div className="hidden max-w-[140px] text-left sm:block">
+                <div className="hidden max-w-[140px] text-left lg:block">
                     <p className="truncate text-xs font-semibold leading-4 text-foreground">
                         {userName}
                     </p>
@@ -274,7 +274,7 @@ function UserMenu({
                         >                            <button
                                 type="submit"
                                 role="menuitem"
-                                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-rose-400/[0.08] dark:hover:text-rose-300 ${focusRing}`}
+                                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-danger/[0.06] hover:text-danger dark:text-slate-300 ${focusRing}`}
                             >
                                 <LogOut className="size-4" />
                                 Sign out

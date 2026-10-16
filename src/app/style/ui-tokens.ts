@@ -8,15 +8,15 @@ export const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-
 
 export const authButton = "group inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl px-5 text-sm font-semibold transition-[transform,box-shadow,background-color] duration-200  motion-reduce:transition-none motion-reduce:hover:translate-y-0 " + focusRing;
 
-export const ghostButton = "border border-slate-200 bg-white/70 text-slate-700 hover:bg-white hover:shadow-lg dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.08]";
+export const ghostButton = "border border-border bg-card text-foreground hover:bg-muted";
 
 export const primaryButton = "bg-brand text-white hover:bg-brand-strong dark:text-[#0f1115]";
 
-export const iconTile = "flex shrink-0 items-center justify-center border border-slate-200 bg-white/80 text-slate-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300";
+export const iconTile = "flex shrink-0 items-center justify-center border border-border bg-card text-muted-foreground";
 
-export const sectionClass = `${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-2xl sm:rounded-[28px]`;
+export const sectionClass = `${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-xl`;
 
-export const cardClass = "rounded-xl border border-slate-200/80 bg-white/60 p-4 transition-all duration-300 hover:border-slate-300 hover:bg-white/90 hover:shadow-sm dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/[0.12] dark:hover:bg-white/[0.05]";
+export const cardClass = "rounded-lg border border-border bg-card p-4 transition-colors hover:border-foreground/15";
 
 export const labelClass = "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
 
@@ -24,7 +24,7 @@ export const inputClass = "w-full rounded-lg border border-slate-200 bg-white px
 
 export const primaryButtonClass = "shrink-0 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50 dark:text-[#0f1115]";
 
-export const secondaryButtonClass = "shrink-0 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300 dark:hover:bg-white/[0.08]";
+export const secondaryButtonClass = "shrink-0 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
 export const connectedBadgeClass = "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/[0.08] dark:text-emerald-300";
 

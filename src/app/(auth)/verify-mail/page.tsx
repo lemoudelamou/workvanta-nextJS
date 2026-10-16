@@ -66,7 +66,7 @@ function VerificationResult({
 
             <div className="relative w-full max-w-md">
                 <section
-                    className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-[28px] px-6 pb-8 pt-12 text-center sm:px-10 sm:pb-10`}
+                    className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-xl px-6 pb-8 pt-12 text-center sm:px-10 sm:pb-10`}
                 >
                     <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-slate-200/40 blur-3xl dark:bg-blue-500/[0.05]" />
 
@@ -79,7 +79,7 @@ function VerificationResult({
                             aria-hidden="true"
                             className={`mx-auto mt-14 flex size-11 items-center justify-center rounded-xl border ${success
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/20 dark:bg-emerald-500/[0.08] dark:text-emerald-300"
-                                : "border-red-200 bg-red-50 text-red-600 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300"
+                                : "border-danger/30 bg-danger/[0.06] text-danger"
                                 }`}
                         >
                             {success ? (

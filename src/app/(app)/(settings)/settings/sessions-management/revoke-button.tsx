@@ -64,7 +64,7 @@ export default function RevokeButton({
                 type="button"
                 onClick={handleOpenModal}
                 disabled={isPending}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/[0.12]"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-danger/30 bg-danger/[0.06] px-3 py-2 text-sm font-semibold text-danger transition hover:border-danger/30 hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 <Trash2 className="size-4" />
 

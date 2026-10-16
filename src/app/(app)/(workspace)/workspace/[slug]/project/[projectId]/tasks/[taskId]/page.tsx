@@ -39,7 +39,7 @@ const STATUSES: Record<string, { label: string; dot: string }> = {
 };
 
 const PRIORITIES: Record<string, { label: string; dot: string }> = {
-    URGENT: { label: "Urgent", dot: "bg-rose-500" },
+    URGENT: { label: "Urgent", dot: "bg-danger" },
     HIGH: { label: "High", dot: "bg-orange-500" },
     MEDIUM: { label: "Medium", dot: "bg-amber-400" },
     LOW: { label: "Low", dot: "bg-sky-400" },
@@ -138,9 +138,9 @@ function Avatar({
 
 function MetaCell({ label, children }: { label: string; children: ReactNode }) {
     return (
-        <div className="bg-card p-5">
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-2 min-h-8 text-sm font-medium text-foreground">{children}</dd>
+        <div className="min-w-0 bg-card px-3.5 py-3 sm:p-5">
+            <dt className="text-xs text-muted-foreground sm:text-sm">{label}</dt>
+            <dd className="mt-1.5 flex min-h-7 items-center text-sm font-medium text-foreground sm:mt-2">{children}</dd>
         </div>
     );
 }
@@ -305,7 +305,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 )}
             </header>
 
-            <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:mt-8 lg:grid-cols-4">
                 <MetaCell label="Assignee">
                     {task.assignee ? (
                         <span className="flex items-center gap-2.5">
@@ -323,7 +323,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
 
                 <MetaCell label="Due date">
                     {task.dueDate ? (
-                        <span className={overdue ? "text-rose-600 dark:text-rose-400" : undefined}>
+                        <span className={overdue ? "font-medium text-danger" : undefined}>
               {DATE.format(task.dueDate)}
                             {overdue ? " (overdue)" : ""}
             </span>

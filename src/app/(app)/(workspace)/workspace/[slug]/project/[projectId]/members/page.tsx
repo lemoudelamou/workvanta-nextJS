@@ -31,7 +31,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en", {
 });
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3";
+    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
 
 function getInitials(name: string | null, email: string) {
     const value = name?.trim() || email;

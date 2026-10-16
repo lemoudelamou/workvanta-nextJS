@@ -73,7 +73,7 @@ export function EditDetailsForm({
                 </Field>
 
                 {state.error && (
-                    <p role="alert" className="text-sm font-medium text-rose-600 dark:text-rose-400">
+                    <p role="alert" className="text-sm font-medium text-danger">
                         {state.error}
                     </p>
                 )}

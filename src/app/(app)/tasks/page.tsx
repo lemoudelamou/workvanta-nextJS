@@ -20,7 +20,7 @@ const STATUS: Record<string, { label: string; dot: string }> = {
 };
 
 const PRIORITY: Record<string, { label: string; dot: string }> = {
-    URGENT: { label: "Urgent", dot: "bg-rose-500" },
+    URGENT: { label: "Urgent", dot: "bg-danger" },
     HIGH: { label: "High", dot: "bg-orange-500" },
     MEDIUM: { label: "Medium", dot: "bg-amber-400" },
     LOW: { label: "Low", dot: "bg-sky-400" },
@@ -136,7 +136,7 @@ export default async function MyTasksPage({
                                         id={`bucket-${key}`}
                                         className={`text-sm font-semibold ${
                                             key === "overdue"
-                                                ? "text-rose-600 dark:text-rose-400"
+                                                ? "text-danger"
                                                 : "text-foreground"
                                         }`}
                                     >
@@ -180,7 +180,7 @@ export default async function MyTasksPage({
                                                         <span
                                                             className={`w-24 text-right text-xs tabular-nums ${
                                                                 key === "overdue"
-                                                                    ? "font-medium text-rose-600 dark:text-rose-400"
+                                                                    ? "font-medium text-danger"
                                                                     : "text-muted-foreground"
                                                             }`}
                                                         >

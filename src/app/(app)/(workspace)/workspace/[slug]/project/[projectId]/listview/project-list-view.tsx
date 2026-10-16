@@ -111,11 +111,47 @@ export function ProjectListView({
         });
     }
 
+    // A render helper, not a component, so the select keeps its identity across renders.
+    function renderStatus(task: BoardTask) {
+        if (!canEdit) {
+            return (
+                <span className="inline-flex items-center gap-2 text-xs font-medium">
+                    <span aria-hidden="true" className={`size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`} />
+                    {TASK_COLUMNS.find((c) => c.status === task.status)?.label}
+                </span>
+            );
+        }
+
+        return (
+            <div className="relative inline-flex items-center">
+                <span
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute left-2.5 size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`}
+                />
+                <select
+                    value={task.status}
+                    onChange={(event) => changeStatus(task, event.target.value as TaskStatus)}
+                    aria-label={`Status of ${task.title}`}
+                    className="h-8 rounded-lg border border-border bg-card py-0 pl-6 pr-7 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    {TASK_COLUMNS.map((column) => (
+                        <option key={column.status} value={column.status}>
+                            {column.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    }
+
+    const taskHref = (task: BoardTask) => `/workspace/${slug}/project/${projectId}/tasks/${task.id}`;
+    const emptyMessage = rows.length === 0 ? "No tasks yet." : "No tasks match these filters.";
+
     return (
         <div>
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-                    <div className="relative">
+                <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+                    <div className="relative col-span-2 lg:col-span-1">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <input
                             type="search"
@@ -199,7 +235,40 @@ export function ProjectListView({
                 </p>
             )}
 
-            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
+            {/* Phones: one row per task, stacked. */}
+            <ul aria-label="Tasks" className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card md:hidden">
+                {visible.length === 0 ? (
+                    <li className="px-4 py-10 text-center text-sm text-muted-foreground">{emptyMessage}</li>
+                ) : (
+                    visible.map((task) => (
+                        <li key={task.id} className="px-4 py-3">
+                            <Link
+                                href={taskHref(task)}
+                                className={`text-sm font-medium ${task.status === "DONE" ? "text-muted-foreground line-through" : "text-foreground"}`}
+                            >
+                                {task.title}
+                            </Link>
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                                {renderStatus(task)}
+                                <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                                    <span aria-hidden="true" className={`size-1.5 rounded-full ${PRIORITY_DOTS[task.priority] ?? "bg-status-todo"}`} />
+                                    {getPriorityLabel(task.priority)}
+                                </span>
+                                {task.dueLabel && (
+                                    <span className={`tabular-nums ${task.overdue ? "font-medium text-danger" : ""}`}>
+                                        {task.overdue ? `Overdue, ${task.dueLabel}` : `Due ${task.dueLabel}`}
+                                    </span>
+                                )}
+                                <span className="truncate">
+                                    {task.assignee ? (task.assignee.name ?? task.assignee.email) : "Unassigned"}
+                                </span>
+                            </div>
+                        </li>
+                    ))
+                )}
+            </ul>
+
+            <div className="hidden overflow-x-auto rounded-xl border border-border bg-card md:block shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
                 <table className="w-full min-w-[720px] text-sm">
                     <caption className="sr-only">
                         Tasks in this project, sorted by {sort.key} ({sort.direction === "asc" ? "ascending" : "descending"})
@@ -241,9 +310,7 @@ export function ProjectListView({
                         {visible.length === 0 ? (
                             <tr>
                                 <td colSpan={COLUMNS.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                                    {rows.length === 0
-                                        ? "No tasks yet."
-                                        : "No tasks match these filters."}
+                                    {emptyMessage}
                                 </td>
                             </tr>
                         ) : (
@@ -251,7 +318,7 @@ export function ProjectListView({
                                 <tr key={task.id} className="transition-colors hover:bg-muted/40">
                                     <td className="px-4 py-3">
                                         <Link
-                                            href={`/workspace/${slug}/project/${projectId}/tasks/${task.id}`}
+                                            href={taskHref(task)}
                                             className={`font-medium hover:underline ${task.status === "DONE" ? "text-muted-foreground line-through" : "text-foreground"}`}
                                         >
                                             {task.title}
@@ -264,36 +331,12 @@ export function ProjectListView({
                                     </td>
 
                                     <td className="px-4 py-3">
-                                        {canEdit ? (
-                                            <div className="relative inline-flex items-center">
-                                                <span
-                                                    aria-hidden="true"
-                                                    className={`pointer-events-none absolute left-2.5 size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`}
-                                                />
-                                                <select
-                                                    value={task.status}
-                                                    onChange={(event) => changeStatus(task, event.target.value as TaskStatus)}
-                                                    aria-label={`Status of ${task.title}`}
-                                                    className="h-8 rounded-lg border border-border bg-card py-0 pl-6 pr-7 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                                >
-                                                    {TASK_COLUMNS.map((column) => (
-                                                        <option key={column.status} value={column.status}>
-                                                            {column.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-2 text-xs font-medium">
-                                                <span aria-hidden="true" className={`size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`} />
-                                                {TASK_COLUMNS.find((c) => c.status === task.status)?.label}
-                                            </span>
-                                        )}
+                                        {renderStatus(task)}
                                     </td>
 
                                     <td className="px-4 py-3">
                                         <span className="inline-flex items-center gap-2 text-xs font-medium">
-                                            <span aria-hidden="true" className={`size-1.5 rounded-full ${PRIORITY_DOTS[task.priority] ?? "bg-slate-400"}`} />
+                                            <span aria-hidden="true" className={`size-1.5 rounded-full ${PRIORITY_DOTS[task.priority] ?? "bg-status-todo"}`} />
                                             {getPriorityLabel(task.priority)}
                                         </span>
                                     </td>

@@ -33,7 +33,7 @@ export function DeleteWorkspaceButton({ workspaceId, workspaceName }: DeleteWork
 
     return (
         <>
-            <button type="button" onClick={() => setIsOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-400/20 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-500/10">
+            <button type="button" onClick={() => setIsOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-danger/30 bg-white px-4 text-sm font-semibold text-danger transition hover:bg-danger/[0.06] dark:bg-slate-900">
                 <Trash2 className="size-4" /> Delete workspace
             </button>
             <Modal

@@ -59,15 +59,15 @@ export default function DeleteAccountScreen({
                     Back to Settings
                 </Link>
 
-                <div className="overflow-hidden rounded-xl border border-red-200/80 bg-white/75 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-red-500/20 dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-                    <div className="border-b border-red-200/70 bg-red-50/70 p-6 dark:border-red-500/10 dark:bg-red-500/[0.06] sm:p-7">
+                <div className="overflow-hidden rounded-xl border border-danger/30 bg-white/75 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                    <div className="border-b border-danger/30 bg-danger/[0.06] p-6 sm:p-7">
                         <div className="flex items-start gap-4">
-                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300">
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-danger/30 bg-white text-danger">
                                 <AlertTriangle className="size-5" />
                             </div>
 
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.18em] text-red-600 dark:text-red-400">
+                                <p className="text-xs font-semibold tracking-[0.18em] text-danger">
                                     Danger Zone
                                 </p>
 
@@ -162,7 +162,7 @@ export default function DeleteAccountScreen({
                                 className="text-sm font-semibold text-foreground"
                             >
                                 Type{" "}
-                                <span className="font-mono text-red-600 dark:text-red-400">
+                                <span className="font-mono text-danger">
                                     DELETE
                                 </span>{" "}
                                 to confirm
@@ -180,14 +180,14 @@ export default function DeleteAccountScreen({
                                 autoComplete="off"
                                 spellCheck={false}
                                 placeholder="DELETE"
-                                className="mt-3 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-4 focus:ring-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-red-500/40"
+                                className="mt-3 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-danger focus:ring-4 focus:ring-danger/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-danger/40"
                             />
                         </div>
 
                         {errorMessage && (
                             <div
                                 role="alert"
-                                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300"
+                                className="rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm leading-6 text-danger"
                             >
                                 {errorMessage}
                             </div>
@@ -209,7 +209,7 @@ export default function DeleteAccountScreen({
                                     isBlocked ||
                                     confirmation !== "DELETE"
                                 }
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-red-700 hover:bg-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:border-white/[0.08] dark:disabled:bg-white/[0.04] dark:disabled:text-slate-500"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger bg-danger px-4 py-2.5 text-sm font-semibold text-white transition hover:border-danger hover:bg-danger disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:border-white/[0.08] dark:disabled:bg-white/[0.04] dark:disabled:text-slate-500"
                             >
                                 <Trash2 className="size-4" />
 

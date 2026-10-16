@@ -226,7 +226,7 @@ export function CommentForm({ action, members }: CommentFormProps) {
         {error && (
             <div
                 role="alert"
-                className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-700 dark:text-rose-300"
+                className="rounded-xl border border-danger/25 bg-danger/10 px-3 py-2.5 text-xs text-danger"
             >
               {error}
             </div>

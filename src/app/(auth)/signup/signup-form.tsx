@@ -326,7 +326,7 @@ export default function SignupForm() {
                     />
 
                     {passwordsMismatch && (
-                        <p className="text-xs text-red-600">
+                        <p className="text-xs text-danger">
                             The passwords do not match.
                         </p>
                     )}
@@ -336,7 +336,7 @@ export default function SignupForm() {
                 {error && (
                     <div
                         role="alert"
-                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                        className="rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
                     >
                         {error}
                     </div>

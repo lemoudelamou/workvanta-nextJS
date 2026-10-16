@@ -26,7 +26,7 @@ export default function ForgotPasswordForm() {
 
     return (
         <div className="w-full max-w-md">
-            <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
+            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="mb-6 flex size-12 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 dark:bg-white dark:text-slate-950">
@@ -90,14 +90,14 @@ export default function ForgotPasswordForm() {
                             className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm leading-5 ${
                                 state.success
                                     ? "border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06] dark:text-emerald-300"
-                                    : "border-red-200 bg-red-50/80 text-red-800 dark:border-red-500/20 dark:bg-red-500/[0.06] dark:text-red-300"
+                                    : "border-danger/30 bg-danger/[0.06] text-danger"
                             }`}
                         >
                             <span
                                 className={`mt-1.5 size-1.5 shrink-0 rounded-full ${
                                     state.success
                                         ? "bg-emerald-500"
-                                        : "bg-red-500"
+                                        : "bg-danger"
                                 }`}
                             />
 

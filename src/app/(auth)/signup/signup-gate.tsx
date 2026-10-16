@@ -24,7 +24,7 @@ export default function SignupGate() {
             </div>
 
             {error === "account_exists" && (
-                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="mb-6 rounded-lg border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger">
                     An account with this email already exists. Please{" "}
                     <Link href="/signin" className="font-medium underline">
                         sign in

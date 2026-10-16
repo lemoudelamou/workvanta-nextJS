@@ -285,7 +285,7 @@ export function KanbanBoard({
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg font-semibold">Tasks</h2>
 
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/[0.06] dark:text-slate-400">
+                        <span className="text-sm tabular-nums text-muted-foreground">
                             {hasFilters
                                 ? `${filteredTasks.length}/${allTasks.length}`
                                 : allTasks.length}
@@ -465,7 +465,7 @@ export function KanbanBoard({
             {error && (
                 <p
                     role="alert"
-                    className="mb-4 rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-300"
+                    className="mb-4 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger"
                 >
                     {error}
                 </p>
@@ -502,7 +502,11 @@ export function KanbanBoard({
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
             >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                    role="group"
+                    aria-label="Board columns"
+                    className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+                >
                     {TASK_COLUMNS.map((column) => (
                         <Column
                             key={column.status}

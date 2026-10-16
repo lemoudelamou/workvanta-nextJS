@@ -220,7 +220,7 @@ function ModeratorDeleteButton({
                 type="button"
                 onClick={handleDelete}
                 disabled={isPending}
-                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-60 dark:text-slate-400 dark:hover:text-rose-300"
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:opacity-60 dark:text-slate-400"
             >
                 {isPending ? (
                     <Loader2 className="size-3 motion-safe:animate-spin" />
@@ -230,7 +230,7 @@ function ModeratorDeleteButton({
                 Remove
             </button>
             {error && (
-                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{error}</p>
+                <p className="text-xs font-medium text-danger">{error}</p>
             )}
         </div>
     );
@@ -334,7 +334,7 @@ function OwnCommentActions({
             </span>
 
                         {error && (
-                            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                            <p className="text-xs font-medium text-danger">
                                 {error}
                             </p>
                         )}
@@ -394,7 +394,7 @@ function OwnCommentActions({
                     type="button"
                     onClick={handleDelete}
                     disabled={isPending}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-rose-600 transition-colors duration-200 hover:bg-rose-500/10 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-400 dark:hover:text-rose-300"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-danger transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <Trash2 className="size-3" />
                     {isPending ? "Deleting..." : "Delete"}
@@ -402,7 +402,7 @@ function OwnCommentActions({
             </div>
 
             {error && (
-                <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                <p className="mt-2 text-xs font-medium text-danger">
                     {error}
                 </p>
             )}

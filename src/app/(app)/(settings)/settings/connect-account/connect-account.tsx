@@ -307,7 +307,7 @@ export default function ConnectAccount({
                                     resetPasswordForm();
                                     setIsPasswordFormOpen(true);
                                 }}
-                                className={primaryButtonClass}
+                                className={secondaryButtonClass}
                             >
                                 {hasPassword
                                     ? "Change password"
@@ -515,7 +515,7 @@ export default function ConnectAccount({
                             {passwordErrorMessage && (
                                 <p
                                     role="alert"
-                                    className="text-sm text-red-600 dark:text-red-400"
+                                    className="text-sm text-danger"
                                 >
                                     {passwordErrorMessage}
                                 </p>
@@ -617,7 +617,7 @@ export default function ConnectAccount({
                                     onClick={() =>
                                         handleConnect(provider.id)
                                     }
-                                    className={primaryButtonClass}
+                                    className={secondaryButtonClass}
                                 >
                                     {connectingProvider === provider.id
                                         ? "Connecting..."

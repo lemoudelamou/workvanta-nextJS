@@ -45,7 +45,7 @@ function SecurityNote({ children }: { children: React.ReactNode }) {
 function SuccessState({ message }: { message: string }) {
     return (
         <div className="w-full max-w-md">
-            <div className="overflow-hidden rounded-3xl border border-emerald-200/80 bg-white/90 p-8 text-center shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-emerald-500/20 dark:bg-slate-950/80 dark:shadow-black/30">
+            <div className="overflow-hidden rounded-xl border border-emerald-200/80 bg-white/90 p-8 text-center shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-emerald-500/20 dark:bg-slate-950/80 dark:shadow-black/30">
                 <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shadow-sm dark:bg-emerald-500/[0.08] dark:text-emerald-400">
                     <CheckCircle2
                         className="size-7"
@@ -103,7 +103,7 @@ export default function ResetPasswordForm({
 
     return (
         <div className="w-full max-w-md">
-            <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
+            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
                 <div className="mb-8">
                     <div className="mb-6 flex size-12 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 dark:bg-white dark:text-slate-950">
                         <LockKeyhole
@@ -145,9 +145,9 @@ export default function ResetPasswordForm({
                     {state.message && (
                         <div
                             role="alert"
-                            className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3.5 text-sm leading-5 text-red-800 dark:border-red-500/20 dark:bg-red-500/[0.06] dark:text-red-300"
+                            className="flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3.5 text-sm leading-5 text-danger"
                         >
-                            <div className="mt-1 size-1.5 shrink-0 rounded-full bg-red-500" />
+                            <div className="mt-1 size-1.5 shrink-0 rounded-full bg-danger" />
                             <p>{state.message}</p>
                         </div>
                     )}

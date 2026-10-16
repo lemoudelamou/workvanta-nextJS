@@ -438,7 +438,7 @@ describe("TaskPage – meta cells", () => {
 
         const due = screen.getByText(/Oct 10, 2026/);
         expect(due).toHaveTextContent("(overdue)");
-        expect(due).toHaveClass("text-rose-600");
+        expect(due).toHaveClass("text-danger");
     });
 
     it("never marks DONE tasks as overdue", async () => {

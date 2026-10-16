@@ -179,7 +179,7 @@ export default function CredentialsLoginForm() {
         {error && (
           <div
             role="alert"
-            className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+            className="mb-5 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
           >
             {error}
           </div>
@@ -286,7 +286,7 @@ export default function CredentialsLoginForm() {
         <div
           role="alert"
           aria-live="polite"
-          className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+          className="mb-5 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
         >
           {error || oauthErrorMessage}
         </div>

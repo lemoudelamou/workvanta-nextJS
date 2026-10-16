@@ -141,7 +141,7 @@ export default function AccountVerification({
                     className={`mt-4 flex items-start gap-3 rounded-xl border p-4 ${
                         verificationState.success
                             ? "border-emerald-200/80 bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
-                            : "border-red-200/80 bg-red-50/70 dark:border-red-500/20 dark:bg-red-500/[0.06]"
+                            : "border-danger/30 bg-danger/[0.06]"
                     }`}
                 >
                     {verificationState.success ? (
@@ -151,7 +151,7 @@ export default function AccountVerification({
                         />
                     ) : (
                         <AlertTriangle
-                            className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-300"
+                            className="mt-0.5 size-4 shrink-0 text-danger"
                             aria-hidden="true"
                         />
                     )}
@@ -160,7 +160,7 @@ export default function AccountVerification({
                         className={`text-sm leading-6 ${
                             verificationState.success
                                 ? "text-emerald-800/80 dark:text-emerald-200/80"
-                                : "text-red-800/80 dark:text-red-200/80"
+                                : "text-danger/80"
                         }`}
                     >
                         {verificationState.message}
