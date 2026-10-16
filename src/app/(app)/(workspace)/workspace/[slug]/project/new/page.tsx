@@ -59,7 +59,7 @@ export default async function NewProjectPage({
 
         if (result?.error === "duplicate-name") {
             redirect(
-                `/workspace/${workspace.slug}/projects/new?error=duplicate-name`,
+                `/workspace/${workspace.slug}/project/new?error=duplicate-name`,
             );
         }
     };

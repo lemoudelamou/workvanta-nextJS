@@ -78,7 +78,7 @@ export function Column({
                         <SortableTaskCard
                             key={task.id}
                             task={task}
-                            href={`/workspace/${slug}/projects/${projectId}/tasks/${task.id}`}
+                            href={`/workspace/${slug}/project/${projectId}/tasks/${task.id}`}
                             canEdit={canEdit}
                         />
                     ))}
