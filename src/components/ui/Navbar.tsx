@@ -17,7 +17,10 @@ import { glass, focusRing } from "@/app/style/ui-tokens";
 
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import { logout } from "@/app/(auth)/signin/actions";
-
+import {
+    NotificationBell,
+    type BellNotification,
+} from "@/app/(app)/notifications/NotificationBell";
 
 type NavbarProps = {
     session: {
@@ -29,6 +32,7 @@ type NavbarProps = {
     } | null;
     isOwner?: boolean;
     unreadNotificationCount?: number;
+    notifications?: BellNotification[];
 };
 
 
@@ -37,6 +41,7 @@ export function Navbar({
                            session,
                            isOwner = false,
                            unreadNotificationCount = 0,
+                           notifications = [],
                        }: NavbarProps) {
     const userName =
         session?.user?.name?.trim() ||
@@ -105,7 +110,10 @@ export function Navbar({
 
                     {session ? (
                         <div className="flex items-center gap-2">
-
+                            <NotificationBell
+                                unreadCount={unreadNotificationCount}
+                                notifications={notifications}
+                            />
 
                             <UserMenu
                                 userName={userName}
