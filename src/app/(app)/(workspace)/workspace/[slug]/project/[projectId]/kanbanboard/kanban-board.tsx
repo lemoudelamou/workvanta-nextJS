@@ -292,7 +292,7 @@ export function KanbanBoard({
                         </span>
                     </div>
 
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         {canEdit
                             ? "Drag cards to change status or reorder them."
                             : "You have view-only access to this board."}
@@ -304,16 +304,15 @@ export function KanbanBoard({
                         type="button"
                         onClick={() => setShowFilters((value) => !value)}
                         className={cn(
-                            buttonStyles(),
+                            buttonStyles({ variant: "secondary" }),
                             "gap-2",
-                            showFilters &&
-                            "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/10 dark:text-violet-300",
+                            showFilters && "border-brand/40 bg-brand-soft text-brand dark:bg-brand/15",
                         )}
                     >
                         <Filter className="size-4" />
                         Filters
                         {hasFilters && (
-                            <span className="flex size-5 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white">
+                            <span className="flex size-5 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white dark:text-[#0f1115]">
                                 {activeFilterCount}
                             </span>
                         )}
@@ -333,10 +332,10 @@ export function KanbanBoard({
             </div>
 
             {showFilters && (
-                <div className="mb-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="mb-5 rounded-xl border border-border bg-card p-4">
                     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                         <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
                             <input
                                 type="text"
@@ -345,7 +344,7 @@ export function KanbanBoard({
                                     updateFilter("search", event.target.value)
                                 }
                                 placeholder="Search tasks..."
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/[0.06]"
+                                className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-brand focus:ring-2 focus:ring-brand/15"
                             />
                         </div>
 
@@ -393,7 +392,7 @@ export function KanbanBoard({
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/[0.06]">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                             Showing{" "}
                             <span className="font-semibold text-slate-700 dark:text-slate-200">
                                 {filteredTasks.length}
@@ -473,21 +472,21 @@ export function KanbanBoard({
             )}
 
             {filteredTasks.length === 0 && allTasks.length > 0 && (
-                <div className="mb-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                <div className="mb-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
                     <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/[0.06]">
                         <Search className="size-5 text-slate-400" />
                     </div>
 
                     <h3 className="mt-3 text-sm font-semibold">No tasks found</h3>
 
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         Try changing your filters or search.
                     </p>
 
                     <button
                         type="button"
                         onClick={clearFilters}
-                        className="mt-4 text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300"
+                        className="mt-4 text-xs font-medium text-brand hover:text-brand-strong"
                     >
                         Clear filters
                     </button>

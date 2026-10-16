@@ -49,7 +49,7 @@ function getInitials(name: string | null, email: string) {
 }
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-3";
+    "grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3";
 
 
 
@@ -160,7 +160,7 @@ export default async function TeamPage({
             {canInvite && (
                 <section
                     aria-labelledby="invite"
-                    className="mt-10 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                    className="mt-10 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
                 >
                     <div className="flex items-start gap-3">
                         <span
@@ -207,7 +207,7 @@ export default async function TeamPage({
                     </p>
                 </div>
 
-                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                     {members.map((member) => {
                         const isCurrentUser = member.userId === membership.userId;
                         const isTargetOwner = member.role === "OWNER";
@@ -329,7 +329,7 @@ export default async function TeamPage({
                         </p>
                     </div>
 
-                    <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                         {pendingInvitations.map((invitation) => {
                             const canRevoke =
                                 invitation.role !== "ADMIN" || myRole === "OWNER";

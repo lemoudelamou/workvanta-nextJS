@@ -116,7 +116,7 @@ function CreateTaskForm({
                     <h2 id="create-task-title" className="text-lg font-semibold tracking-tight">
                         New task
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Only a title is required.
                     </p>
                 </div>
@@ -149,12 +149,12 @@ function CreateTaskForm({
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                     <input
                         type="checkbox"
                         checked={addAnother}
                         onChange={(e) => setAddAnother(e.target.checked)}
-                        className="size-4 rounded border-slate-300 accent-violet-600"
+                        className="size-4 rounded border-slate-300 accent-[var(--brand)]"
                     />
                     Create another
                 </label>

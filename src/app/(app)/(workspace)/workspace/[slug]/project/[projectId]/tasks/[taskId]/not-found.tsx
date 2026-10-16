@@ -12,10 +12,10 @@ export default function TaskNotFound() {
 
     return (
         <PageBody>
-            <section className="mt-6 flex flex-col items-center rounded-2xl border border-border bg-card px-6 py-16 text-center shadow-sm sm:px-10">
+            <section className="mt-6 flex flex-col items-center rounded-xl border border-border bg-card px-6 py-16 text-center shadow-sm sm:px-10">
                 <span
                     aria-hidden="true"
-                    className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+                    className="mb-6 flex size-14 items-center justify-center rounded-xl bg-muted text-muted-foreground"
                 >
                     <Trash2 className="size-6" />
                 </span>

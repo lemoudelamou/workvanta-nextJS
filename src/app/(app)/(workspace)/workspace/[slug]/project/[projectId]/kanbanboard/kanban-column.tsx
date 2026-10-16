@@ -37,30 +37,26 @@ export function Column({
         <section
             aria-label={label}
             className={cn(
-                "flex min-h-[320px] flex-col rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 transition-colors dark:border-white/10 dark:bg-white/[0.03]",
-                isOver &&
-                "border-violet-300 bg-violet-50/60 dark:border-violet-400/40 dark:bg-violet-500/[0.06]",
+                "flex min-h-[320px] flex-col rounded-xl bg-muted/60 p-2 transition-colors",
+                isOver && "bg-brand-soft ring-1 ring-brand/30",
             )}
         >
-            <header className="flex items-center justify-between px-1 pb-3">
+            <header className="flex items-center justify-between px-1.5 pb-2 pt-1">
                 <div className="flex items-center gap-2">
                     <span
                         className={cn("size-2 rounded-full", COLUMN_DOTS[status])}
                     />
-                    <h3 className="text-sm font-semibold">{label}</h3>
+                    <h3 className="text-[13px] font-semibold text-foreground">{label}</h3>
+                    <span className="text-xs tabular-nums text-muted-foreground">{tasks.length}</span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-white/[0.08] dark:text-slate-300">
-                        {tasks.length}
-                    </span>
-
                     {canEdit && (
                         <button
                             type="button"
                             onClick={() => onAdd(status)}
                             aria-label={`Add task to ${label}`}
-                            className="flex size-6 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                            className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                         >
                             <Plus className="size-4" />
                         </button>
@@ -84,7 +80,7 @@ export function Column({
                     ))}
 
                     {tasks.length === 0 && (
-                        <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400 dark:border-white/10">
+                        <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
                             No tasks
                         </p>
                     )}

@@ -1,20 +1,19 @@
 import { cn } from "@/lib/utils";
 
 const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition";
+    "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
 const variants = {
-    primary:
-        "bg-slate-950 text-white hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-sm dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200",
+    primary: "bg-brand text-white hover:bg-brand-strong dark:text-[#0f1115]",
     secondary:
-        "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
+        "border border-border bg-card text-foreground hover:bg-muted",
     danger:
-        "border border-rose-500/25 bg-rose-500/[0.06] text-rose-600 hover:-translate-y-0.5 hover:border-rose-500/40 hover:bg-rose-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 dark:text-rose-300",
+        "border border-danger/30 bg-card text-danger hover:border-danger/50 hover:bg-danger/[0.06]",
 } as const;
 
 const sizes = {
-    sm: "h-9 px-3 text-xs",
-    md: "h-10 px-4",
+    sm: "h-8 px-3 text-xs",
+    md: "h-9 px-3.5",
     lg: "h-11 px-4",
 } as const;
 

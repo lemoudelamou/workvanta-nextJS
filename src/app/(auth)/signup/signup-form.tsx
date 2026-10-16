@@ -346,7 +346,7 @@ export default function SignupForm() {
                 <button
                     type="submit"
                     disabled={loading || !canSubmit}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#101828] px-5 text-sm font-semibold text-white transition hover:bg-[#1D2939] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {loading ? (
                         <>

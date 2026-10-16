@@ -7,7 +7,7 @@ export function NewProjectTile({ href }: { href: string }) {
             href={href}
             className="
                 group flex h-full min-h-[200px] flex-col items-center justify-center gap-3
-                rounded-2xl border border-dashed border-border p-5 text-center
+                rounded-xl border border-dashed border-border p-5 text-center
                 outline-none transition-colors
                 hover:border-foreground/30 hover:bg-muted/50
                 focus-visible:ring-2 focus-visible:ring-ring

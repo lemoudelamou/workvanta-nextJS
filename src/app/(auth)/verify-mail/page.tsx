@@ -94,7 +94,7 @@ function VerificationResult({
                                 {title}
                             </h1>
 
-                            <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
                                 {message}
                             </p>
                         </div>
@@ -107,7 +107,7 @@ function VerificationResult({
                     </div>
                 </section>
 
-                <p className="relative mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                <p className="relative mt-6 text-center text-xs text-muted-foreground">
                     Work smarter, together.
                 </p>
             </div>

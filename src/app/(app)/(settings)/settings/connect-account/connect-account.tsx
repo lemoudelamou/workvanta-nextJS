@@ -275,12 +275,12 @@ export default function ConnectAccount({
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-4">
                             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-white/[0.04]">
-                                <KeyRound className="size-5 text-slate-950 dark:text-white" />
+                                <KeyRound className="size-5 text-foreground" />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                    <p className="text-sm font-semibold text-foreground">
                                         Password
                                     </p>
 
@@ -292,7 +292,7 @@ export default function ConnectAccount({
                                     )}
                                 </div>
 
-                                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                     {hasPassword
                                         ? "Your account has a password and can be accessed with email and password."
                                         : "Set a password so you can sign in without using GitHub or Google."}
@@ -431,7 +431,7 @@ export default function ConnectAccount({
 
                             {/* Password requirements */}
                             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-sm dark:border-white/[0.08] dark:bg-white/[0.03]">
-                                <ShieldCheck className="size-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                                <ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
 
                                 {passwordRequirements.map(
                                     ({ label, met }) => (
@@ -440,7 +440,7 @@ export default function ConnectAccount({
                                             className={`flex items-center gap-2 transition-colors duration-200 ${
                                                 met
                                                     ? "text-emerald-600 dark:text-emerald-400"
-                                                    : "text-slate-500 dark:text-slate-400"
+                                                    : "text-muted-foreground"
                                             }`}
                                         >
                                             <CheckCircle2
@@ -573,7 +573,7 @@ export default function ConnectAccount({
 
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                        <p className="text-sm font-semibold text-foreground">
                                             {provider.name}
                                         </p>
 
@@ -589,7 +589,7 @@ export default function ConnectAccount({
                                         )}
                                     </div>
 
-                                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                         {isConnected
                                             ? `Your ${provider.name} account is connected.`
                                             : provider.description}

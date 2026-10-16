@@ -116,7 +116,7 @@ export default async function MyTasksPage({
 
             {tasks.length === 0 ? (
                 <EmptyState
-                    className="mt-10 rounded-2xl border border-dashed border-border"
+                    className="mt-10 rounded-xl border border-dashed border-border"
                     icon={<CheckCircle2 />}
                     title="You're all caught up"
                     description="Nothing is assigned to you right now. Tasks you're assigned to in any project will show up here."
@@ -147,7 +147,7 @@ export default async function MyTasksPage({
                                     </span>
                                 </div>
 
-                                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                                     {groups[key].map((task) => {
                                         const href = `/workspace/${task.project.workspace.slug}/project/${task.project.id}/tasks/${task.id}`;
                                         const status = STATUS[task.status] ?? STATUS.TODO;

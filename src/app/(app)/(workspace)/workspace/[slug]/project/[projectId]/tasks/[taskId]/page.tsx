@@ -1,4 +1,4 @@
-import { Paperclip, Pencil, TriangleAlert } from "lucide-react";
+import { Paperclip, Pencil } from "lucide-react";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -74,7 +74,7 @@ function Panel({
     className?: string;
 }) {
     return (
-        <section className={`rounded-2xl border border-border bg-card shadow-sm ${className}`}>
+        <section className={`rounded-xl border border-border bg-card ${className}`}>
             {children}
         </section>
     );
@@ -303,7 +303,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 )}
             </header>
 
-            <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-sm sm:grid-cols-2 lg:grid-cols-4">
                 <MetaCell label="Assignee">
                     {task.assignee ? (
                         <span className="flex items-center gap-2.5">
@@ -536,15 +536,9 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             {canEdit && (
                 <section
                     aria-labelledby="danger-zone"
-                    className="mt-14 flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
                 >
                     <div className="flex items-start gap-3">
-            <span
-                aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400"
-            >
-              <TriangleAlert className="size-[18px]" />
-            </span>
                         <div>
                             <h2 id="danger-zone" className="text-sm font-semibold text-foreground">
                                 Delete this task

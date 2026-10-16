@@ -25,7 +25,7 @@ import {
 const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL" };
 
 const PRIORITY_DOTS: Record<string, string> = {
-    URGENT: "bg-rose-500",
+    URGENT: "bg-danger",
     HIGH: "bg-orange-500",
     MEDIUM: "bg-amber-400",
     LOW: "bg-sky-400",
@@ -116,14 +116,14 @@ export function ProjectListView({
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
                     <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <input
                             type="search"
                             value={filters.search}
                             onChange={(event) => update("search", event.target.value)}
                             placeholder="Search tasks..."
                             aria-label="Search tasks"
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/[0.06]"
+                            className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-brand focus:ring-2 focus:ring-brand/15"
                         />
                     </div>
 
@@ -131,7 +131,7 @@ export function ProjectListView({
                         ariaLabel="Filter by status"
                         value={filters.status}
                         onChange={(value) => update("status", value)}
-                        icon={<Filter className="size-4 text-slate-400" />}
+                        icon={<Filter className="size-4 text-muted-foreground" />}
                     >
                         <option value="ALL">All statuses</option>
                         {TASK_COLUMNS.map((column) => (
@@ -145,7 +145,7 @@ export function ProjectListView({
                         ariaLabel="Filter by priority"
                         value={filters.priority}
                         onChange={(value) => update("priority", value)}
-                        icon={<Filter className="size-4 text-slate-400" />}
+                        icon={<Filter className="size-4 text-muted-foreground" />}
                     >
                         <option value="ALL">All priorities</option>
                         <option value="URGENT">Urgent</option>
@@ -158,7 +158,7 @@ export function ProjectListView({
                         ariaLabel="Filter by assignee"
                         value={filters.assignee}
                         onChange={(value) => update("assignee", value)}
-                        icon={<UserRound className="size-4 text-slate-400" />}
+                        icon={<UserRound className="size-4 text-muted-foreground" />}
                     >
                         <option value="ALL">All assignees</option>
                         <option value="UNASSIGNED">Unassigned</option>
@@ -194,17 +194,17 @@ export function ProjectListView({
             </div>
 
             {error && (
-                <p role="alert" className="mb-3 text-sm font-medium text-rose-600 dark:text-rose-400">
+                <p role="alert" className="mb-3 text-sm font-medium text-danger">
                     {error}
                 </p>
             )}
 
-            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
                 <table className="w-full min-w-[720px] text-sm">
                     <caption className="sr-only">
                         Tasks in this project, sorted by {sort.key} ({sort.direction === "asc" ? "ascending" : "descending"})
                     </caption>
-                    <thead className="border-b border-border bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <thead className="border-b border-border bg-muted/40 text-left text-xs font-semibold text-muted-foreground">
                         <tr>
                             {COLUMNS.map((column) => {
                                 const active = sort.key === column.key;
@@ -226,7 +226,7 @@ export function ProjectListView({
                                         <button
                                             type="button"
                                             onClick={() => setSort((current) => nextSort(current, column.key))}
-                                            className={`inline-flex items-center gap-1.5 uppercase hover:text-foreground ${active ? "text-foreground" : ""}`}
+                                            className={`inline-flex items-center gap-1.5 hover:text-foreground ${active ? "text-foreground" : ""}`}
                                         >
                                             {column.label}
                                             <Icon className="size-3.5" aria-hidden="true" />
@@ -303,7 +303,7 @@ export function ProjectListView({
                                     </td>
 
                                     <td
-                                        className={`px-4 py-3 text-xs tabular-nums ${task.overdue ? "font-medium text-rose-600 dark:text-rose-400" : "text-muted-foreground"}`}
+                                        className={`px-4 py-3 text-xs tabular-nums ${task.overdue ? "font-medium text-danger" : "text-muted-foreground"}`}
                                     >
                                         {task.dueLabel ?? "—"}
                                         {task.overdue && <span className="sr-only"> (overdue)</span>}

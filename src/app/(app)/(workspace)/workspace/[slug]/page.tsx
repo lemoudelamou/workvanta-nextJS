@@ -3,7 +3,6 @@ import {
     FolderKanban,
     Plus,
     ShieldCheck,
-    TriangleAlert,
     User,
     UsersRound,
 } from "lucide-react";
@@ -35,7 +34,7 @@ import { LeaveWorkspaceButton } from "@/app/(app)/(workspace)/workspace/[slug]/c
 
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-3";
+    "grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3";
 
 
 
@@ -205,7 +204,7 @@ export default async function WorkspacePage({
                         </div>
                     ) : (
                         <EmptyState
-                            className="rounded-2xl border border-dashed border-border"
+                            className="rounded-xl border border-dashed border-border"
                             icon={<FolderKanban />}
                             title={
                                 canCreateProject
@@ -245,7 +244,7 @@ export default async function WorkspacePage({
                 {canLeave && (
                     <section
                         aria-labelledby="leave-workspace"
-                        className="mt-14 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
+                        className="mt-14 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <div>
                             <h2
@@ -267,15 +266,9 @@ export default async function WorkspacePage({
                 {canDelete && (
                     <section
                         aria-labelledby="danger-zone"
-                        className="mt-14 flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5 sm:flex-row sm:items-center sm:justify-between"
+                        className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <div className="flex items-start gap-3">
-                            <span
-                                aria-hidden="true"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400"
-                            >
-                                <TriangleAlert className="size-[18px]" />
-                            </span>
                             <div>
                                 <h2
                                     id="danger-zone"

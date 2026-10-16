@@ -19,7 +19,7 @@ export function ProjectCard({
             <div
                 aria-disabled="true"
                 title="This project is private and you haven't been added to it."
-                className="flex h-full cursor-not-allowed flex-col rounded-2xl border border-dashed border-border bg-muted/30 p-5"
+                className="flex h-full cursor-not-allowed flex-col rounded-xl border border-dashed border-border bg-muted/30 p-5"
             >
                 <div className="flex items-center justify-between">
                     <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -49,7 +49,7 @@ export function ProjectCard({
             // link's accessible name, so name the link explicitly.
             aria-label={`Open project ${project.name}`}
             className="
-                group block h-full rounded-2xl outline-none
+                group block h-full rounded-xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
                 focus-visible:ring-offset-2
                 focus-visible:ring-offset-background

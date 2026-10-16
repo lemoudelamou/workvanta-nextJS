@@ -7,7 +7,7 @@ export function NewWorkspaceTile() {
             href="/workspace/new"
             className="
                 group flex min-h-[220px] h-full flex-col items-center justify-center gap-3
-                rounded-2xl border border-dashed border-border bg-transparent p-5
+                rounded-xl border border-dashed border-border bg-transparent p-5
                 text-center outline-none transition-colors
                 hover:border-foreground/30 hover:bg-muted/50
                 focus-visible:ring-2 focus-visible:ring-ring

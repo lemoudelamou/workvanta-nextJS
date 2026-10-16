@@ -18,7 +18,7 @@ export function AccessDeniedNotice({
                     <ShieldAlert className="size-5" />
                 </div>
                 <h1 className="text-lg font-semibold">Access denied</h1>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{message}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
                 <Link
                     href={`/workspace/${workspaceSlug}`}
                     className={buttonStyles({ className: "mt-5" })}

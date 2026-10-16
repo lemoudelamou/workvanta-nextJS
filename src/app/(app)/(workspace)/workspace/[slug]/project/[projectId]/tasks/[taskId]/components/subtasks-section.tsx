@@ -43,12 +43,12 @@ export function SubtasksSection({
 
     return (
         <section
-            className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-2xl`}
+            className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-xl`}
         >
             <div className="relative flex items-center justify-between gap-4 border-b border-slate-200/70 px-5 py-4 sm:px-6 dark:border-white/[0.06]">
                 <div>
                     <div className="flex items-center gap-2.5">
-                        <h2 className="text-sm font-semibold tracking-tight text-slate-950 dark:text-white">
+                        <h2 className="text-sm font-semibold tracking-tight text-foreground">
                             Subtasks
                         </h2>
 
@@ -59,7 +59,7 @@ export function SubtasksSection({
             </span>
                     </div>
 
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                         {completedCount} of {total} completed
                     </p>
                 </div>
@@ -85,16 +85,16 @@ export function SubtasksSection({
 
             {total === 0 ? (
                 <div className="px-5 py-10 text-center sm:px-6">
-          <span className={`${iconTile} mx-auto size-11 rounded-2xl border-dashed`}>
+          <span className={`${iconTile} mx-auto size-11 rounded-xl border-dashed`}>
             <ListChecks className="size-5" />
           </span>
 
-                    <p className="mt-4 text-sm font-medium text-slate-950 dark:text-white">
+                    <p className="mt-4 text-sm font-medium text-foreground">
                         No subtasks yet.
                     </p>
 
                     {canEdit && (
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Break this task into smaller steps below.
                         </p>
                     )}
@@ -147,7 +147,7 @@ export function SubtasksSection({
                                     className={`min-w-0 flex-1 text-sm transition-colors ${
                                         subtask.completed
                                             ? "text-slate-500 line-through decoration-slate-300 dark:text-slate-400 dark:decoration-slate-600"
-                                            : "text-slate-950 dark:text-white"
+                                            : "text-foreground"
                                     }`}
                                 >
                   {subtask.title}

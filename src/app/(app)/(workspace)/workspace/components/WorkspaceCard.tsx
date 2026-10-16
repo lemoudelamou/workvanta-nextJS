@@ -13,7 +13,7 @@ export function WorkspaceCard({ item }: { item: WorkspaceItem }) {
         <Link
             href={`/workspace/${workspace.slug}`}
             className="
-                group block h-full rounded-2xl outline-none
+                group block h-full rounded-xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
                 focus-visible:ring-offset-2
                 focus-visible:ring-offset-background

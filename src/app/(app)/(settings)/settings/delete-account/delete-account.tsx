@@ -59,7 +59,7 @@ export default function DeleteAccountScreen({
                     Back to Settings
                 </Link>
 
-                <div className="overflow-hidden rounded-2xl border border-red-200/80 bg-white/75 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-red-500/20 dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                <div className="overflow-hidden rounded-xl border border-red-200/80 bg-white/75 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-red-500/20 dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
                     <div className="border-b border-red-200/70 bg-red-50/70 p-6 dark:border-red-500/10 dark:bg-red-500/[0.06] sm:p-7">
                         <div className="flex items-start gap-4">
                             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300">
@@ -67,15 +67,15 @@ export default function DeleteAccountScreen({
                             </div>
 
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600 dark:text-red-400">
+                                <p className="text-xs font-semibold tracking-[0.18em] text-red-600 dark:text-red-400">
                                     Danger Zone
                                 </p>
 
-                                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
                                     Delete your account
                                 </h1>
 
-                                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                <p className="mt-3 text-sm leading-6 text-muted-foreground">
                                     This permanently removes your
                                     Workvanta account and personal data.
                                     This action cannot be undone.
@@ -86,11 +86,11 @@ export default function DeleteAccountScreen({
 
                     <div className="space-y-6 p-6 sm:p-7">
                         <div className="rounded-xl border border-slate-200/80 bg-white/60 p-5 dark:border-white/[0.08] dark:bg-white/[0.03]">
-                            <h2 className="text-sm font-semibold text-slate-950 dark:text-white">
+                            <h2 className="text-sm font-semibold text-foreground">
                                 Before you continue
                             </h2>
 
-                            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
                                 <li>
                                     • Your name, email, password, linked
                                     sign-ins and two-factor settings will
@@ -159,7 +159,7 @@ export default function DeleteAccountScreen({
                         <div>
                             <label
                                 htmlFor="delete-confirmation"
-                                className="text-sm font-semibold text-slate-950 dark:text-white"
+                                className="text-sm font-semibold text-foreground"
                             >
                                 Type{" "}
                                 <span className="font-mono text-red-600 dark:text-red-400">

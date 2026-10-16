@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     ArrowUpRight,
-    BarChart3,
     BriefcaseBusiness,
     ChevronDown,
     Home,
@@ -40,7 +40,6 @@ type NavbarProps = {
 
 export function Navbar({
                            session,
-                           isOwner = false,
                            unreadNotificationCount = 0,
                            notifications = [],
                        }: NavbarProps) {
@@ -72,15 +71,6 @@ export function Navbar({
             label: "Workspace",
             icon: <BriefcaseBusiness className="size-[15px]" />,
         },
-        ...(isOwner
-            ? [
-                {
-                    href: "/analytics",
-                    label: "Analytics",
-                    icon: <BarChart3 className="size-[15px]" />,
-                },
-            ]
-            : []),
     ];
 
     function handleSubmit() {
@@ -92,7 +82,7 @@ export function Navbar({
             <div className="relative">
                 <div
                     aria-hidden="true"
-                    className="absolute inset-0 -z-10 border-b border-slate-200/70 bg-white/80 backdrop-blur-2xl dark:border-white/[0.07] dark:bg-slate-950/80"
+                    className="absolute inset-0 -z-10 border-b border-border bg-background/85 backdrop-blur-xl"
                 />
 
                 <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
@@ -140,7 +130,7 @@ export function Navbar({
 
                             <Link
                                 href="/signin"
-                                className={`group inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-lg shadow-slate-950/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 ${focusRing}`}
+                                className={`group inline-flex h-10 items-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-strong motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-brand dark:text-[#0f1115] dark:hover:bg-brand-strong ${focusRing}`}
                             >
                                 Sign in
                                 <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none" />
@@ -235,11 +225,11 @@ function UserMenu({
                 )}
 
                 <div className="hidden max-w-[140px] text-left sm:block">
-                    <p className="truncate text-xs font-semibold leading-4 text-slate-950 dark:text-white">
+                    <p className="truncate text-xs font-semibold leading-4 text-foreground">
                         {userName}
                     </p>
 
-                    <p className="truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                    <p className="truncate text-[11px] leading-4 text-muted-foreground">
                         {userEmail}
                     </p>
                 </div>
@@ -253,14 +243,14 @@ function UserMenu({
             {open && (
                 <div
                     role="menu"
-                    className={`absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-60 overflow-hidden rounded-2xl p-1.5 shadow-xl shadow-slate-950/10 ${glass}`}
+                    className={`absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-60 overflow-hidden rounded-xl p-1.5 shadow-xl shadow-slate-950/10 ${glass}`}
                 >
                     <div className="border-b border-slate-200/60 px-3 py-2.5 dark:border-white/[0.06]">
-                        <p className="truncate text-xs font-semibold text-slate-950 dark:text-white">
+                        <p className="truncate text-xs font-semibold text-foreground">
                             {userName}
                         </p>
 
-                        <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="truncate text-[11px] text-muted-foreground">
                             {userEmail}
                         </p>
                     </div>
@@ -299,6 +289,10 @@ function UserMenu({
 
 
 
+function isActive(pathname: string, href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function NavLink({
                      href,
                      children,
@@ -308,14 +302,20 @@ function NavLink({
     children: ReactNode;
     icon?: ReactNode;
 }) {
+    const active = isActive(usePathname() ?? "", href);
+
     return (
         <Link
             href={href}
-            className={`group relative inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-900/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white ${focusRing}`}
+            aria-current={active ? "page" : undefined}
+            className={`relative inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
+                active
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            } ${focusRing}`}
         >
             {icon}
             <span>{children}</span>
-            <span className="absolute inset-x-3 -bottom-px h-px origin-center scale-x-0 bg-slate-950 transition-transform duration-200 group-hover:scale-x-100 dark:bg-white" />
         </Link>
     );
 }
@@ -329,10 +329,15 @@ function MobileNavLink({
     children: ReactNode;
     icon?: ReactNode;
 }) {
+    const active = isActive(usePathname() ?? "", href);
+
     return (
         <Link
             href={href}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-900/[0.04] hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white ${focusRing}`}
+            aria-current={active ? "page" : undefined}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            } ${focusRing}`}
         >
             {icon}
             {children}

@@ -22,7 +22,7 @@ export default async function SigninPage({
 
 
   return (
-    <main className="min-h-screen bg-[#F7F8FC] text-[#111827]">
+    <main className="min-h-screen bg-canvas text-[#111827]">
       <div className="grid min-h-screen lg:grid-cols-2">
 
         <LoginBrandPanel />

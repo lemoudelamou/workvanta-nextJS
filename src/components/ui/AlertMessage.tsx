@@ -98,7 +98,7 @@ export function AlertMessage({
             />
 
             <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <p className="text-sm font-semibold text-foreground">
                     {title}
                 </p>
 
