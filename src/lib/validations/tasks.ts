@@ -24,7 +24,7 @@ export const createTaskSchema = z.object({
     description: z.string().trim().max(2000, "Description is too long."),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
     status: z.enum(TASK_STATUSES),
-    assigneeId: z.string(), // "" means unassigned
+    assigneeId: z.string(),
     dueDate: z.union([
         z.literal(""),
         z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid due date."),
@@ -53,8 +53,6 @@ export const updateTaskSchema = z.object({
     assigneeId: z.string().optional(),
 
     dueDate: z.string().optional(),
-});
-
-export const deleteTaskSchema = z.object({
+});z.object({
     taskId: z.string().min(1),
 });
