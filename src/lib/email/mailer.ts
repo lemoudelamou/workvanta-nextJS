@@ -1,42 +1,38 @@
 import nodemailer from "nodemailer";
 
-function getSmtpConfig() {
+type Mailer = {
+    transporter: nodemailer.Transporter;
+    from: string;
+};
+
+let cachedMailer: Mailer | null = null;
+
+function getMailer(): Mailer {
+    if (cachedMailer) return cachedMailer;
+
     const host = process.env.SMTP_HOST;
     const port = Number(process.env.SMTP_PORT ?? "587");
     const user = process.env.SMTP_USER;
-    const password = process.env.SMTP_PASSWORD;
+    const pass = process.env.SMTP_PASSWORD;
     const from = process.env.SMTP_FROM;
 
-    if (!host || !user || !password || !from) {
+    if (!host || !user || !pass || !from) {
         throw new Error(
             "SMTP configuration is incomplete. Please check SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM.",
         );
     }
 
-    return {
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-            user,
-            pass: password,
-        },
+    cachedMailer = {
+        transporter: nodemailer.createTransport({
+            host,
+            port,
+            secure: port === 465,
+            auth: { user, pass },
+        }),
         from,
     };
-}
 
-function createTransporter() {
-    const config = getSmtpConfig();
-
-    return {
-        transporter: nodemailer.createTransport({
-            host: config.host,
-            port: config.port,
-            secure: config.secure,
-            auth: config.auth,
-        }),
-        from: config.from,
-    };
+    return cachedMailer;
 }
 
 function getAppUrl() {
@@ -52,266 +48,126 @@ function escapeHtml(value: string) {
         .replace(/'/g, "&#039;");
 }
 
-function emailLayout({
-    content,
-}: {
-    content: string;
-}) {
-    const appUrl = getAppUrl();
-
-    return `
-<!DOCTYPE html>
+function layout(content: string) {
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-    <title>Workvanta</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workvanta</title>
 </head>
-
-<body
-    style="
-        margin:0;
-        padding:0;
-        background:#f4f6f8;
-        font-family:Arial,Helvetica,sans-serif;
-        color:#111827;
-    "
->
-
-<table
-    width="100%"
-    cellpadding="0"
-    cellspacing="0"
-    border="0"
-    role="presentation"
-    style="background:#f4f6f8;"
->
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background:#f4f6f8;">
     <tr>
-        <td
-            align="center"
-            style="padding:40px 16px;"
-        >
-
-            <table
-                width="100%"
-                cellpadding="0"
-                cellspacing="0"
-                border="0"
-                role="presentation"
-                style="
-                    max-width:600px;
-                    background:#ffffff;
-                    border:1px solid #e5e7eb;
-                    border-radius:12px;
-                "
-            >
-
-                <!-- Header -->
-                <tr>
-                    <td
-                        style="
-                            padding:28px 40px 24px 40px;
-                        "
-                    >
-
-                        <table
-                            cellpadding="0"
-                            cellspacing="0"
-                            border="0"
-                            role="presentation"
-                        >
-                            <tr>
-
-                                <td valign="middle">
-
-                                    ${appUrl
-            ? `
-                                    <img
-                                        src="${appUrl}/workvanta-planet.svg"
-                                        width="44"
-                                        height="44"
-                                        alt="Workvanta"
-                                        style="
-                                            display:block;
-                                            width:44px;
-                                            height:44px;
-                                            border:0;
-                                            outline:none;
-                                            text-decoration:none;
-                                        "
-                                    >
-                                    `
-            : ""
-        }
-
-                                </td>
-
-                                <td
-                                    valign="middle"
-                                    style="padding-left:12px;"
-                                >
-                                    <span
-                                        style="
-                                            font-size:18px;
-                                            line-height:24px;
-                                            font-weight:700;
-                                            color:#111827;
-                                        "
-                                    >
-                                        Workvanta
-                                    </span>
-                                </td>
-
-                            </tr>
-                        </table>
-
-                    </td>
-                </tr>
-
-                <!-- Divider -->
-                <tr>
-                    <td style="padding:0 40px;">
-                        <div
-                            style="
-                                height:1px;
-                                background:#e5e7eb;
-                                font-size:0;
-                                line-height:0;
-                            "
-                        ></div>
-                    </td>
-                </tr>
-
-                <!-- Content -->
-                <tr>
-                    <td
-                        style="
-                            padding:36px 40px 40px 40px;
-                        "
-                    >
-                        ${content}
-                    </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                    <td
-                        style="
-                            padding:0 40px 32px 40px;
-                        "
-                    >
-
-                        <div
-                            style="
-                                height:1px;
-                                background:#e5e7eb;
-                                margin-bottom:20px;
-                                font-size:0;
-                                line-height:0;
-                            "
-                        ></div>
-
-                        <p
-                            style="
-                                margin:0;
-                                font-size:12px;
-                                line-height:20px;
-                                color:#9ca3af;
-                            "
-                        >
-                            This is an automated email from Workvanta.
-                        </p>
-
-                        <p
-                            style="
-                                margin:8px 0 0 0;
-                                font-size:12px;
-                                line-height:20px;
-                                color:#9ca3af;
-                            "
-                        >
-                            © Workvanta
-                        </p>
-
-                    </td>
-                </tr>
-
-            </table>
-
-        </td>
+      <td align="center" style="padding:40px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation"
+               style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;">
+          <tr>
+            <td style="padding:28px 40px 24px 40px;">
+              <span style="font-size:20px;line-height:28px;font-weight:700;color:#111827;">Workvanta</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background:#e5e7eb;font-size:0;line-height:0;"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px 40px 40px;">
+              ${content}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 32px 40px;">
+              <div style="height:1px;background:#e5e7eb;margin-bottom:20px;font-size:0;line-height:0;"></div>
+              <p style="margin:0;font-size:12px;line-height:20px;color:#9ca3af;">
+                This is an automated email from Workvanta.
+              </p>
+              <p style="margin:8px 0 0 0;font-size:12px;line-height:20px;color:#9ca3af;">
+                © Workvanta
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
     </tr>
-</table>
-
+  </table>
 </body>
-</html>
-    `;
+</html>`;
 }
 
-function primaryButton({
-    href,
-    label,
-}: {
-    href: string;
-    label: string;
-}) {
+function eyebrow(text: string) {
+    return `<p style="margin:0 0 12px 0;font-size:13px;line-height:20px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(text)}</p>`;
+}
+
+function heading(text: string) {
+    return `<h1 style="margin:0 0 16px 0;font-size:28px;line-height:36px;color:#111827;">${escapeHtml(text)}</h1>`;
+}
+
+function lead(html: string, bottomMargin = 0) {
+    return `<p style="margin:0 0 ${bottomMargin}px 0;font-size:16px;line-height:26px;color:#4b5563;">${html}</p>`;
+}
+
+function strong(text: string) {
+    return `<strong style="color:#111827;">${escapeHtml(text)}</strong>`;
+}
+
+function note(text: string, kind: "expiry" | "disclaimer" | "footnote") {
+    const styles = {
+        expiry: "margin:28px 0 0 0;font-size:14px;line-height:22px;color:#6b7280;",
+        disclaimer: "margin:20px 0 0 0;font-size:13px;line-height:21px;color:#9ca3af;",
+        footnote: "margin:28px 0 0 0;font-size:12px;line-height:20px;color:#9ca3af;",
+    };
+
+    return `<p style="${styles[kind]}">${escapeHtml(text)}</p>`;
+}
+
+function button(href: string, label: string) {
     return `
-<table
-    cellpadding="0"
-    cellspacing="0"
-    border="0"
-    role="presentation"
-    style="margin-top:28px;"
->
-    <tr>
-        <td
-            style="
-                border-radius:7px;
-                background:#111827;
-            "
-        >
-            <a
-                href="${escapeHtml(href)}"
-                style="
-                    display:inline-block;
-                    padding:13px 22px;
-                    font-size:14px;
-                    line-height:20px;
-                    font-weight:700;
-                    color:#ffffff;
-                    text-decoration:none;
-                    border-radius:7px;
-                "
-            >
-                ${escapeHtml(label)}
-            </a>
-        </td>
-    </tr>
-</table>
-    `;
+<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-top:28px;">
+  <tr>
+    <td style="border-radius:7px;background:#111827;">
+      <a href="${escapeHtml(href)}"
+         style="display:inline-block;padding:13px 22px;font-size:14px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:7px;">
+        ${escapeHtml(label)}
+      </a>
+    </td>
+  </tr>
+</table>`;
 }
 
-
-
-export async function sendPasswordResetEmail({
-    email,
-    resetUrl,
-}: {
-    email: string;
-    resetUrl: string;
+async function sendEmail({
+                             to,
+                             subject,
+                             text,
+                             content,
+                         }: {
+    to: string;
+    subject: string;
+    text: string[];
+    content: string;
 }) {
-    const { transporter, from } = createTransporter();
-
-    const safeResetUrl = resetUrl;
-    const appUrl = getAppUrl();
+    const { transporter, from } = getMailer();
 
     await transporter.sendMail({
         from,
+        to,
+        subject,
+        text: text.join("\n"),
+        html: layout(content),
+    });
+}
+
+export async function sendPasswordResetEmail({
+                                                 email,
+                                                 resetUrl,
+                                             }: {
+    email: string;
+    resetUrl: string;
+}) {
+    await sendEmail({
         to: email,
         subject: "Reset your Workvanta password",
-
         text: [
             "Reset your Workvanta password",
             "",
@@ -324,114 +180,32 @@ export async function sendPasswordResetEmail({
             "If you did not request this, you can safely ignore this email.",
             "",
             "Workvanta",
-        ].join("\n"),
-
-        html: emailLayout({
-            content: `
-                <p
-                    style="
-                        margin:0 0 12px 0;
-                        font-size:13px;
-                        line-height:20px;
-                        font-weight:700;
-                        color:#6b7280;
-                        text-transform:uppercase;
-                        letter-spacing:0.08em;
-                    "
-                >
-                    Account security
-                </p>
-
-                <h1
-                    style="
-                        margin:0 0 16px 0;
-                        font-size:28px;
-                        line-height:36px;
-                        color:#111827;
-                    "
-                >
-                    Reset your password
-                </h1>
-
-                <p
-                    style="
-                        margin:0;
-                        font-size:16px;
-                        line-height:26px;
-                        color:#4b5563;
-                    "
-                >
-                    We received a request to reset your Workvanta password.
-                    Click the button below to choose a new password.
-                </p>
-
-                ${primaryButton({
-                href: safeResetUrl,
-                label: "Reset password",
-            })}
-
-                <p
-                    style="
-                        margin:28px 0 0 0;
-                        font-size:14px;
-                        line-height:22px;
-                        color:#6b7280;
-                    "
-                >
-                    This link expires in 30 minutes.
-                </p>
-
-                <p
-                    style="
-                        margin:20px 0 0 0;
-                        font-size:13px;
-                        line-height:21px;
-                        color:#9ca3af;
-                    "
-                >
-                    If you did not request this password reset, you can safely
-                    ignore this email.
-                </p>
-
-                ${appUrl
-                    ? `
-                <p
-                    style="
-                        margin:24px 0 0 0;
-                        font-size:12px;
-                        line-height:20px;
-                        color:#9ca3af;
-                        word-break:break-all;
-                    "
-                >
-                    If the button does not work, copy and paste this link into
-                    your browser:<br>
-                    ${escapeHtml(safeResetUrl)}
-                </p>
-                `
-                    : ""
-                }
-            `,
-        }),
+        ],
+        content: `
+      ${eyebrow("Account security")}
+      ${heading("Reset your password")}
+      ${lead("We received a request to reset your Workvanta password. Click the button below to choose a new password.")}
+      ${button(resetUrl, "Reset password")}
+      ${note("This link expires in 30 minutes.", "expiry")}
+      ${note("If you did not request this password reset, you can safely ignore this email.", "disclaimer")}
+      <p style="margin:24px 0 0 0;font-size:12px;line-height:20px;color:#9ca3af;word-break:break-all;">
+        If the button does not work, copy and paste this link into your browser:<br>
+        ${escapeHtml(resetUrl)}
+      </p>
+    `,
     });
 }
 
-
-
 export async function sendEmailVerificationEmail({
-    email,
-    verificationUrl,
-}: {
+                                                     email,
+                                                     verificationUrl,
+                                                 }: {
     email: string;
     verificationUrl: string;
 }) {
-    const { transporter, from } = createTransporter();
-
-    await transporter.sendMail({
-        from,
+    await sendEmail({
         to: email,
         subject: "Verify your Workvanta email",
-
         text: [
             "Verify your Workvanta email",
             "",
@@ -445,80 +219,17 @@ export async function sendEmailVerificationEmail({
             "If you did not create a Workvanta account, you can safely ignore this email.",
             "",
             "Workvanta",
-        ].join("\n"),
-
-        html: emailLayout({
-            content: `
-                <p
-                    style="
-                        margin:0 0 12px 0;
-                        font-size:13px;
-                        line-height:20px;
-                        font-weight:700;
-                        color:#6b7280;
-                        text-transform:uppercase;
-                        letter-spacing:0.08em;
-                    "
-                >
-                    Welcome to Workvanta
-                </p>
-
-                <h1
-                    style="
-                        margin:0 0 16px 0;
-                        font-size:28px;
-                        line-height:36px;
-                        color:#111827;
-                    "
-                >
-                    Verify your email
-                </h1>
-
-                <p
-                    style="
-                        margin:0;
-                        font-size:16px;
-                        line-height:26px;
-                        color:#4b5563;
-                    "
-                >
-                    Thanks for creating your Workvanta account.
-                    Please verify your email address to finish setting up
-                    your account.
-                </p>
-
-                ${primaryButton({
-                href: verificationUrl,
-                label: "Verify email",
-            })}
-
-                <p
-                    style="
-                        margin:28px 0 0 0;
-                        font-size:14px;
-                        line-height:22px;
-                        color:#6b7280;
-                    "
-                >
-                    This verification link expires in 30 minutes.
-                </p>
-
-                <p
-                    style="
-                        margin:20px 0 0 0;
-                        font-size:13px;
-                        line-height:21px;
-                        color:#9ca3af;
-                    "
-                >
-                    If you did not create a Workvanta account, you can safely
-                    ignore this email.
-                </p>
-            `,
-        }),
+        ],
+        content: `
+      ${eyebrow("Welcome to Workvanta")}
+      ${heading("Verify your email")}
+      ${lead("Thanks for creating your Workvanta account. Please verify your email address to finish setting up your account.")}
+      ${button(verificationUrl, "Verify email")}
+      ${note("This verification link expires in 30 minutes.", "expiry")}
+      ${note("If you did not create a Workvanta account, you can safely ignore this email.", "disclaimer")}
+    `,
     });
 }
-
 
 export async function sendWorkspaceInvitationEmail({
                                                        email,
@@ -529,15 +240,9 @@ export async function sendWorkspaceInvitationEmail({
     workspaceName: string;
     invitationUrl: string;
 }) {
-    const { transporter, from } = createTransporter();
-
-    const safeWorkspaceName = escapeHtml(workspaceName);
-
-    await transporter.sendMail({
-        from,
+    await sendEmail({
         to: email,
         subject: `You've been invited to ${workspaceName}`,
-
         text: [
             "You're invited to Workvanta.",
             "",
@@ -548,78 +253,15 @@ export async function sendWorkspaceInvitationEmail({
             "This invitation expires in 7 days.",
             "",
             "Workvanta",
-        ].join("\n"),
-
-        html: emailLayout({
-            content: `
-                <p
-                    style="
-                        margin:0 0 12px 0;
-                        font-size:13px;
-                        line-height:20px;
-                        font-weight:700;
-                        color:#6b7280;
-                        text-transform:uppercase;
-                        letter-spacing:0.08em;
-                    "
-                >
-                    Workspace invitation
-                </p>
-
-                <h1
-                    style="
-                        margin:0 0 16px 0;
-                        font-size:28px;
-                        line-height:36px;
-                        color:#111827;
-                    "
-                >
-                    You're invited
-                </h1>
-
-                <p
-                    style="
-                        margin:0;
-                        font-size:16px;
-                        line-height:26px;
-                        color:#4b5563;
-                    "
-                >
-                    <strong style="color:#111827;">
-                        ${safeWorkspaceName}
-                    </strong>
-                    has invited you to join their Workvanta workspace.
-                </p>
-
-                ${primaryButton({
-                href: invitationUrl,
-                label: "Accept invitation",
-            })}
-
-                <p
-                    style="
-                        margin:28px 0 0 0;
-                        font-size:14px;
-                        line-height:22px;
-                        color:#6b7280;
-                    "
-                >
-                    This invitation expires in 7 days.
-                </p>
-
-                <p
-                    style="
-                        margin:20px 0 0 0;
-                        font-size:13px;
-                        line-height:21px;
-                        color:#9ca3af;
-                    "
-                >
-                    If you were not expecting this invitation, you can safely
-                    ignore this email.
-                </p>
-            `,
-        }),
+        ],
+        content: `
+      ${eyebrow("Workspace invitation")}
+      ${heading("You're invited")}
+      ${lead(`${strong(workspaceName)} has invited you to join their Workvanta workspace.`)}
+      ${button(invitationUrl, "Accept invitation")}
+      ${note("This invitation expires in 7 days.", "expiry")}
+      ${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
+    `,
     });
 }
 
@@ -634,16 +276,9 @@ export async function sendProjectInvitationEmail({
     projectName: string;
     invitationUrl: string;
 }) {
-    const { transporter, from } = createTransporter();
-
-    const safeWorkspaceName = escapeHtml(workspaceName);
-    const safeProjectName = escapeHtml(projectName);
-
-    await transporter.sendMail({
-        from,
+    await sendEmail({
         to: email,
         subject: `You've been invited to the "${projectName}" project`,
-
         text: [
             "You're invited to Workvanta.",
             "",
@@ -654,81 +289,129 @@ export async function sendProjectInvitationEmail({
             "This invitation expires in 7 days.",
             "",
             "Workvanta",
-        ].join("\n"),
+        ],
+        content: `
+      ${eyebrow("Project invitation")}
+      ${heading("You're invited")}
+      ${lead(`${strong(workspaceName)} has invited you to join the ${strong(projectName)} project on Workvanta.`)}
+      ${button(invitationUrl, "Accept invitation")}
+      ${note("This invitation expires in 7 days.", "expiry")}
+      ${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
+    `,
+    });
+}
 
-        html: emailLayout({
-            content: `
-                <p
-                    style="
-                        margin:0 0 12px 0;
-                        font-size:13px;
-                        line-height:20px;
-                        font-weight:700;
-                        color:#6b7280;
-                        text-transform:uppercase;
-                        letter-spacing:0.08em;
-                    "
-                >
-                    Project invitation
-                </p>
+export async function sendTaskAssignmentEmail({
+                                                  email,
+                                                  taskTitle,
+                                                  assignedBy,
+                                              }: {
+    email: string;
+    taskTitle: string;
+    assignedBy: string;
+}) {
+    const appUrl = getAppUrl();
 
-                <h1
-                    style="
-                        margin:0 0 16px 0;
-                        font-size:28px;
-                        line-height:36px;
-                        color:#111827;
-                    "
-                >
-                    You're invited
-                </h1>
+    await sendEmail({
+        to: email,
+        subject: `New task assigned: ${taskTitle}`,
+        text: [
+            "New task assigned",
+            "",
+            `${assignedBy} assigned you a task in Workvanta.`,
+            "",
+            `Task: ${taskTitle}`,
+            "",
+            appUrl ? `Open Workvanta: ${appUrl}` : "Open Workvanta to view the task.",
+            "",
+            "Workvanta",
+        ],
+        content: `
+      ${eyebrow("New assignment")}
+      ${heading("You have a new task")}
+      ${lead(`${strong(assignedBy)} assigned a task to you in Workvanta.`, 28)}
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation"
+             style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+        <tr>
+          <td style="padding:20px 24px;">
+            <p style="margin:0 0 8px 0;font-size:12px;line-height:18px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;">
+              Task
+            </p>
+            <p style="margin:0;font-size:18px;line-height:26px;font-weight:700;color:#111827;">
+              ${escapeHtml(taskTitle)}
+            </p>
+          </td>
+        </tr>
+      </table>
+      ${appUrl ? button(appUrl, "Open Workvanta") : ""}
+      ${note("Open Workvanta to view the task details and start working on it.", "expiry")}
+      <p style="margin:20px 0 0 0;font-size:12px;line-height:20px;color:#9ca3af;">
+        You're receiving this email because task assignment notifications are enabled in your Workvanta settings.
+      </p>
+    `,
+    });
+}
 
-                <p
-                    style="
-                        margin:0;
-                        font-size:16px;
-                        line-height:26px;
-                        color:#4b5563;
-                    "
-                >
-                    <strong style="color:#111827;">
-                        ${safeWorkspaceName}
-                    </strong>
-                    has invited you to join the
-                    <strong style="color:#111827;">
-                        ${safeProjectName}
-                    </strong>
-                    project on Workvanta.
-                </p>
+export async function sendTaskCommentedEmail({
+                                                 email,
+                                                 commentedBy,
+                                             }: {
+    email: string;
+    taskId: string;
+    commentedBy: string;
+}) {
+    const appUrl = getAppUrl();
 
-                ${primaryButton({
-                href: invitationUrl,
-                label: "Accept invitation",
-            })}
+    await sendEmail({
+        to: email,
+        subject: `${commentedBy} commented on a task`,
+        text: [
+            "New comment on a Workvanta task",
+            "",
+            `${commentedBy} commented on a task you're following.`,
+            "",
+            appUrl ? `Open Workvanta: ${appUrl}` : "Open Workvanta to view the comment.",
+            "",
+            "Workvanta",
+        ],
+        content: `
+      ${eyebrow("New comment")}
+      ${heading("Someone commented on a task")}
+      ${lead(`${strong(commentedBy)} commented on a task you're following in Workvanta.`)}
+      ${appUrl ? button(appUrl, "Open Workvanta") : ""}
+      ${note("You're receiving this email because comment notifications are enabled in your Workvanta settings.", "footnote")}
+    `,
+    });
+}
 
-                <p
-                    style="
-                        margin:28px 0 0 0;
-                        font-size:14px;
-                        line-height:22px;
-                        color:#6b7280;
-                    "
-                >
-                    This invitation expires in 7 days.
-                </p>
+export async function sendMentionEmail({
+                                           email,
+                                           mentionedBy,
+                                       }: {
+    email: string;
+    taskId: string;
+    mentionedBy: string;
+}) {
+    const appUrl = getAppUrl();
 
-                <p
-                    style="
-                        margin:20px 0 0 0;
-                        font-size:13px;
-                        line-height:21px;
-                        color:#9ca3af;
-                    "
-                >
-                    If you were not expecting this invitation, you can safely
-                    ignore this email.
-                </p>
-            `,
-        }),
+    await sendEmail({
+        to: email,
+        subject: `${mentionedBy} mentioned you in Workvanta`,
+        text: [
+            "You were mentioned in Workvanta",
+            "",
+            `${mentionedBy} mentioned you in a comment on a Workvanta task.`,
+            "",
+            appUrl ? `Open Workvanta: ${appUrl}` : "Open Workvanta to view the mention.",
+            "",
+            "Workvanta",
+        ],
+        content: `
+      ${eyebrow("Mention")}
+      ${heading("You were mentioned")}
+      ${lead(`${strong(mentionedBy)} mentioned you in a comment on a Workvanta task.`)}
+      ${appUrl ? button(appUrl, "Open Workvanta") : ""}
+      ${note("You're receiving this email because mention notifications are enabled in your Workvanta settings.", "footnote")}
+    `,
     });
 }
