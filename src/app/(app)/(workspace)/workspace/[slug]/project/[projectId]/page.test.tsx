@@ -51,7 +51,11 @@ jest.mock("@/lib/db/prisma", () => ({
 
 jest.mock(
     "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions",
-    () => ({ setProjectVisibilityAction: jest.fn() }),
+    () => {
+        const updateProjectDetailsAction: any = jest.fn();
+        updateProjectDetailsAction.bind = jest.fn(() => "bound-update-details");
+        return { setProjectVisibilityAction: jest.fn(), updateProjectDetailsAction };
+    },
 );
 jest.mock(
     "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/DeleteProjectButton",
@@ -69,6 +73,11 @@ jest.mock(
         ),
     }),
 );
+jest.mock("@/components/ui/EditDetailsForm", () => ({
+    EditDetailsForm: ({ title, defaultName }: any) => (
+        <div data-testid="edit-details" data-name={defaultName}>{title}</div>
+    ),
+}));
 jest.mock("@/components/ui/ToggleVisibilityButton", () => ({
     ToggleVisibilityButton: ({ visibility, onToggle }: any) => (
         <button data-testid="toggle-visibility" onClick={() => onToggle()}>
@@ -471,5 +480,21 @@ describe("ProjectPage – permissions", () => {
         fireEvent.click(screen.getByTestId("toggle-visibility"));
 
         expect(mockSetVisibility).toHaveBeenCalledWith("acme", "p1");
+    });
+});
+
+describe("ProjectPage – edit details", () => {
+    it("lets project admins edit the name and description", async () => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ effectiveRole: "ADMIN" }));
+
+        await renderPage();
+
+        expect(screen.getByTestId("edit-details")).toHaveTextContent("Project details");
+    });
+
+    it("hides the edit panel from editors", async () => {
+        await renderPage();
+
+        expect(screen.queryByTestId("edit-details")).not.toBeInTheDocument();
     });
 });

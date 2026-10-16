@@ -27,6 +27,8 @@ import {
     visibleProjectsWhere,
     WORKSPACE_ROLE_DESCRIPTIONS,
 } from "@/lib/auth/permissions";
+import { EditDetailsForm } from "@/components/ui/EditDetailsForm";
+import { updateWorkspaceDetailsAction } from "@/app/(app)/(workspace)/workspace/workspace-actions";
 import { LeaveWorkspaceButton } from "@/app/(app)/(workspace)/workspace/[slug]/components/LeaveWorkspaceButton";
 
 
@@ -100,6 +102,7 @@ export default async function WorkspacePage({
     const canCreateProject = canWorkspace(role, "projects.create");
     const canLeave = canWorkspace(role, "workspace.leave");
     const canDelete = canWorkspace(role, "workspace.delete");
+    const canEditDetails = canWorkspace(role, "workspace.update");
     const newProjectHref = `/workspace/${workspace.slug}/project/new`;
     const roleLabel = role[0] + role.slice(1).toLowerCase();
 
@@ -225,6 +228,19 @@ export default async function WorkspacePage({
                         />
                     )}
                 </section>
+
+                {canEditDetails && (
+                    <EditDetailsForm
+                        action={updateWorkspaceDetailsAction.bind(null, workspace.slug)}
+                        title="Workspace details"
+                        description="Rename this workspace or change its description."
+                        nameLabel="Workspace name"
+                        defaultName={workspace.name}
+                        defaultDescription={workspace.description}
+                        nameMaxLength={80}
+                        descriptionMaxLength={280}
+                    />
+                )}
 
                 {canLeave && (
                     <section

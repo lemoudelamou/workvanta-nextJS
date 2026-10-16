@@ -10,6 +10,7 @@ import {
     BriefcaseBusiness,
     ChevronDown,
     Home,
+    ListTodo,
     LogOut,
     Settings,
 } from "lucide-react";
@@ -60,6 +61,11 @@ export function Navbar({
             href: "/dashboard",
             label: "Dashboard",
             icon: <Home className="size-[15px]" />,
+        },
+        {
+            href: "/tasks",
+            label: "My tasks",
+            icon: <ListTodo className="size-[15px]" />,
         },
         {
             href: "/workspace",

@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/members";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
+import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
 import { runSerializable } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
@@ -23,6 +24,7 @@ import {
     moveCardAction,
     deleteCardAction,
     setProjectVisibilityAction,
+    updateProjectDetailsAction,
 } from "./project-actions";
 
 // ---------- module mocks ----------
@@ -52,6 +54,9 @@ jest.mock("@/lib/db/prisma", () => ({
     },
 }));
 jest.mock("@/lib/db/serializable", () => ({ runSerializable: jest.fn() }));
+jest.mock("@/lib/queue/notification.queue", () => ({
+    queueTaskAssignedNotification: jest.fn(),
+}));
 jest.mock("@/lib/due-date", () => ({ endOfDay: jest.fn() }));
 jest.mock("@/generated/prisma/enums", () => ({
     WorkspaceRole: { OWNER: "OWNER", ADMIN: "ADMIN", MEMBER: "MEMBER", GUEST: "GUEST" },
@@ -655,5 +660,102 @@ describe("setProjectVisibilityAction", () => {
         expect(mockRevalidate).toHaveBeenCalledTimes(2);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1/members");
+    });
+});
+
+// ---------- assignment notifications on create ----------
+describe("createTaskAction – assignment notification", () => {
+    const mockQueue = queueTaskAssignedNotification as jest.Mock;
+
+    it("notifies the assignee when a task is created for someone else", async () => {
+        parsedTask({ title: "Ship it", assigneeId: "u2" });
+
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).toHaveBeenCalledWith({
+            userId: "u2",
+            taskId: "t1",
+            taskTitle: "Ship it",
+            projectId: "p1",
+            workspaceId: "w1",
+            workspaceSlug: "acme",
+            assignedBy: "u1",
+        });
+    });
+
+    it("does not notify you about tasks you assign to yourself", async () => {
+        parsedTask({ assigneeId: "u1" });
+
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).not.toHaveBeenCalled();
+    });
+
+    it("does not notify when nobody is assigned", async () => {
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).not.toHaveBeenCalled();
+    });
+
+    it("still succeeds if the notification queue is down", async () => {
+        parsedTask({ assigneeId: "u2" });
+        mockQueue.mockRejectedValueOnce(new Error("redis down"));
+
+        await expect(createTaskAction("acme", "p1", makeFormData())).resolves.toEqual({
+            success: true,
+        });
+    });
+});
+
+// ---------- updateProjectDetailsAction ----------
+describe("updateProjectDetailsAction", () => {
+    const run = (values: Record<string, string>) =>
+        updateProjectDetailsAction("acme", "p1", {}, makeFormData(values));
+
+    it("requires the project.update permission", async () => {
+        const { ForbiddenError } = jest.requireActual("@/lib/auth/permissions");
+        mockRequirePermission.mockRejectedValue(
+            new ForbiddenError("Only project admins can edit project details."),
+        );
+
+        await expect(run({ name: "New" })).resolves.toEqual({
+            error: "Only project admins can edit project details.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("validates the name and description", async () => {
+        await expect(run({ name: "  " })).resolves.toEqual({ error: "Project name is required." });
+        await expect(run({ name: "x".repeat(101) })).resolves.toEqual({
+            error: "Project name must be 100 characters or fewer.",
+        });
+        await expect(run({ name: "Ok", description: "x".repeat(501) })).resolves.toEqual({
+            error: "Description must be 500 characters or fewer.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("saves trimmed details and refreshes the pages", async () => {
+        await expect(run({ name: "  Apollo 2 ", description: " Next phase " })).resolves.toEqual({
+            success: true,
+        });
+
+        expect(db.project.update).toHaveBeenCalledWith({
+            where: { id: "p1" },
+            data: { name: "Apollo 2", normalizedName: "apollo 2", description: "Next phase" },
+        });
+        expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme");
+    });
+
+    it("reports a duplicate name", async () => {
+        const { Prisma } = jest.requireActual("@/generated/prisma/client");
+        db.project.update.mockRejectedValue(
+            new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" }),
+        );
+
+        await expect(run({ name: "Apollo" })).resolves.toEqual({
+            error: "Another project in this workspace already has this name.",
+        });
     });
 });

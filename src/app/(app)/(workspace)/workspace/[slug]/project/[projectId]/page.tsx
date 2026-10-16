@@ -20,7 +20,11 @@ import { canEditTasks } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
 import { DeleteProjectButton } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/DeleteProjectButton";
 import { ToggleVisibilityButton } from "@/components/ui/ToggleVisibilityButton";
-import { setProjectVisibilityAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
+import { EditDetailsForm } from "@/components/ui/EditDetailsForm";
+import {
+    setProjectVisibilityAction,
+    updateProjectDetailsAction,
+} from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { KanbanBoard, type BoardTask } from "./kanbanboard/kanban-board";
 import { PageBody } from "@/components/ui/PageBody";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -222,6 +226,23 @@ export default async function ProjectPage({
                     canEdit={canEdit}
                 />
             </section>
+
+            {canChangeVisibility && (
+                <EditDetailsForm
+                    action={updateProjectDetailsAction.bind(
+                        null,
+                        project.workspace.slug,
+                        project.id,
+                    )}
+                    title="Project details"
+                    description="Rename this project or change its description."
+                    nameLabel="Project name"
+                    defaultName={project.name}
+                    defaultDescription={project.description}
+                    nameMaxLength={100}
+                    descriptionMaxLength={500}
+                />
+            )}
 
             {canDeleteProject && (
                 <section
