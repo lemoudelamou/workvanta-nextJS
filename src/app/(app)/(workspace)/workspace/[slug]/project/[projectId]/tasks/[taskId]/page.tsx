@@ -201,8 +201,10 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
         if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
             throw error;
         }
+        // The project itself is gone: send people to the project URL so they
+        // get the project's not-found page, not "this task was deleted".
         if (error instanceof Error && error.message === "Project not found.") {
-            notFound();
+            redirect(`/workspace/${slug}/project/${projectId}`);
         }
         return (
             <AccessDeniedNotice

@@ -276,10 +276,11 @@ describe("TaskPage – guards", () => {
         expect(db.task.findFirst).not.toHaveBeenCalled();
     });
 
-    it("calls notFound when the project does not exist", async () => {
+    it("sends people to the project page when the project does not exist", async () => {
         mockRequireProjectAccess.mockRejectedValue(new Error("Project not found."));
 
-        await expect(renderPage()).rejects.toThrow("NEXT_NOT_FOUND");
+        await expect(renderPage()).rejects.toThrow("NEXT_REDIRECT:/workspace/acme/project/p1");
+        expect(mockNotFound).not.toHaveBeenCalled();
         expect(db.task.findFirst).not.toHaveBeenCalled();
     });
 
