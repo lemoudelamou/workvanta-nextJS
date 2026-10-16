@@ -270,8 +270,12 @@ function UserMenu({
                             Settings
                         </Link>
 
-                        <form action={logout} onSubmit={onLogout}>
-                            <button
+                        <form
+                            action={async (formData) => {
+                                onLogout();
+                                await logout();
+                            }}
+                        >                            <button
                                 type="submit"
                                 role="menuitem"
                                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-slate-300 dark:hover:bg-rose-400/[0.08] dark:hover:text-rose-300 ${focusRing}`}

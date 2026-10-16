@@ -1,12 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle, ArrowLeft, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { deleteAccount } from "./actions";
 
-export default function DeleteAccountPage() {
+type BlockingWorkspace = { name: string; slug: string; memberCount: number };
+
+export default function DeleteAccountScreen({
+    blockingWorkspaces = [],
+    soloWorkspaceNames = [],
+}: {
+    blockingWorkspaces?: BlockingWorkspace[];
+    soloWorkspaceNames?: string[];
+}) {
+    const isBlocked = blockingWorkspaces.length > 0;
     const [confirmation, setConfirmation] = useState("");
     const [isDeletingAccount, startDeletingAccount] =
         useTransition();
@@ -24,7 +33,11 @@ export default function DeleteAccountPage() {
 
         startDeletingAccount(async () => {
             try {
-                await deleteAccount();
+                const result = await deleteAccount(confirmation);
+
+                if (result?.error) {
+                    setErrorMessage(result.error);
+                }
             } catch (error) {
                 console.error(error);
 
@@ -64,8 +77,8 @@ export default function DeleteAccountPage() {
 
                                 <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
                                     This permanently removes your
-                                    Workvanta account and associated
-                                    data. This action cannot be undone.
+                                    Workvanta account and personal data.
+                                    This action cannot be undone.
                                 </p>
                             </div>
                         </div>
@@ -79,22 +92,69 @@ export default function DeleteAccountPage() {
 
                             <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                                 <li>
-                                    • Your account will be permanently
-                                    deleted.
+                                    • Your name, email, password, linked
+                                    sign-ins and two-factor settings will
+                                    be erased.
                                 </li>
                                 <li>
-                                    • Your active sessions will be
-                                    invalidated.
+                                    • You&apos;ll be removed from every
+                                    workspace and unassigned from your
+                                    tasks.
                                 </li>
                                 <li>
-                                    • Associated account preferences
-                                    will be removed.
+                                    • Tasks and comments you wrote in
+                                    shared workspaces stay for your team,
+                                    shown as &ldquo;Deleted user&rdquo;.
                                 </li>
+                                {soloWorkspaceNames.length > 0 && (
+                                    <li>
+                                        • Workspaces only you use will be
+                                        deleted:{" "}
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                                            {soloWorkspaceNames.join(", ")}
+                                        </span>
+                                        .
+                                    </li>
+                                )}
                                 <li>
-                                    • You will be signed out immediately.
+                                    • You will be signed out everywhere
+                                    immediately.
                                 </li>
                             </ul>
                         </div>
+
+                        {isBlocked && (
+                            <div
+                                role="alert"
+                                className="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-500/20 dark:bg-amber-500/[0.08]"
+                            >
+                                <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                    Hand over your workspaces first
+                                </h2>
+                                <p className="mt-1 text-sm leading-6 text-amber-800 dark:text-amber-300">
+                                    You own workspaces that other people
+                                    use. Make someone else the owner from
+                                    the Team page, or delete the workspace,
+                                    before deleting your account.
+                                </p>
+                                <ul className="mt-3 space-y-1.5">
+                                    {blockingWorkspaces.map((workspace) => (
+                                        <li key={workspace.slug}>
+                                            <Link
+                                                href={`/workspace/${workspace.slug}/team`}
+                                                className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-900 underline-offset-2 hover:underline dark:text-amber-200"
+                                            >
+                                                {workspace.name}
+                                                <span className="font-normal text-amber-700 dark:text-amber-400">
+                                                    · {workspace.memberCount} members
+                                                </span>
+                                                <ArrowRight className="size-3.5" />
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         <div>
                             <label
@@ -116,7 +176,7 @@ export default function DeleteAccountPage() {
                                     setConfirmation(event.target.value);
                                     setErrorMessage("");
                                 }}
-                                disabled={isDeletingAccount}
+                                disabled={isDeletingAccount || isBlocked}
                                 autoComplete="off"
                                 spellCheck={false}
                                 placeholder="DELETE"
@@ -144,7 +204,11 @@ export default function DeleteAccountPage() {
                             <button
                                 type="button"
                                 onClick={handleDeleteAccount}
-                                disabled={isDeletingAccount}
+                                disabled={
+                                    isDeletingAccount ||
+                                    isBlocked ||
+                                    confirmation !== "DELETE"
+                                }
                                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-red-700 hover:bg-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:border-white/[0.08] dark:disabled:bg-white/[0.04] dark:disabled:text-slate-500"
                             >
                                 <Trash2 className="size-4" />

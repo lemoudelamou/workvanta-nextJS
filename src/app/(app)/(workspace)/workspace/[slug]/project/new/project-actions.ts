@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
+import { canWorkspace, isProjectVisibility } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 
 function getText(value: FormDataEntryValue | null) {
@@ -23,11 +24,13 @@ export async function createProject(
 
     const name = getText(formData.get("name"));
     const description = getText(formData.get("description"));
+    const visibilityValue = getText(formData.get("visibility")) || "WORKSPACE";
 
     if (
         !name ||
         name.length > 100 ||
-        description.length > 500
+        description.length > 500 ||
+        !isProjectVisibility(visibilityValue)
     ) {
         return {
             error: "Please enter a valid project name and description.",
@@ -42,6 +45,7 @@ export async function createProject(
             },
         },
         select: {
+            role: true,
             workspace: {
                 select: {
                     slug: true,
@@ -54,6 +58,12 @@ export async function createProject(
         redirect("/workspace");
     }
 
+    if (!canWorkspace(membership.role, "projects.create")) {
+        return {
+            error: "Guests can't create projects in this workspace.",
+        };
+    }
+
     const normalizedName = name.toLowerCase().trim();
     const { slug } = membership.workspace;
 
@@ -64,6 +74,14 @@ export async function createProject(
                 name,
                 normalizedName,
                 description: description || null,
+                visibility: visibilityValue,
+                // The creator manages the project they started.
+                members: {
+                    create: {
+                        userId: session.user.id,
+                        role: "ADMIN",
+                    },
+                },
             },
             select: {
                 id: true,

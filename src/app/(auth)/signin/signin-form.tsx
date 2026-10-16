@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -32,7 +33,10 @@ const oauthErrorMessages: Record<string, string> = {
 export default function CredentialsLoginForm() {
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState("");
+  // Invitation links send people here with ?email=…&callbackUrl=/invite/…
+  const afterLogin = safeCallbackUrl(searchParams.get("callbackUrl"));
+
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
@@ -90,7 +94,7 @@ export default function CredentialsLoginForm() {
         return;
       }
 
-      window.location.href = "/signin";
+      window.location.href = afterLogin;
     } catch (error) {
       console.error("LOGIN ERROR:", error);
 
@@ -141,7 +145,7 @@ export default function CredentialsLoginForm() {
         return;
       }
 
-      window.location.href = "/signin";
+      window.location.href = afterLogin;
     } catch (error) {
       console.error("2FA ERROR:", error);
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
+import { compareWorkspaceRoles } from "@/lib/auth/permissions";
 
 export async function acceptInvitationAction(token: string) {
     const session = await getSession();
@@ -47,21 +48,39 @@ export async function acceptInvitationAction(token: string) {
      * If they're already a member of the workspace and/or project,
      * we leave their existing role untouched rather than overwriting it.
      */
+    // An invitation can never grant ownership, whatever is stored on it.
+    const invitedRole = invitation.role === "OWNER" ? "MEMBER" : invitation.role;
+
     await prisma.$transaction(async (tx) => {
-        await tx.workspaceMember.upsert({
+        const existing = await tx.workspaceMember.findUnique({
             where: {
                 workspaceId_userId: {
                     workspaceId: invitation.workspaceId,
                     userId: user.id,
                 },
             },
-            update: {},
-            create: {
-                userId: user.id,
-                workspaceId: invitation.workspaceId,
-                role: invitation.role,
-            },
+            select: { id: true, role: true },
         });
+
+        if (!existing) {
+            await tx.workspaceMember.create({
+                data: {
+                    userId: user.id,
+                    workspaceId: invitation.workspaceId,
+                    role: invitedRole,
+                },
+            });
+        } else if (
+            existing.role !== "OWNER" &&
+            compareWorkspaceRoles(invitedRole, existing.role) < 0
+        ) {
+            // Accepting a higher-role invite (e.g. GUEST -> MEMBER) upgrades
+            // them; a lower-role invite never downgrades anyone.
+            await tx.workspaceMember.update({
+                where: { id: existing.id },
+                data: { role: invitedRole },
+            });
+        }
 
         if (invitation.projectId) {
             await tx.projectMember.upsert({

@@ -2,14 +2,23 @@
 
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
 
-import { requireRole } from "@/lib/auth/team";
+import { requireMembership, requireWorkspacePermission } from "@/lib/auth/team";
+import {
+    canChangeWorkspaceRole,
+    canRemoveWorkspaceMember,
+    canWorkspace,
+    ForbiddenError,
+    invitableWorkspaceRoles,
+    type WorkspaceRoleName,
+} from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { sendWorkspaceInvitationEmail } from "@/lib/email/mailer";
+import { publishRealtimeEvent } from "@/lib/publisher/publisher";
 
-type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
-type InviteRole = Exclude<WorkspaceRole, "OWNER">;
+type InviteRole = Exclude<WorkspaceRoleName, "OWNER">;
 
 export type InviteTeamState = {
     success: boolean;
@@ -17,16 +26,77 @@ export type InviteTeamState = {
     error?: string;
 };
 
-function isInviteRole(value: unknown): value is InviteRole {
-    return (
-        value === "ADMIN" ||
-        value === "MEMBER" ||
-        value === "GUEST"
-    );
+export type ActionResult = { error?: string };
+
+function isRedirectError(error: unknown) {
+    const digest = (error as { digest?: unknown })?.digest;
+    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
 }
+
+/**
+ * Runs an action and turns permission / validation errors into a returned
+ * `{ error }` (thrown messages are hidden from the client in production).
+ */
+async function asActionResult(run: () => Promise<void>): Promise<ActionResult> {
+    try {
+        await run();
+        return {};
+    } catch (error) {
+        if (isRedirectError(error)) throw error;
+        // Only our own messages are user-safe; never echo database errors.
+        if (error instanceof ForbiddenError || (error instanceof Error && error.name === "Error")) {
+            return { error: error.message };
+        }
+        console.error("Team action failed:", error);
+        return { error: "Something went wrong. Please try again." };
+    }
+}
+
+const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function teamPath(slug: string) {
     return `/workspace/${slug}/team`;
+}
+
+function revalidateWorkspace(slug: string) {
+    revalidatePath(teamPath(slug));
+    revalidatePath(`/workspace/${slug}`);
+    revalidatePath("/workspace");
+    revalidatePath("/dashboard");
+}
+
+/**
+ * Removes every trace of a user's access to a workspace: project roles,
+ * task assignments and their realtime subscription. Workspace membership
+ * itself is deleted by the caller inside the same transaction.
+ */
+async function revokeWorkspaceAccess(
+    tx: Prisma.TransactionClient,
+    workspaceId: string,
+    userId: string,
+) {
+    await tx.projectMember.deleteMany({
+        where: { userId, project: { workspaceId } },
+    });
+
+    await tx.task.updateMany({
+        where: { assigneeId: userId, project: { workspaceId } },
+        data: { assigneeId: null },
+    });
+}
+
+async function notifyAccessRevoked(workspaceId: string, userId: string) {
+    try {
+        await publishRealtimeEvent({
+            type: "workspace-access-revoked",
+            workspaceId,
+            data: { userId },
+        });
+    } catch (error) {
+        // Realtime is best-effort; the membership is already gone, so the
+        // next request from that user is rejected regardless.
+        console.error("Failed to publish access revocation:", error);
+    }
 }
 
 export async function inviteTeamAction(
@@ -34,10 +104,20 @@ export async function inviteTeamAction(
     _previousState: InviteTeamState,
     formData: FormData,
 ): Promise<InviteTeamState> {
-    const membership = await requireRole(
-        slug,
-        ["OWNER", "ADMIN"],
-    );
+    let membership: Awaited<ReturnType<typeof requireMembership>>;
+
+    try {
+        membership = await requireWorkspacePermission(
+            slug,
+            "members.invite",
+            "Only workspace owners and admins can invite people.",
+        );
+    } catch (error) {
+        if (error instanceof ForbiddenError) {
+            return { success: false, error: error.message };
+        }
+        throw error;
+    }
 
     const emailValue = formData.get("email");
     const roleValue = formData.get("role");
@@ -54,25 +134,31 @@ export async function inviteTeamAction(
         };
     }
 
-    if (!isInviteRole(roleValue)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return {
             success: false,
-            error: "Please select a valid role.",
+            error: "Please enter a valid email address.",
         };
     }
 
-    if (
-        roleValue === "ADMIN" &&
-        membership.role !== "OWNER"
-    ) {
+    const allowedRoles = invitableWorkspaceRoles(membership.role);
+
+    if (roleValue === "ADMIN" && !allowedRoles.includes("ADMIN")) {
         return {
             success: false,
             error: "Only the workspace owner can invite administrators.",
         };
     }
 
-    const workspaceId = membership.workspace.id;
+    if (!allowedRoles.includes(roleValue as InviteRole)) {
+        return {
+            success: false,
+            error: "Please select a valid role.",
+        };
+    }
 
+    const role = roleValue as InviteRole;
+    const workspaceId = membership.workspace.id;
 
     const existingMember =
         await prisma.workspaceMember.findFirst({
@@ -96,7 +182,6 @@ export async function inviteTeamAction(
 
     const now = new Date();
 
-
     await prisma.invitation.deleteMany({
         where: {
             workspaceId,
@@ -113,6 +198,7 @@ export async function inviteTeamAction(
             where: {
                 workspaceId,
                 email,
+                projectId: null,
                 acceptedAt: null,
                 expiresAt: {
                     gt: now,
@@ -131,10 +217,7 @@ export async function inviteTeamAction(
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-
-    const expiresAt = new Date(
-        now.getTime() + 7 * 24 * 60 * 60 * 1000,
-    );
+    const expiresAt = new Date(now.getTime() + INVITATION_TTL_MS);
 
     let invitation;
 
@@ -144,7 +227,7 @@ export async function inviteTeamAction(
                 email,
                 token,
                 workspaceId,
-                role: roleValue,
+                role,
                 expiresAt,
             },
         });
@@ -174,13 +257,13 @@ export async function inviteTeamAction(
             email,
             workspaceName: membership.workspace.name,
             invitationUrl,
+            inviterName: membership.user.name ?? membership.user.email,
         });
     } catch (error) {
         console.error(
             "Failed to send workspace invitation email:",
             error,
         );
-
 
         await prisma.invitation.delete({
             where: {
@@ -207,9 +290,10 @@ export async function updateTeamRole(
     memberId: string,
     role: InviteRole,
 ) {
-    const currentMembership = await requireRole(
+    const currentMembership = await requireWorkspacePermission(
         slug,
-        ["OWNER"],
+        "members.changeRole",
+        "Only the workspace owner can change roles.",
     );
 
     const targetMembership =
@@ -229,13 +313,25 @@ export async function updateTeamRole(
     }
 
     if (targetMembership.id === currentMembership.id) {
-        throw new Error("You cannot change your own role.");
+        throw new ForbiddenError("You cannot change your own role.");
     }
 
     if (targetMembership.role === "OWNER") {
-        throw new Error(
-            "The workspace owner cannot be changed.",
+        throw new ForbiddenError(
+            "The workspace owner cannot be changed. Transfer ownership instead.",
         );
+    }
+
+    // Server-side check of the *value*: the client must never be able to
+    // promote someone to OWNER (or anything outside the enum).
+    if (
+        !canChangeWorkspaceRole(
+            { role: currentMembership.role, memberId: currentMembership.id },
+            { role: targetMembership.role, memberId: targetMembership.id },
+            role,
+        )
+    ) {
+        throw new ForbiddenError("Please select a valid role.");
     }
 
     await prisma.workspaceMember.update({
@@ -247,16 +343,16 @@ export async function updateTeamRole(
         },
     });
 
-    revalidatePath(teamPath(slug));
+    revalidateWorkspace(slug);
 }
 
 export async function removeTeamAction(
     slug: string,
     memberId: string,
 ) {
-    const currentMembership = await requireRole(
+    const currentMembership = await requireWorkspacePermission(
         slug,
-        ["OWNER", "ADMIN"],
+        "members.remove",
     );
 
     const targetMembership =
@@ -268,6 +364,7 @@ export async function removeTeamAction(
             select: {
                 id: true,
                 role: true,
+                userId: true,
             },
         });
 
@@ -276,32 +373,172 @@ export async function removeTeamAction(
     }
 
     if (targetMembership.id === currentMembership.id) {
-        throw new Error(
-            "You cannot remove yourself from the workspace.",
+        throw new ForbiddenError(
+            "You cannot remove yourself from the workspace. Use “Leave workspace” instead.",
         );
     }
 
     if (targetMembership.role === "OWNER") {
-        throw new Error(
+        throw new ForbiddenError(
             "The workspace owner cannot be removed.",
         );
     }
 
     if (
-        currentMembership.role === "ADMIN" &&
-        targetMembership.role === "ADMIN"
+        !canRemoveWorkspaceMember(
+            { role: currentMembership.role, memberId: currentMembership.id },
+            { role: targetMembership.role, memberId: targetMembership.id },
+        )
     ) {
-        throw new Error(
+        throw new ForbiddenError(
             "Admins cannot remove other administrators.",
         );
     }
 
-    await prisma.workspaceMember.delete({
-        where: {
-            id: targetMembership.id,
-        },
+    const workspaceId = currentMembership.workspace.id;
+
+    await prisma.$transaction(async (tx) => {
+        await revokeWorkspaceAccess(tx, workspaceId, targetMembership.userId);
+        await tx.workspaceMember.delete({
+            where: {
+                id: targetMembership.id,
+            },
+        });
     });
+
+    await notifyAccessRevoked(workspaceId, targetMembership.userId);
+
+    revalidateWorkspace(slug);
+}
+
+/** Any non-owner can leave a workspace on their own. */
+export async function leaveWorkspaceAction(slug: string): Promise<ActionResult> {
+    let membership: Awaited<ReturnType<typeof requireMembership>> | undefined;
+    const result = await asActionResult(async () => {
+        membership = await leaveWorkspace(slug);
+    });
+    if (result.error || !membership) return result;
+
+    await notifyAccessRevoked(membership.workspace.id, membership.userId);
+
+    revalidatePath("/workspace");
+    revalidatePath("/dashboard");
+    redirect("/workspace");
+}
+
+async function leaveWorkspace(slug: string) {
+    const membership = await requireMembership(slug);
+
+    if (!canWorkspace(membership.role, "workspace.leave")) {
+        throw new ForbiddenError(
+            "Transfer ownership to someone else before leaving this workspace.",
+        );
+    }
+
+    const workspaceId = membership.workspace.id;
+
+    await prisma.$transaction(async (tx) => {
+        await revokeWorkspaceAccess(tx, workspaceId, membership.userId);
+        await tx.workspaceMember.delete({ where: { id: membership.id } });
+    });
+
+    return membership;
+}
+
+/**
+ * Hands the workspace over to another member. The previous owner stays on
+ * as ADMIN so they don't lose access to their own work.
+ */
+export async function transferOwnershipAction(
+    slug: string,
+    memberId: string,
+): Promise<ActionResult> {
+    return asActionResult(() => transferOwnership(slug, memberId));
+}
+
+async function transferOwnership(slug: string, memberId: string) {
+    const currentMembership = await requireWorkspacePermission(
+        slug,
+        "workspace.transfer",
+        "Only the workspace owner can transfer ownership.",
+    );
+
+    const target = await prisma.workspaceMember.findFirst({
+        where: {
+            id: memberId,
+            workspaceId: currentMembership.workspace.id,
+        },
+        select: { id: true, role: true, userId: true },
+    });
+
+    if (!target) {
+        throw new Error("Member not found.");
+    }
+
+    if (target.id === currentMembership.id) {
+        throw new ForbiddenError("You already own this workspace.");
+    }
+
+    if (target.role === "GUEST") {
+        throw new ForbiddenError(
+            "Guests can't own a workspace. Change their role first.",
+        );
+    }
+
+    await prisma.$transaction([
+        prisma.workspaceMember.update({
+            where: { id: currentMembership.id },
+            data: { role: "ADMIN" },
+        }),
+        prisma.workspaceMember.update({
+            where: { id: target.id },
+            data: { role: "OWNER" },
+        }),
+        prisma.workspace.update({
+            where: { id: currentMembership.workspace.id },
+            data: { ownerId: target.userId },
+        }),
+    ]);
+
+    revalidateWorkspace(slug);
+}
+
+/** Cancels a pending invitation (workspace- or project-level). */
+export async function revokeInvitationAction(
+    slug: string,
+    invitationId: string,
+): Promise<ActionResult> {
+    return asActionResult(() => revokeInvitation(slug, invitationId));
+}
+
+async function revokeInvitation(slug: string, invitationId: string) {
+    const membership = await requireWorkspacePermission(
+        slug,
+        "invitations.manage",
+        "Only workspace owners and admins can manage invitations.",
+    );
+
+    const invitation = await prisma.invitation.findFirst({
+        where: {
+            id: invitationId,
+            workspaceId: membership.workspace.id,
+            acceptedAt: null,
+        },
+        select: { id: true, role: true },
+    });
+
+    if (!invitation) {
+        throw new Error("Invitation not found.");
+    }
+
+    // Admins can't cancel an admin invitation the owner sent.
+    if (invitation.role === "ADMIN" && membership.role !== "OWNER") {
+        throw new ForbiddenError(
+            "Only the workspace owner can cancel an administrator invitation.",
+        );
+    }
+
+    await prisma.invitation.delete({ where: { id: invitation.id } });
 
     revalidatePath(teamPath(slug));
 }
-

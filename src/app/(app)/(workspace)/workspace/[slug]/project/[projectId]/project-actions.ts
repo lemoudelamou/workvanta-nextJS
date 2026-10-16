@@ -4,12 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
-import { requireProjectAccess, requireProjectRole } from "@/lib/auth/members";
+import {
+    requireProjectAccess,
+    requireProjectPermission,
+    userCanAccessProject,
+} from "@/lib/auth/members";
+import { isProjectVisibility } from "@/lib/auth/permissions";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
 import { runSerializable, type Tx } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
-import { WorkspaceRole } from "@/generated/prisma/enums";
 import { createTaskSchema } from "@/lib/validations/tasks";
 import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
 
@@ -61,11 +65,7 @@ export async function deleteProjectAction(projectId: string) {
     const project = await prisma.project.findFirst({
         where: {
             id: projectId,
-            workspace: {
-                members: {
-                    some: { userId: session.user.id, role: WorkspaceRole.OWNER },
-                },
-            },
+            workspace: { members: { some: { userId: session.user.id } } },
         },
         select: {
             id: true,
@@ -79,9 +79,21 @@ export async function deleteProjectAction(projectId: string) {
         };
     }
 
+    const { slug } = project.workspace;
+
+    try {
+        await requireProjectPermission(slug, project.id, "project.delete");
+    } catch (error) {
+        if (isRedirectError(error)) throw error;
+
+        return {
+            error: "Project not found or you do not have permission to delete it.",
+        };
+    }
+
     await prisma.project.delete({ where: { id: project.id } });
 
-    const workspacePath = `/workspace/${project.workspace.slug}`;
+    const workspacePath = `/workspace/${slug}`;
 
     revalidatePath(workspacePath);
     revalidatePath("/dashboard");
@@ -127,15 +139,8 @@ export async function createTaskAction(
     const userId = access.userId;
     const workspaceId = access.project.workspaceId;
 
-    if (assigneeId) {
-        const isMember = await prisma.workspaceMember.findFirst({
-            where: { userId: assigneeId, workspaceId },
-            select: { id: true },
-        });
-
-        if (!isMember) {
-            return { error: "The selected assignee is not a member of this workspace." };
-        }
+    if (assigneeId && !(await userCanAccessProject(assigneeId, access.project))) {
+        return { error: "The selected assignee doesn't have access to this project." };
     }
 
     let dueDate: Date | null = null;
@@ -346,10 +351,14 @@ export async function setProjectVisibilityAction(
     projectId: string,
     visibility: "WORKSPACE" | "PRIVATE",
 ) {
-    await requireProjectRole(slug, projectId, ["ADMIN"]);
+    if (!isProjectVisibility(visibility)) {
+        throw new Error("Invalid visibility.");
+    }
+
+    const access = await requireProjectPermission(slug, projectId, "project.update");
 
     await prisma.project.update({
-        where: { id: projectId },
+        where: { id: access.project.id },
         data: { visibility },
     });
 

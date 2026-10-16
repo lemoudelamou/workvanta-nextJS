@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { withCallbackUrl } from "@/lib/auth/callback-url";
 import GithubIcon from "@/app/style/githubIcon";
 import GoogleIcon from "@/app/style/googleIcon";
 
@@ -20,10 +22,11 @@ export default function SocialLoginButton({
     intent = "login",
 }: Props) {
     const [loading, setLoading] = useState(false);
+    const callbackUrl = useSearchParams().get("callbackUrl");
 
     return (
         <a
-            href={`/api/oauth/${provider}?intent=${intent}`}
+            href={withCallbackUrl(`/api/oauth/${provider}?intent=${intent}`, callbackUrl)}
             aria-disabled={loading}
             onClick={(e) => {
                 if (loading) {

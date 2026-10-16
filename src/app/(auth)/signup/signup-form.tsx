@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { withCallbackUrl } from "@/lib/auth/callback-url";
 import {
     ArrowRight,
     CheckCircle2,
@@ -119,7 +120,9 @@ function PasswordRequirements({
 
 export default function SignupForm() {
     const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl");
+    const [email, setEmail] = useState(searchParams.get("email") ?? "");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
@@ -210,7 +213,12 @@ export default function SignupForm() {
             }
 
             // Account created successfully.
-            router.push("/signin");
+            router.push(
+                withCallbackUrl(
+                    `/signin?email=${encodeURIComponent(email.trim().toLowerCase())}`,
+                    callbackUrl,
+                ),
+            );
         } catch (error) {
             // Unexpected server/database error.
             console.error("SIGNUP ERROR:", error);

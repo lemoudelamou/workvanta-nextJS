@@ -1,4 +1,5 @@
-import { ShieldCheck, Trash2, UserPlus, UsersRound, Crown } from "lucide-react";
+import { ShieldCheck, Trash2, UserPlus, UsersRound, Crown, Mail } from "lucide-react";
+import { notFound } from "next/navigation";
 
 import { requireMembership } from "@/lib/auth/team";
 import { prisma } from "@/lib/db/prisma";
@@ -12,6 +13,18 @@ import { removeTeamAction } from "@/app/(app)/(workspace)/workspace/[slug]/team/
 import { WorkspaceMemberRoleSelect } from "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/WorkspaceRole";
 import { InviteTeamForm } from "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/InviteTeamForm";
 import { Kpi } from "@/app/style/Kpi";
+import {
+    canRemoveWorkspaceMember,
+    canWorkspace,
+    ForbiddenError,
+    invitableWorkspaceRoles,
+    WORKSPACE_ROLE_DESCRIPTIONS,
+    type WorkspaceRoleName,
+} from "@/lib/auth/permissions";
+import {
+    RevokeInvitationButton,
+    TransferOwnershipButton,
+} from "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/MemberActions";
 
 const ROLE_RANK: Record<string, number> = {
     OWNER: 0,
@@ -20,14 +33,9 @@ const ROLE_RANK: Record<string, number> = {
     GUEST: 3,
 };
 
-const ROLE_HELPER: Record<string, string> = {
-    OWNER: "Full access",
-    ADMIN: "Manage members and projects",
-    MEMBER: "Create and edit projects",
-    GUEST: "Invited projects only",
-};
 
 const JOINED = new Intl.DateTimeFormat("en", { month: "short", year: "numeric" });
+const EXPIRES = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
 
 function formatRole(role: string) {
     return role.charAt(0) + role.slice(1).toLowerCase().replaceAll("_", " ");
@@ -51,7 +59,15 @@ export default async function TeamPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const membership = await requireMembership(slug);
+    let membership: Awaited<ReturnType<typeof requireMembership>>;
+
+    try {
+        membership = await requireMembership(slug);
+    } catch (error) {
+        if (error instanceof ForbiddenError) notFound();
+        throw error;
+    }
+
     const { workspace } = membership;
 
     const rawMembers = await prisma.workspaceMember.findMany({
@@ -72,11 +88,31 @@ export default async function TeamPage({
         (a, b) => (ROLE_RANK[a.role] ?? 99) - (ROLE_RANK[b.role] ?? 99),
     );
 
-    const isOwner = membership.role === "OWNER";
-    const isAdmin = membership.role === "ADMIN";
-    const canInvite = isOwner || isAdmin;
-    const canManageRoles = isOwner;
-    const canRemoveMembers = isOwner || isAdmin;
+    const myRole = membership.role as WorkspaceRoleName;
+    const canInvite = canWorkspace(myRole, "members.invite");
+    const canManageRoles = canWorkspace(myRole, "members.changeRole");
+    const canTransfer = canWorkspace(myRole, "workspace.transfer");
+    const canManageInvitations = canWorkspace(myRole, "invitations.manage");
+    const canInviteAdmin = invitableWorkspaceRoles(myRole).includes("ADMIN");
+
+    const pendingInvitations = canManageInvitations
+        ? await prisma.invitation.findMany({
+            where: {
+                workspaceId: workspace.id,
+                acceptedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                projectRole: true,
+                expiresAt: true,
+                project: { select: { name: true } },
+            },
+        })
+        : [];
 
     const managerCount = members.filter(
         (m) => m.role === "OWNER" || m.role === "ADMIN",
@@ -117,7 +153,7 @@ export default async function TeamPage({
                     icon={<ShieldCheck />}
                     label="Your role"
                     value={formatRole(membership.role)}
-                    helper={ROLE_HELPER[membership.role]}
+                    helper={WORKSPACE_ROLE_DESCRIPTIONS[myRole]}
                 />
             </section>
 
@@ -148,7 +184,7 @@ export default async function TeamPage({
                     </div>
 
                     <div className="mt-5">
-                        <InviteTeamForm slug={slug} canInviteAdmin={isOwner} />
+                        <InviteTeamForm slug={slug} canInviteAdmin={canInviteAdmin} />
                     </div>
                 </section>
             )}
@@ -178,11 +214,14 @@ export default async function TeamPage({
 
                         const canChangeThisRole =
                             canManageRoles && !isCurrentUser && !isTargetOwner;
-                        const canRemoveThisMember =
-                            canRemoveMembers &&
+                        const canRemoveThisMember = canRemoveWorkspaceMember(
+                            { role: myRole, memberId: membership.id },
+                            { role: member.role as WorkspaceRoleName, memberId: member.id },
+                        );
+                        const canTransferToThisMember =
+                            canTransfer &&
                             !isCurrentUser &&
-                            !isTargetOwner &&
-                            !(isAdmin && member.role !== "MEMBER");
+                            (member.role === "ADMIN" || member.role === "MEMBER");
 
                         const displayName = member.user.name ?? member.user.email;
 
@@ -244,6 +283,14 @@ export default async function TeamPage({
                                         <RoleBadge role={member.role} />
                                     )}
 
+                                    {canTransferToThisMember && (
+                                        <TransferOwnershipButton
+                                            slug={slug}
+                                            memberId={member.id}
+                                            memberName={displayName}
+                                        />
+                                    )}
+
                                     {canRemoveThisMember && (
                                         <form action={removeTeamAction.bind(null, slug, member.id)}>
                                             <button
@@ -262,6 +309,78 @@ export default async function TeamPage({
                     })}
                 </ul>
             </section>
+
+            {canManageInvitations && pendingInvitations.length > 0 && (
+                <section aria-labelledby="pending-invitations" className="mt-10">
+                    <div className="mb-5">
+                        <div className="flex items-center gap-2.5">
+                            <h2
+                                id="pending-invitations"
+                                className="text-lg font-semibold tracking-tight text-foreground"
+                            >
+                                Pending invitations
+                            </h2>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
+                                {pendingInvitations.length}
+                            </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Invitations that haven&apos;t been accepted yet.
+                        </p>
+                    </div>
+
+                    <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                        {pendingInvitations.map((invitation) => {
+                            const canRevoke =
+                                invitation.role !== "ADMIN" || myRole === "OWNER";
+
+                            return (
+                                <li
+                                    key={invitation.id}
+                                    className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6 sm:px-6"
+                                >
+                                    <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                                        <span
+                                            aria-hidden="true"
+                                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                                        >
+                                            <Mail className="size-4" />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-semibold text-foreground">
+                                                {invitation.email}
+                                            </p>
+                                            <p className="truncate text-sm text-muted-foreground">
+                                                {invitation.project
+                                                    ? `${formatRole(invitation.projectRole ?? "VIEWER")} on “${invitation.project.name}”`
+                                                    : `Joins as ${formatRole(invitation.role)}`}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <time
+                                        dateTime={invitation.expiresAt.toISOString()}
+                                        className="hidden w-32 shrink-0 text-xs text-muted-foreground lg:block"
+                                    >
+                                        Expires {EXPIRES.format(invitation.expiresAt)}
+                                    </time>
+
+                                    <div className="flex items-center gap-2 pl-[3.375rem] sm:pl-0">
+                                        <RoleBadge role={invitation.role} />
+                                        {canRevoke && (
+                                            <RevokeInvitationButton
+                                                slug={slug}
+                                                invitationId={invitation.id}
+                                                email={invitation.email}
+                                            />
+                                        )}
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            )}
         </PageBody>
     );
 }

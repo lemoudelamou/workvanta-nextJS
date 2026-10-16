@@ -231,58 +231,66 @@ export async function sendEmailVerificationEmail({
     });
 }
 
+
 export async function sendWorkspaceInvitationEmail({
-                                                       email,
-                                                       workspaceName,
-                                                       invitationUrl,
-                                                   }: {
+    email,
+    workspaceName,
+    invitationUrl,
+    inviterName,
+}: {
     email: string;
     workspaceName: string;
     invitationUrl: string;
+    inviterName: string;
 }) {
     await sendEmail({
         to: email,
-        subject: `You've been invited to ${workspaceName}`,
+        subject: `${inviterName} invited you to ${workspaceName}`,
         text: [
             "You're invited to Workvanta.",
             "",
-            `${workspaceName} has invited you to join their workspace.`,
+            `${inviterName} invited you to join the "${workspaceName}" workspace on Workvanta.`,
             "",
             `Accept invitation: ${invitationUrl}`,
             "",
             "This invitation expires in 7 days.",
             "",
+            "If you were not expecting this invitation, you can safely ignore this email.",
+            "",
             "Workvanta",
         ],
         content: `
-      ${eyebrow("Workspace invitation")}
-      ${heading("You're invited")}
-      ${lead(`${strong(workspaceName)} has invited you to join their Workvanta workspace.`)}
-      ${button(invitationUrl, "Accept invitation")}
-      ${note("This invitation expires in 7 days.", "expiry")}
-      ${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
-    `,
+${eyebrow("Workspace invitation")}
+${heading("You're invited")}
+${lead(`${strong(inviterName)} invited you to join the ${strong(workspaceName)} workspace on Workvanta.`)}
+${button(invitationUrl, "Accept invitation")}
+${note("This link expires in 7 days.", "expiry")}
+${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
+`,
     });
 }
+
 
 export async function sendProjectInvitationEmail({
                                                      email,
                                                      workspaceName,
                                                      projectName,
                                                      invitationUrl,
+                                                     inviterName,
                                                  }: {
     email: string;
     workspaceName: string;
     projectName: string;
     invitationUrl: string;
+    inviterName: string;
 }) {
     await sendEmail({
         to: email,
-        subject: `You've been invited to the "${projectName}" project`,
+        subject: `${inviterName} invited you to the "${projectName}" project`,
         text: [
             "You're invited to Workvanta.",
             "",
-            `${workspaceName} has invited you to join the "${projectName}" project.`,
+            `${inviterName} invited you to join the "${projectName}" project in the "${workspaceName}" workspace.`,
             "",
             `Accept invitation: ${invitationUrl}`,
             "",
@@ -291,13 +299,13 @@ export async function sendProjectInvitationEmail({
             "Workvanta",
         ],
         content: `
-      ${eyebrow("Project invitation")}
-      ${heading("You're invited")}
-      ${lead(`${strong(workspaceName)} has invited you to join the ${strong(projectName)} project on Workvanta.`)}
-      ${button(invitationUrl, "Accept invitation")}
-      ${note("This invitation expires in 7 days.", "expiry")}
-      ${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
-    `,
+            ${eyebrow("Project invitation")}
+            ${heading("You're invited")}
+            ${lead(`${strong(inviterName)} invited you to join the ${strong(projectName)} project in the ${strong(workspaceName)} workspace on Workvanta.`)}
+            ${button(invitationUrl, "Accept invitation")}
+            ${note("This link expires in 7 days.", "expiry")}
+            ${note("If you were not expecting this invitation, you can safely ignore this email.", "disclaimer")}
+        `,
     });
 }
 

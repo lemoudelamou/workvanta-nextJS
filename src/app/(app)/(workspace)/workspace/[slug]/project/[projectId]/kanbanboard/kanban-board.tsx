@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { buttonStyles } from "@/app/style/button-style";
 import type { TaskFormMember } from "@/components/ui/TaskFormFields";
 import { TASK_COLUMNS, TASK_STATUSES, type TaskStatus } from "@/lib/task-status";
-import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
+import { reorderTasksAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/tasks/[taskId]/task-actions";
 import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
 import { getPriorityLabel, getStatusLabel, getAssigneeLabel } from "./kanban-helpers";
 import { findColumn, groupTasks, idsOf } from "./board-utils";
@@ -262,7 +262,17 @@ export function KanbanBoard({
 
         startTransition(async () => {
             try {
-                await moveCardAction(slug, projectId, taskId, to);
+                // Persist the exact order the user dropped into, for both the
+                // column it left and the column it landed in.
+                await reorderTasksAction({
+                    slug,
+                    projectId,
+                    taskId,
+                    sourceStatus: from,
+                    destinationStatus: to,
+                    sourceTaskIds: idsOf(next[from]),
+                    destinationTaskIds: idsOf(next[to]),
+                });
             } catch {
                 setColumns(start.snapshot);
                 setError("Couldn't move that task. Please try again.");

@@ -2,9 +2,17 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
+import {
+    canProject,
+    effectiveProjectRole,
+    ForbiddenError,
+    projectAudienceWhere,
+    type ProjectPermission,
+    type ProjectRoleName,
+    type WorkspaceRoleName,
+} from "@/lib/auth/permissions";
 
-export type ProjectRoleName = "ADMIN" | "EDITOR" | "VIEWER";
-export type WorkspaceRoleName = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
+export type { ProjectRoleName, WorkspaceRoleName } from "@/lib/auth/permissions";
 
 export type ProjectAccessResult = {
     userId: string;
@@ -16,7 +24,10 @@ export type ProjectAccessResult = {
         workspaceId: string;
     };
     workspaceRole: WorkspaceRoleName;
+    /** The explicit ProjectMember role, if any. */
     projectRole: ProjectRoleName | null;
+    /** The role that actually applies (see lib/auth/permissions.ts). */
+    effectiveRole: ProjectRoleName;
 };
 
 async function loadProjectContext(
@@ -57,14 +68,8 @@ async function loadProjectContext(
 }
 
 /**
- * Ensures the current user can at least VIEW the given project.
- *
- * Rules:
- *  - Not signed in -> redirect to /signin
- *  - Not a workspace member at all -> throw
- *  - Workspace OWNER/ADMIN -> always allowed (override)
- *  - Project visibility = WORKSPACE -> any workspace member (not GUEST-only-elsewhere) is allowed
- *  - Project visibility = PRIVATE -> must have an explicit ProjectMember row
+ * Ensures the current user can at least VIEW the given project and returns
+ * their resolved roles. See lib/auth/permissions.ts for the rules.
  */
 export async function requireProjectAccess(
     slug: string,
@@ -88,38 +93,52 @@ export async function requireProjectAccess(
     const { project, workspaceMembership, projectMembership } = context;
 
     if (!workspaceMembership) {
-        throw new Error("You are not a member of this workspace.");
+        throw new ForbiddenError("You are not a member of this workspace.");
     }
 
-    const isWorkspaceOwnerOrAdmin =
-        workspaceMembership.role === "OWNER" ||
-        workspaceMembership.role === "ADMIN";
+    const workspaceRole = workspaceMembership.role as WorkspaceRoleName;
+    const projectRole = (projectMembership?.role as ProjectRoleName) ?? null;
 
-    // GUESTs never get the "workspace-visible" free pass — they can only
-    // see projects they've been explicitly added to as a ProjectMember,
-    // no matter that project's visibility setting.
-    const canView =
-        isWorkspaceOwnerOrAdmin ||
-        !!projectMembership ||
-        (workspaceMembership.role !== "GUEST" &&
-            project.visibility === "WORKSPACE");
+    const effectiveRole = effectiveProjectRole({
+        workspaceRole,
+        projectRole,
+        visibility: project.visibility,
+    });
 
-    if (!canView) {
-        throw new Error("You do not have access to this project.");
+    if (!effectiveRole) {
+        throw new ForbiddenError("You do not have access to this project.");
     }
 
     return {
         userId,
         workspace: project.workspace,
         project,
-        workspaceRole: workspaceMembership.role as WorkspaceRoleName,
-        projectRole: (projectMembership?.role as ProjectRoleName) ?? null,
+        workspaceRole,
+        projectRole,
+        effectiveRole,
     };
 }
 
+/** Ensures the current user holds a specific project permission. */
+export async function requireProjectPermission(
+    slug: string,
+    projectId: string,
+    permission: ProjectPermission,
+    message?: string,
+): Promise<ProjectAccessResult> {
+    const access = await requireProjectAccess(slug, projectId);
+
+    if (!canProject(access.effectiveRole, permission)) {
+        throw new ForbiddenError(message);
+    }
+
+    return access;
+}
+
 /**
- * Ensures the current user has one of the given project roles.
- * Workspace OWNER/ADMIN always pass, since they can manage any project.
+ * Ensures the current user's effective project role is one of `allowedRoles`.
+ * Workspace OWNER/ADMIN resolve to project ADMIN, so they pass any check
+ * that includes ADMIN.
  */
 export async function requireProjectRole(
     slug: string,
@@ -128,14 +147,48 @@ export async function requireProjectRole(
 ): Promise<ProjectAccessResult> {
     const access = await requireProjectAccess(slug, projectId);
 
-    const isWorkspaceOwnerOrAdmin =
-        access.workspaceRole === "OWNER" || access.workspaceRole === "ADMIN";
-
-    if (isWorkspaceOwnerOrAdmin) return access;   // <- always passes, no ProjectMember row needed
-
-    if (!access.projectRole || !allowedRoles.includes(access.projectRole)) {
-        throw new Error("You do not have permission to perform this action.");
+    if (!allowedRoles.includes(access.effectiveRole)) {
+        throw new ForbiddenError();
     }
 
     return access;
+}
+
+/**
+ * Users who can open the project — the only people who may be assigned to
+ * its tasks, mentioned in it or notified about it.
+ */
+export async function listProjectAudience(project: {
+    id: string;
+    workspaceId: string;
+    visibility: "WORKSPACE" | "PRIVATE";
+}) {
+    const members = await prisma.workspaceMember.findMany({
+        where: projectAudienceWhere(project),
+        orderBy: { user: { name: "asc" } },
+        select: {
+            user: {
+                select: { id: true, name: true, email: true, image: true },
+            },
+        },
+    });
+
+    return members.map((member) => member.user);
+}
+
+/** Can this specific user open the project? Used to validate assignees. */
+export async function userCanAccessProject(
+    userId: string,
+    project: {
+        id: string;
+        workspaceId: string;
+        visibility: "WORKSPACE" | "PRIVATE";
+    },
+) {
+    const match = await prisma.workspaceMember.findFirst({
+        where: { ...projectAudienceWhere(project), userId },
+        select: { id: true },
+    });
+
+    return !!match;
 }
