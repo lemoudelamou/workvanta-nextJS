@@ -4,25 +4,23 @@ import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
-import { requireProjectRole } from "@/lib/auth/members";
+import { requireProjectPermission } from "@/lib/auth/members";
+import {
+    ForbiddenError,
+    isProjectRole,
+    isWorkspaceManager,
+    type ProjectRoleName,
+} from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { sendProjectInvitationEmail } from "@/lib/email/mailer";
 
-type ProjectRole = "ADMIN" | "EDITOR" | "VIEWER";
+type ProjectRole = ProjectRoleName;
 
 export type InviteProjectMemberState = {
     success: boolean;
     message?: string;
     error?: string;
 };
-
-function isProjectRole(value: unknown): value is ProjectRole {
-    return (
-        value === "ADMIN" ||
-        value === "EDITOR" ||
-        value === "VIEWER"
-    );
-}
 
 function membersPath(slug: string, projectId: string) {
     return `/workspace/${slug}/project/${projectId}/members`;
@@ -34,11 +32,21 @@ export async function inviteToProjectAction(
     _previousState: InviteProjectMemberState,
     formData: FormData,
 ): Promise<InviteProjectMemberState> {
-    const access = await requireProjectRole(
-        slug,
-        projectId,
-        ["ADMIN"],
-    );
+    let access: Awaited<ReturnType<typeof requireProjectPermission>>;
+
+    try {
+        access = await requireProjectPermission(
+            slug,
+            projectId,
+            "project.members.manage",
+            "Only project admins can add people to this project.",
+        );
+    } catch (error) {
+        if (error instanceof ForbiddenError) {
+            return { success: false, error: error.message };
+        }
+        throw error;
+    }
 
     const emailValue = formData.get("email");
     const roleValue = formData.get("role");
@@ -71,6 +79,13 @@ export async function inviteToProjectAction(
         },
     });
 
+    if (existingUser?.id === access.userId) {
+        return {
+            success: false,
+            error: "You're already on this project.",
+        };
+    }
+
     if (existingUser) {
         const workspaceMembership =
             await prisma.workspaceMember.findUnique({
@@ -89,7 +104,7 @@ export async function inviteToProjectAction(
             await prisma.projectMember.upsert({
                 where: {
                     projectId_userId: {
-                        projectId,
+                        projectId: access.project.id,
                         userId: existingUser.id,
                     },
                 },
@@ -97,7 +112,7 @@ export async function inviteToProjectAction(
                     role: roleValue,
                 },
                 create: {
-                    projectId,
+                    projectId: access.project.id,
                     userId: existingUser.id,
                     role: roleValue,
                 },
@@ -212,12 +227,37 @@ export async function inviteToProjectAction(
     const invitationUrl =
         `${appUrl}/invite/${invitation.token}`;
 
+
+    const inviter = await prisma.user.findUnique({
+        where: {
+            id: access.userId,
+        },
+        select: {
+            name: true,
+        },
+    });
+
+    if (!inviter) {
+        await prisma.invitation.delete({
+            where: {
+                id: invitation.id,
+            },
+        });
+
+        return {
+            success: false,
+            error: "Unable to identify the inviter. Please try again.",
+        };
+    }
+
+
     try {
         await sendProjectInvitationEmail({
             email,
             workspaceName: access.workspace.name,
             projectName: access.project.name,
             invitationUrl,
+            inviterName: inviter.name ?? "A team member",
         });
     } catch (error) {
         console.error(
@@ -225,15 +265,18 @@ export async function inviteToProjectAction(
             error,
         );
 
-        /*
-         * The invitation should not remain pending if the email could
-         * not be sent.
-         */
-        await prisma.invitation.delete({
-            where: {
-                id: invitation.id,
-            },
-        });
+        try {
+            await prisma.invitation.delete({
+                where: {
+                    id: invitation.id,
+                },
+            });
+        } catch (cleanupError) {
+            console.error(
+                "Failed to delete invitation after email failure:",
+                cleanupError,
+            );
+        }
 
         return {
             success: false,
@@ -257,24 +300,35 @@ export async function updateProjectMemberRoleAction(
     memberId: string,
     role: ProjectRole,
 ) {
-    await requireProjectRole(
+    const access = await requireProjectPermission(
         slug,
         projectId,
-        ["ADMIN"],
+        "project.members.manage",
     );
+
+    if (!isProjectRole(role)) {
+        throw new ForbiddenError("Please select a valid role.");
+    }
 
     const member = await prisma.projectMember.findFirst({
         where: {
             id: memberId,
-            projectId,
+            projectId: access.project.id,
         },
         select: {
             id: true,
+            userId: true,
         },
     });
 
     if (!member) {
         throw new Error("Project member not found.");
+    }
+
+    // Project admins can't demote themselves (and lock the project out of
+    // an admin); workspace owners/admins always keep admin rights anyway.
+    if (member.userId === access.userId && !isWorkspaceManager(access.workspaceRole)) {
+        throw new ForbiddenError("You cannot change your own project role.");
     }
 
     await prisma.projectMember.update({
@@ -296,16 +350,16 @@ export async function removeProjectMemberAction(
     projectId: string,
     memberId: string,
 ) {
-    const access = await requireProjectRole(
+    const access = await requireProjectPermission(
         slug,
         projectId,
-        ["ADMIN"],
+        "project.members.manage",
     );
 
     const member = await prisma.projectMember.findFirst({
         where: {
             id: memberId,
-            projectId,
+            projectId: access.project.id,
         },
         select: {
             id: true,

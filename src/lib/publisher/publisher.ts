@@ -28,6 +28,13 @@ export type RealtimeEvent =
         userId: string;
         notificationId: string;
     };
+}
+    | {
+    type: "workspace-access-revoked";
+    workspaceId: string;
+    data: {
+        userId: string;
+    };
 };
 
 export async function publishRealtimeEvent(

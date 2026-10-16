@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
   },
 
   reactCompiler: true,
+
+  experimental: {
+    serverActions: {
+      // Task attachments are uploaded through a server action and may be up
+      // to 10 MB (see MAX_FILE_SIZE in task-actions.ts). The default is 1 MB.
+      bodySizeLimit: "11mb",
+    },
+  },
 };
 
 export default nextConfig;

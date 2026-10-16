@@ -11,9 +11,11 @@ import { IconBadge } from "@/components/ui/IconBadge";
 import {
     Field,
     Input,
+    Select,
     Textarea,
 } from "@/components/ui/FormField";
 import { buttonStyles } from "@/app/style/button-style";
+import { canWorkspace } from "@/lib/auth/permissions";
 
 export default async function NewProjectPage({
                                                  params,
@@ -44,11 +46,20 @@ export default async function NewProjectPage({
             id: true,
             name: true,
             slug: true,
+            members: {
+                where: { userId: session.user.id },
+                select: { role: true },
+                take: 1,
+            },
         },
     });
 
     if (!workspace) {
         notFound();
+    }
+
+    if (!canWorkspace(workspace.members[0]?.role, "projects.create")) {
+        redirect(`/workspace/${workspace.slug}`);
     }
 
 
@@ -60,6 +71,13 @@ export default async function NewProjectPage({
         if (result?.error === "duplicate-name") {
             redirect(
                 `/workspace/${workspace.slug}/project/new?error=duplicate-name`,
+            );
+        }
+
+        // Surface validation / permission failures instead of failing silently.
+        if (result?.error) {
+            redirect(
+                `/workspace/${workspace.slug}/project/new?error=invalid`,
             );
         }
     };
@@ -86,6 +104,16 @@ export default async function NewProjectPage({
                 Projects give your team a focused place to plan, assign, and
                 complete work.
             </p>
+
+            {error === "invalid" && (
+                <div className="mt-6">
+                    <AlertMessage
+                        variant="error"
+                        title="Couldn't create the project"
+                        message="Check the name and description and try again."
+                    />
+                </div>
+            )}
 
             {error === "duplicate-name" && (
                 <div className="mt-6">
@@ -117,6 +145,17 @@ export default async function NewProjectPage({
                         rows={4}
                         placeholder="What is this project trying to achieve?"
                     />
+                </Field>
+
+                <Field label="Who can access it?">
+                    <Select name="visibility" defaultValue="WORKSPACE">
+                        <option value="WORKSPACE">
+                            Everyone in the workspace (members can edit)
+                        </option>
+                        <option value="PRIVATE">
+                            Private — only people I add
+                        </option>
+                    </Select>
                 </Field>
 
                 <button

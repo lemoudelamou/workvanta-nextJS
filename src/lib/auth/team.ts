@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import type { WorkspaceRole } from "@/generated/prisma/client";
-
-
+import {
+    canWorkspace,
+    ForbiddenError,
+    type WorkspacePermission,
+} from "@/lib/auth/permissions";
 
 export async function requireMembership(
     slug: string,
@@ -12,7 +15,7 @@ export async function requireMembership(
     const session = await getSession();
 
     if (!session?.user?.id) {
-        redirect("/login");
+        redirect(`/signin?callbackUrl=${encodeURIComponent(`/workspace/${slug}`)}`);
     }
 
     const membership = await prisma.workspaceMember.findFirst({
@@ -29,7 +32,7 @@ export async function requireMembership(
     });
 
     if (!membership) {
-        throw new Error(
+        throw new ForbiddenError(
             "You do not have access to this workspace.",
         );
     }
@@ -45,9 +48,24 @@ export async function requireRole(
         await requireMembership(slug);
 
     if (!allowedRoles.includes(membership.role)) {
-        throw new Error(
+        throw new ForbiddenError(
             "You do not have permission to perform this action.",
         );
+    }
+
+    return membership;
+}
+
+/** Ensures the current user holds a workspace permission. */
+export async function requireWorkspacePermission(
+    slug: string,
+    permission: WorkspacePermission,
+    message?: string,
+) {
+    const membership = await requireMembership(slug);
+
+    if (!canWorkspace(membership.role, permission)) {
+        throw new ForbiddenError(message);
     }
 
     return membership;

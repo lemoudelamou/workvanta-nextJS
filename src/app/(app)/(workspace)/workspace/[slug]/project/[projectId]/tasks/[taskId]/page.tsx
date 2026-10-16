@@ -5,7 +5,14 @@ import type { ReactNode } from "react";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { requireProjectAccess } from "@/lib/auth/members";
+import {
+    listProjectAudience,
+    requireProjectAccess,
+    type ProjectAccessResult,
+} from "@/lib/auth/members";
+import { canProject } from "@/lib/auth/permissions";
+import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
+import { attachmentHref } from "@/lib/storage/attachments";
 import { canEditTasks } from "@/lib/auth/task_permission";
 
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
@@ -168,6 +175,32 @@ export default async function TaskPage({ params }: TaskPageProps) {
     const userId = session.user.id;
     const { slug, projectId, taskId } = await params;
 
+    // Check project access first so private projects never load task data
+    // for people who can't open them.
+    let access: ProjectAccessResult;
+
+    try {
+        access = await requireProjectAccess(slug, projectId);
+    } catch (error) {
+        const digest = (error as { digest?: string })?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
+            throw error;
+        }
+        if (error instanceof Error && error.message === "Project not found.") {
+            notFound();
+        }
+        return (
+            <AccessDeniedNotice
+                workspaceSlug={slug}
+                message={
+                    error instanceof Error
+                        ? error.message
+                        : "Something went wrong loading this task."
+                }
+            />
+        );
+    }
+
     const task = await prisma.task.findFirst({
         where: {
             id: taskId,
@@ -195,17 +228,12 @@ export default async function TaskPage({ params }: TaskPageProps) {
 
     if (!task) notFound();
 
-    const [access, members] = await Promise.all([
-        requireProjectAccess(slug, projectId),
-        prisma.workspaceMember.findMany({
-            where: { workspaceId: task.project.workspaceId },
-            orderBy: { user: { name: "asc" } },
-            include: { user: { select: USER_SELECT } },
-        }),
-    ]);
+    // Assignee and @mention suggestions only include people who can open
+    // this project.
+    const people = await listProjectAudience(access.project);
 
     const canEdit = canEditTasks(access);
-    const people = members.map((member) => member.user);
+    const canModerate = canProject(access.effectiveRole, "comment.moderate");
 
     const updateTask = updateTaskAction.bind(null, slug, projectId, taskId);
     const deleteTask = deleteTaskAction.bind(null, slug, projectId, taskId);
@@ -336,7 +364,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
 
                                                 <div className="min-w-0">
                                                     <a
-                                                        href={attachment.url}
+                                                        href={attachmentHref(attachment.id)}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="block truncate text-sm font-medium text-foreground hover:underline"
@@ -371,6 +399,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
                             deleteComment={deleteComment}
                             updateComment={updateComment}
                             members={people}
+                            canModerate={canModerate}
                         />
                     </div>
 

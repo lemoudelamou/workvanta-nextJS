@@ -5,12 +5,18 @@ import LoginBrandPanel from "@/components/ui/WorkvantaPanel";
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { safeCallbackUrl, withCallbackUrl } from "@/lib/auth/callback-url";
 
-export default async function SigninPage() {
+export default async function SigninPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string; deleted?: string }>;
+}) {
   const session = await getSession();
+  const { callbackUrl, deleted } = await searchParams;
 
   if (session?.user?.id) {
-    redirect("/dashboard");
+    redirect(safeCallbackUrl(callbackUrl));
   }
 
 
@@ -37,12 +43,21 @@ export default async function SigninPage() {
               </p>
             </div>
 
+            {deleted === "1" && (
+              <p
+                role="status"
+                className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+              >
+                Your account has been deleted. Sorry to see you go.
+              </p>
+            )}
+
             <SigninForm />
 
             <p className="mt-8 text-center text-sm text-slate-500">
               New to Workvanta?{" "}
               <Link
-                href="/signup"
+                href={withCallbackUrl("/signup", callbackUrl)}
                 className="font-medium text-indigo-600 transition hover:text-indigo-500"
               >
                 Create an account

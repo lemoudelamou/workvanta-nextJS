@@ -21,14 +21,17 @@ import  { Kpi } from "@/app/style/Kpi";
 import { NewProjectTile} from "@/app/(app)/(workspace)/workspace/[slug]/components/NewProjectTile";
 import { ProjectCard } from "@/app/(app)/(workspace)/workspace/[slug]/components/ProjectCard";
 import { ProjectItem } from "@/types/project-item";
+import {
+    canWorkspace,
+    effectiveProjectRole,
+    visibleProjectsWhere,
+    WORKSPACE_ROLE_DESCRIPTIONS,
+} from "@/lib/auth/permissions";
+import { EditDetailsForm } from "@/components/ui/EditDetailsForm";
+import { updateWorkspaceDetailsAction } from "@/app/(app)/(workspace)/workspace/workspace-actions";
+import { LeaveWorkspaceButton } from "@/app/(app)/(workspace)/workspace/[slug]/components/LeaveWorkspaceButton";
 
 
-const ROLE_HELPER: Record<string, string> = {
-    OWNER: "Full access",
-    ADMIN: "Manage members and projects",
-    MEMBER: "Create and edit projects",
-    GUEST: "Invited projects only",
-};
 
 
 const KPI_STRIP =
@@ -57,16 +60,6 @@ export default async function WorkspacePage({
                     name: true,
                     description: true,
                     _count: { select: { members: true } },
-                    projects: {
-                        orderBy: { updatedAt: "desc" },
-                        select: {
-                            id: true,
-                            name: true,
-                            description: true,
-                            visibility: true,
-                            updatedAt: true,
-                        },
-                    },
                 },
             },
         },
@@ -75,35 +68,41 @@ export default async function WorkspacePage({
     if (!membership) notFound();
 
     const { workspace, role } = membership;
+    const userId = session.user.id;
+
+    // Only load projects this user may see — private projects they're not
+    // on are never sent to the page, so their names can't leak.
+    const visibleProjects = await prisma.project.findMany({
+        where: { workspaceId: workspace.id, ...visibleProjectsWhere(userId, role) },
+        orderBy: { updatedAt: "desc" },
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            visibility: true,
+            updatedAt: true,
+            members: { where: { userId }, select: { role: true }, take: 1 },
+        },
+    });
+
+    const projects: ProjectItem[] = visibleProjects
+        .map(({ members, ...project }) => ({
+            ...project,
+            accessible: !!effectiveProjectRole({
+                workspaceRole: role,
+                projectRole: members[0]?.role ?? null,
+                visibility: project.visibility,
+            }),
+        }))
+        .filter((project) => project.accessible);
 
     const isGuest = role === "GUEST";
-    const isManager = role === "OWNER" || role === "ADMIN";
-    const explicitProjectIds = new Set<string>();
+    const accessibleCount = projects.length;
 
-    if (!isManager && workspace.projects.length) {
-        const explicit = await prisma.projectMember.findMany({
-            where: {
-                userId: session.user.id,
-                projectId: { in: workspace.projects.map((p) => p.id) },
-            },
-            select: { projectId: true },
-        });
-        for (const { projectId } of explicit) explicitProjectIds.add(projectId);
-    }
-
-    const projects: ProjectItem[] = workspace.projects
-        .map((project) => ({
-            ...project,
-            accessible:
-                isManager ||
-                explicitProjectIds.has(project.id) ||
-                (!isGuest && project.visibility === "WORKSPACE"),
-        }))
-        .filter((project) => !isGuest || project.accessible);
-
-    const accessibleCount = projects.filter((p) => p.accessible).length;
-
-    const canCreateProject = !isGuest;
+    const canCreateProject = canWorkspace(role, "projects.create");
+    const canLeave = canWorkspace(role, "workspace.leave");
+    const canDelete = canWorkspace(role, "workspace.delete");
+    const canEditDetails = canWorkspace(role, "workspace.update");
     const newProjectHref = `/workspace/${workspace.slug}/project/new`;
     const roleLabel = role[0] + role.slice(1).toLowerCase();
 
@@ -171,7 +170,7 @@ export default async function WorkspacePage({
                         icon={<ShieldCheck />}
                         label="Your role"
                         value={roleLabel}
-                        helper={ROLE_HELPER[role]}
+                        helper={WORKSPACE_ROLE_DESCRIPTIONS[role]}
                     />
                 </section>
 
@@ -230,7 +229,42 @@ export default async function WorkspacePage({
                     )}
                 </section>
 
-                {role === "OWNER" && (
+                {canEditDetails && (
+                    <EditDetailsForm
+                        action={updateWorkspaceDetailsAction.bind(null, workspace.slug)}
+                        title="Workspace details"
+                        description="Rename this workspace or change its description."
+                        nameLabel="Workspace name"
+                        defaultName={workspace.name}
+                        defaultDescription={workspace.description}
+                        nameMaxLength={80}
+                        descriptionMaxLength={280}
+                    />
+                )}
+
+                {canLeave && (
+                    <section
+                        aria-labelledby="leave-workspace"
+                        className="mt-14 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <div>
+                            <h2
+                                id="leave-workspace"
+                                className="text-sm font-semibold text-foreground"
+                            >
+                                Leave this workspace
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                You&apos;ll lose access to its projects and be unassigned
+                                from your tasks. You can rejoin only with a new invitation.
+                            </p>
+                        </div>
+
+                        <LeaveWorkspaceButton slug={workspace.slug} workspaceName={workspace.name} />
+                    </section>
+                )}
+
+                {canDelete && (
                     <section
                         aria-labelledby="danger-zone"
                         className="mt-14 flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5 sm:flex-row sm:items-center sm:justify-between"

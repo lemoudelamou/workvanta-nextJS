@@ -752,8 +752,12 @@ export async function verifyLoginBackupCode(
 }
 
 
-export async function logout() {
+export async function logout(email?: string) {
     await destroyCurrentSession();
 
-    redirect("/signin");
+    const destination = email
+        ? `/signin?email=${encodeURIComponent(email)}`
+        : "/signin";
+
+    redirect(destination);
 }

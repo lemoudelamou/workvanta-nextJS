@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Crown, Eye, Lock, Trash2, UserPlus, UsersRound } from "lucide-react";
 
 import { requireProjectAccess, type ProjectAccessResult } from "@/lib/auth/members";
+import { canProject, isWorkspaceManager } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
 import { accentFor, accentVars } from "@/lib/accent";
 
@@ -77,13 +78,11 @@ export default async function ProjectMembersPage({
         );
     }
 
-    const isProjectAdmin =
-        access.workspaceRole === "OWNER" ||
-        access.workspaceRole === "ADMIN" ||
-        access.projectRole === "ADMIN";
+    const isProjectAdmin = canProject(access.effectiveRole, "project.members.manage");
+    const isWorkspaceAdmin = isWorkspaceManager(access.workspaceRole);
 
     const members = await prisma.projectMember.findMany({
-        where: { projectId },
+        where: { projectId: access.project.id },
         orderBy: { createdAt: "asc" },
         select: {
             id: true,
@@ -134,8 +133,8 @@ export default async function ProjectMembersPage({
                 title="Project members"
                 description={
                     isPrivate
-                        ? "This project is private. Only the people listed here can open it."
-                        : "Everyone in the workspace can open this project. Add people here to give them a specific role."
+                        ? "This project is private. Only the people listed here (plus workspace owners and admins) can open it."
+                        : "Workspace members can open and edit this project; guests can't. Add someone here to give them a specific role — for example Viewer for read-only access."
                 }
             />
 
@@ -245,8 +244,11 @@ export default async function ProjectMembersPage({
                         {sortedMembers.map((member) => {
                             const isCurrentUser =
                                 member.userId === access.userId;
-                            const canManage =
-                                isProjectAdmin && !isCurrentUser;
+                            // Project admins can't edit their own row (that's how
+                                // a project ends up with no admin); workspace
+                                // owners/admins keep admin rights regardless.
+                                const canManage =
+                                isProjectAdmin && (!isCurrentUser || isWorkspaceAdmin);
                             const displayName =
                                 member.user.name ?? member.user.email;
 
@@ -322,7 +324,7 @@ export default async function ProjectMembersPage({
                                             <RoleBadge role={member.role} />
                                         )}
 
-                                        {canManage && (
+                                        {canManage && !isCurrentUser && (
                                             <form action={removeProjectMemberAction.bind(
                                                 null,
                                                 slug,

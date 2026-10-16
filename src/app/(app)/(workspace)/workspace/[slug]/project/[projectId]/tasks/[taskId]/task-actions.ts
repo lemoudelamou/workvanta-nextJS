@@ -9,9 +9,22 @@ import type { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { cloudinary } from "@/lib/storage/cloudinary";
+import {
+    ATTACHMENT_DELIVERY_TYPE,
+    parseCloudinaryUrl,
+    type CloudinaryResourceType,
+} from "@/lib/storage/attachments";
 import { requireTaskEditor } from "@/lib/auth/task_permission";
+import {
+    listProjectAudience,
+    requireProjectAccess,
+    requireProjectPermission,
+    userCanAccessProject,
+} from "@/lib/auth/members";
+import { canProject, ForbiddenError } from "@/lib/auth/permissions";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
 import { parseMentions } from "@/helpers/parseMentions";
+import { isTaskStatus } from "@/lib/task-status";
 
 import { createTaskSchema, updateTaskSchema } from "@/lib/validations/tasks";
 import { createCommentSchema } from "@/lib/validations/comments";
@@ -37,7 +50,6 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
-type CloudinaryResourceType = "image" | "video" | "raw";
 type ActivityAction = Prisma.ActivityUncheckedCreateInput["action"];
 
 
@@ -49,7 +61,7 @@ const taskPath = (slug: string, projectId: string, taskId: string) =>
 
 async function requireUser() {
     const session = await getSession();
-    if (!session?.user?.id) redirect("/login");
+    if (!session?.user?.id) redirect("/signin");
     return session.user.id;
 }
 
@@ -182,6 +194,17 @@ export async function reorderTasksAction({
     const userId = await requireUser();
     await requireTaskEditor(slug, projectId);
 
+    if (!isTaskStatus(sourceStatus) || !isTaskStatus(destinationStatus)) {
+        throw new Error("Invalid status.");
+    }
+
+    if (
+        !destinationTaskIds.includes(taskId) ||
+        (sourceStatus !== destinationStatus && sourceTaskIds.includes(taskId))
+    ) {
+        throw new Error("Invalid task ordering.");
+    }
+
     const task = await prisma.task.findFirst({
         where: memberTaskWhere(slug, projectId, taskId, userId),
         select: {
@@ -241,6 +264,8 @@ export async function reorderTasksAction({
             });
         }
     });
+
+    revalidatePath(projectPath(slug, projectId));
 }
 
 export async function updateTaskAction(
@@ -250,7 +275,7 @@ export async function updateTaskAction(
     formData: FormData,
 ) {
     const userId = await requireUser();
-    await requireTaskEditor(slug, projectId);
+    const access = await requireTaskEditor(slug, projectId);
 
     const result = updateTaskSchema.safeParse({
         title: formData.get("title"),
@@ -285,14 +310,12 @@ export async function updateTaskAction(
     const workspaceId = task.project.workspaceId;
     const assigneeId = data.assigneeId || null;
 
-    if (assigneeId) {
-        const isMember = await prisma.workspaceMember.findFirst({
-            where: { userId: assigneeId, workspace: { slug } },
-        });
-
-        if (!isMember) {
-            throw new Error("The selected assignee is not a member of this workspace.");
-        }
+    if (
+        assigneeId &&
+        assigneeId !== task.assigneeId &&
+        !(await userCanAccessProject(assigneeId, access.project))
+    ) {
+        throw new Error("The selected assignee doesn't have access to this project.");
     }
 
     let dueDate: Date | null = null;
@@ -408,6 +431,16 @@ export async function createCommentAction(
     if (!session?.user?.id) throw new Error("Unauthorized");
     const currentUserId = session.user.id;
 
+    // Viewers can join the discussion, but only on projects they can open —
+    // workspace membership alone is not enough for private projects.
+    let access: Awaited<ReturnType<typeof requireProjectAccess>>;
+    try {
+        access = await requireProjectPermission(slug, projectId, "task.comment");
+    } catch (error) {
+        if (error instanceof ForbiddenError) return { error: error.message };
+        throw error;
+    }
+
     const result = createCommentSchema.safeParse({
         content: formData.get("content"),
     });
@@ -436,10 +469,10 @@ export async function createCommentAction(
 
     const { workspaceId } = task.project;
 
-    const membership = await prisma.workspaceMember.findFirst({
-        where: { workspaceId, userId: currentUserId },
-    });
-    if (!membership) return { error: "You are not a member of this workspace" };
+    // Only people who can open this project may be notified about it.
+    const audienceIds = new Set(
+        (await listProjectAudience(access.project)).map((user) => user.id),
+    );
 
     const { comment, mentionedIds } = await prisma.$transaction(async (tx) => {
         const comment = await tx.comment.create({
@@ -456,7 +489,11 @@ export async function createCommentAction(
             })
             : [];
 
-        const mentionedIds = new Set(mentionedMembers.map((m) => m.user.id));
+        const mentionedIds = new Set(
+            mentionedMembers
+                .map((m) => m.user.id)
+                .filter((id) => audienceIds.has(id)),
+        );
         mentionedIds.delete(currentUserId);
 
         return { comment, mentionedIds };
@@ -467,6 +504,7 @@ export async function createCommentAction(
     if (task.assigneeId) commentedIds.add(task.assigneeId);
     commentedIds.delete(currentUserId);
     for (const id of mentionedIds) commentedIds.delete(id);
+    for (const id of commentedIds) if (!audienceIds.has(id)) commentedIds.delete(id);
 
     const base = {
         taskId: task.id,
@@ -514,12 +552,20 @@ async function findOwnComment(
     taskId: string,
     commentId: string,
     userId: string,
+    { allowModerator = false }: { allowModerator?: boolean } = {},
 ) {
+    // Must still be able to open the project (access may have been revoked).
+    const access = await requireProjectAccess(slug, projectId);
+    const canModerate =
+        allowModerator && canProject(access.effectiveRole, "comment.moderate");
+
     const comment = await prisma.comment.findFirst({
         where: {
             id: commentId,
             taskId,
-            authorId: userId,
+            // Authors manage their own comments; project admins can remove
+            // any comment for moderation.
+            ...(canModerate ? {} : { authorId: userId }),
             task: {
                 id: taskId,
                 projectId,
@@ -544,7 +590,9 @@ export async function deleteCommentAction(
     commentId: string,
 ) {
     const userId = await requireUser();
-    const comment = await findOwnComment(slug, projectId, taskId, commentId, userId);
+    const comment = await findOwnComment(slug, projectId, taskId, commentId, userId, {
+        allowModerator: true,
+    });
 
     await prisma.$transaction(async (tx) => {
         await tx.comment.delete({ where: { id: comment.id } });
@@ -687,6 +735,9 @@ function uploadToCloudinary(buffer: Buffer, folder: string) {
             {
                 folder,
                 resource_type: "auto",
+                // Private delivery: files are only reachable through a
+                // signed, expiring link from /api/attachments/[id].
+                type: ATTACHMENT_DELIVERY_TYPE,
                 use_filename: true,
                 unique_filename: true,
             },
@@ -706,21 +757,6 @@ function uploadToCloudinary(buffer: Buffer, folder: string) {
 
         stream.end(buffer);
     });
-}
-
-function parseCloudinaryUrl(url: string) {
-    const match = url.match(/\/(image|video|raw)\/upload\/(?:v\d+\/)?(.+)$/);
-    if (!match) throw new Error("Could not determine Cloudinary file.");
-
-    const resourceType = match[1] as CloudinaryResourceType;
-    const path = match[2];
-
-    if (resourceType === "raw") return { publicId: path, resourceType };
-
-    const lastDot = path.lastIndexOf(".");
-    const publicId = lastDot > -1 ? path.slice(0, lastDot) : path;
-
-    return { publicId, resourceType };
 }
 
 export async function uploadAttachmentAction(
@@ -782,6 +818,7 @@ export async function uploadAttachmentAction(
     } catch (error) {
         await cloudinary.uploader.destroy(upload.public_id, {
             resource_type: upload.resource_type as CloudinaryResourceType,
+            type: ATTACHMENT_DELIVERY_TYPE,
         });
         throw error;
     }
@@ -818,7 +855,7 @@ export async function deleteAttachmentAction(
 
     if (!attachment) throw new Error("Attachment not found.");
 
-    const { publicId, resourceType } = parseCloudinaryUrl(attachment.url);
+    const { publicId, resourceType, deliveryType } = parseCloudinaryUrl(attachment.url);
 
     await prisma.$transaction(async (tx) => {
         await tx.attachment.delete({ where: { id: attachment.id } });
@@ -837,7 +874,10 @@ export async function deleteAttachmentAction(
     });
 
     try {
-        await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+        await cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType,
+            type: deliveryType,
+        });
     } catch (error) {
         console.error("Failed to delete Cloudinary file:", publicId, error);
     }

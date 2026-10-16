@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { OAUTH_CALLBACK_COOKIE, safeCallbackUrl } from "@/lib/auth/callback-url";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -63,6 +64,23 @@ export async function GET(
     const { verifier, challenge } = createPkcePair();
 
     const cookieStore = await cookies();
+
+    const callbackUrl = safeCallbackUrl(
+        new URL(request.url).searchParams.get("callbackUrl"),
+        "",
+    );
+
+    if (callbackUrl && intent !== "link") {
+        cookieStore.set(OAUTH_CALLBACK_COOKIE, callbackUrl, {
+            httpOnly: true,
+            secure: IS_PROD,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 10 * 60,
+        });
+    } else {
+        cookieStore.delete(OAUTH_CALLBACK_COOKIE);
+    }
 
     cookieStore.set(OAUTH_COOKIE, `${provider}.${state}.${verifier}.${intent}`, {
         httpOnly: true,

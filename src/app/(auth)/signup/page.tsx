@@ -3,15 +3,21 @@ import Link from "next/link";
 import SignupGate from "./signup-gate";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { safeCallbackUrl, withCallbackUrl } from "@/lib/auth/callback-url";
 
 import BrandPanel from "@/components/ui/WorkvantaPanel";
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 
-export default async function SignupPage() {
+export default async function SignupPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ callbackUrl?: string }>;
+}) {
     const session = await getSession();
+    const { callbackUrl } = await searchParams;
 
     if (session?.user?.id) {
-        redirect("/dashboard");
+        redirect(safeCallbackUrl(callbackUrl));
     }
 
     return (
@@ -28,7 +34,7 @@ export default async function SignupPage() {
                         <p className="mt-8 text-center text-sm text-slate-500">
                             Already have an account?{" "}
                             <Link
-                                href="/signin"
+                                href={withCallbackUrl("/signin", callbackUrl)}
                                 className="font-medium text-indigo-600 transition hover:text-indigo-500"
                             >
                                 Sign in

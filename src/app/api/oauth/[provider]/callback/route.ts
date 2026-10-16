@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import {
+    OAUTH_CALLBACK_COOKIE,
+    safeCallbackUrl,
+    withCallbackUrl,
+} from "@/lib/auth/callback-url";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { createSession, getSession } from "@/lib/auth/session";
@@ -235,6 +240,13 @@ export async function GET(
     const stored = cookieStore.get(OAUTH_COOKIE)?.value;
     cookieStore.delete(OAUTH_COOKIE);
 
+    // Where the user was headed before signing in (e.g. an invitation).
+    const callbackUrl = safeCallbackUrl(
+        cookieStore.get(OAUTH_CALLBACK_COOKIE)?.value,
+        "",
+    );
+    cookieStore.delete(OAUTH_CALLBACK_COOKIE);
+
     const [storedProvider, storedState, verifier, storedIntent] = (
         stored ?? ""
     ).split(".");
@@ -314,11 +326,11 @@ export async function GET(
             );
 
             if (await beginTwoFactorIfRequired(userId)) {
-                target = TWO_FACTOR_PATH;
+                target = withCallbackUrl(TWO_FACTOR_PATH, callbackUrl);
             } else {
                 await createSession(userId);
 
-                target = LOGIN_SUCCESS_PATH;
+                target = callbackUrl || LOGIN_SUCCESS_PATH;
             }
         }
     } catch (error) {

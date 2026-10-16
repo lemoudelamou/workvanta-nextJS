@@ -93,11 +93,8 @@ export default async function DashboardPage() {
     // Pick the five most recent displayable projects in memory, then fetch
     // full details for only those five (instead of an unbounded `IN` query).
     const recentIds = allProjects
-        .filter(
-            (project) =>
-                !guestWorkspaceIds.has(project.workspaceId) ||
-                accessibleProjectIds.has(project.id),
-        )
+        // Never surface private projects the user isn't on.
+        .filter((project) => accessibleProjectIds.has(project.id))
         .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
         .slice(0, 5)
         .map((project) => project.id);

@@ -37,6 +37,8 @@ type CommentsSectionProps = {
     members: Author[];
     deleteComment: DeleteComment;
     updateComment: UpdateComment;
+    /** Project admins can remove anyone's comment. */
+    canModerate?: boolean;
 };
 
 const MAX_LENGTH = 5000;
@@ -181,6 +183,51 @@ function CommentBubble({
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800 dark:text-slate-200">
                 {renderCommentContent(content, members)}
             </p>
+        </div>
+    );
+}
+
+function ModeratorDeleteButton({
+                                   commentId,
+                                   deleteComment,
+                               }: {
+    commentId: string;
+    deleteComment: DeleteComment;
+}) {
+    const [error, setError] = useState<string | null>(null);
+    const [isPending, startTransition] = useTransition();
+
+    function handleDelete() {
+        if (!window.confirm("Remove this comment for everyone?")) return;
+
+        setError(null);
+        startTransition(async () => {
+            try {
+                await deleteComment(commentId);
+            } catch {
+                setError("Failed to remove comment.");
+            }
+        });
+    }
+
+    return (
+        <div className="mt-2 flex items-center gap-2">
+            <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isPending}
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-60 dark:text-slate-400 dark:hover:text-rose-300"
+            >
+                {isPending ? (
+                    <Loader2 className="size-3 motion-safe:animate-spin" />
+                ) : (
+                    <Trash2 className="size-3" />
+                )}
+                Remove
+            </button>
+            {error && (
+                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{error}</p>
+            )}
         </div>
     );
 }
@@ -366,6 +413,7 @@ export function CommentsSection({
                                     members,
                                     deleteComment,
                                     updateComment,
+                                    canModerate = false,
                                 }: CommentsSectionProps) {
     return (
         // overflow-visible on purpose: the mention dropdown extends below the composer
@@ -480,11 +528,19 @@ export function CommentsSection({
                                                 deleteComment={deleteComment}
                                             />
                                         ) : (
-                                            <CommentBubble
-                                                content={comment.content}
-                                                members={members}
-                                                className="mt-3"
-                                            />
+                                            <>
+                                                <CommentBubble
+                                                    content={comment.content}
+                                                    members={members}
+                                                    className="mt-3"
+                                                />
+                                                {canModerate && (
+                                                    <ModeratorDeleteButton
+                                                        commentId={comment.id}
+                                                        deleteComment={deleteComment}
+                                                    />
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>
