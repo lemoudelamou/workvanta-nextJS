@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-// @ts-ignore
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -514,16 +513,23 @@ export async function createCommentAction(
         commentId: comment.id,
     };
 
-    await publishRealtimeEvent({
-        type: "comment-created",
-        workspaceId,
-        data: {
-            commentId: comment.id,
-            taskId: task.id,
-            projectId: task.project.id,
-            authorId: currentUserId,
-        },
-    });
+    // Live update for everyone who can open this project (and nobody else).
+    // Best-effort: the comment is saved even if realtime is unavailable.
+    try {
+        await publishRealtimeEvent({
+            type: "comment-created",
+            workspaceId,
+            recipientIds: [...audienceIds],
+            data: {
+                commentId: comment.id,
+                taskId: task.id,
+                projectId: task.project.id,
+                authorId: currentUserId,
+            },
+        });
+    } catch (error) {
+        console.error("Failed to publish comment event:", error);
+    }
 
     for (const userId of commentedIds) {
         await queueTaskCommentedNotification({

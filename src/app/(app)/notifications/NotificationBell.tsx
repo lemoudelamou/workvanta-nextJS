@@ -69,10 +69,21 @@ export function NotificationBell({
     const containerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
-    useEffect(() => {
+    // When the server sends fresh notifications (after router.refresh()),
+    // reset local state during render instead of in an effect.
+    const [syncedFrom, setSyncedFrom] = useState({
+        notifications: initialNotifications,
+        unreadCount: initialUnreadCount,
+    });
+
+    if (
+        syncedFrom.notifications !== initialNotifications ||
+        syncedFrom.unreadCount !== initialUnreadCount
+    ) {
+        setSyncedFrom({ notifications: initialNotifications, unreadCount: initialUnreadCount });
         setItems(initialNotifications);
         setUnread(initialUnreadCount);
-    }, [initialNotifications, initialUnreadCount]);
+    }
 
     useEffect(() => {
         let mounted = true;

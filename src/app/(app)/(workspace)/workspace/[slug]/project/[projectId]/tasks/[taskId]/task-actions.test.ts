@@ -698,6 +698,7 @@ describe("createCommentAction", () => {
         expect(mockPublish).toHaveBeenCalledWith({
             type: "comment-created",
             workspaceId: "w1",
+            recipientIds: ["u1", "c1", "a1", "u2"],
             data: { commentId: "cm1", taskId: "t1", projectId: "p1", authorId: "u1" },
         });
 
@@ -1236,6 +1237,25 @@ describe("comment access rules", () => {
 
     beforeEach(() => {
         db.task.findFirst.mockResolvedValue(task);
+    });
+
+    it("only sends the live update to people who can open the project", async () => {
+        mockAudience.mockResolvedValue([{ id: "u1" }, { id: "c1" }]);
+
+        await run();
+
+        expect(mockPublish).toHaveBeenCalledWith(
+            expect.objectContaining({ recipientIds: ["u1", "c1"] }),
+        );
+    });
+
+    it("keeps the comment when realtime publishing fails", async () => {
+        mockPublish.mockRejectedValueOnce(new Error("redis down"));
+
+        await expect(run()).resolves.toEqual(
+            expect.objectContaining({ success: true }),
+        );
+        expect(mockQueueCommented).toHaveBeenCalled();
     });
 
     it("never notifies people who can't open the project", async () => {

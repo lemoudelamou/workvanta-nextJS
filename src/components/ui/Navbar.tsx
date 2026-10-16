@@ -277,7 +277,7 @@ function UserMenu({
                         </Link>
 
                         <form
-                            action={async (formData) => {
+                            action={async () => {
                                 onLogout();
                                 await logout();
                             }}

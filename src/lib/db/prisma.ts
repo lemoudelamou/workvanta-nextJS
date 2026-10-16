@@ -1,26 +1,11 @@
 import "server-only";
 
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
-};
-
-function createPrismaClient() {
-    const connectionString = process.env.DATABASE_URL;
-
-    if (!connectionString) {
-        throw new Error("DATABASE_URL is not set");
-    }
-
-    const adapter = new PrismaPg({ connectionString });
-
-    return new PrismaClient({ adapter });
-}
-
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prisma;
-}
+/**
+ * The Prisma client for the Next.js app. `server-only` makes the build fail
+ * if this is ever imported from a client component.
+ *
+ * Standalone processes (the worker and the socket server) run outside
+ * Next.js, where `server-only` can't be imported, so they use
+ * `@/lib/db/prisma-client` directly. Both paths share one client instance.
+ */
+export { prisma } from "@/lib/db/prisma-client";

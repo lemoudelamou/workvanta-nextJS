@@ -72,11 +72,8 @@ jobs:
             }
 
   lint:
-    name: Lint (not blocking yet)
+    name: Lint
     runs-on: ubuntu-latest
-    # The codebase still has existing lint errors. Remove this line once
-    # `npm run lint` passes so lint starts blocking merges.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

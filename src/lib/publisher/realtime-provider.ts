@@ -35,6 +35,14 @@ export function RealtimeProvider({ userId }: { userId: string }) {
 
         const onComment = (data: CommentCreated) => {
             broadcast("Workvanta:comment-created", data);
+
+            // Show someone else's new comment right away when this task is open.
+            if (
+                data.authorId !== userId &&
+                window.location.pathname.endsWith(`/tasks/${data.taskId}`)
+            ) {
+                router.refresh();
+            }
         };
 
         getSocket()
