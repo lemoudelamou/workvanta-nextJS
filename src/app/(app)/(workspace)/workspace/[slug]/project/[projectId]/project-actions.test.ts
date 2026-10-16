@@ -657,7 +657,9 @@ describe("setProjectVisibilityAction", () => {
     it("revalidates the project page and the members page", async () => {
         await setProjectVisibilityAction("acme", "p1", "PRIVATE");
 
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1/members");
     });

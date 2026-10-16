@@ -12,7 +12,7 @@ export function AccessDeniedNotice({
     workspaceSlug: string;
 }) {
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[#f8f8fa] px-4 text-slate-950 dark:bg-slate-950 dark:text-white">
+        <main className="flex min-h-[70dvh] items-center justify-center px-4 text-foreground">
             <Card as="div" className="max-w-sm p-8 text-center">
                 <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger">
                     <ShieldAlert className="size-5" />

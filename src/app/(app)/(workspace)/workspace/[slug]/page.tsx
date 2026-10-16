@@ -106,7 +106,7 @@ export default async function WorkspacePage({
     const roleLabel = role[0] + role.slice(1).toLowerCase();
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="text-foreground">
             <PageBody>
                 <Link
                     href="/workspace"

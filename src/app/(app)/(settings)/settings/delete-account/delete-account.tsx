@@ -49,7 +49,7 @@ export default function DeleteAccountScreen({
     }
 
     return (
-        <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 dark:bg-slate-950 dark:text-white sm:px-6 lg:px-8">
+        <main className="px-4 py-8 text-foreground sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-2xl">
                 <Link
                     href="/settings"

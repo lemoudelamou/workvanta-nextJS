@@ -342,7 +342,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             </dl>
 
             <div
-                className={`mt-8 grid gap-6 ${canEdit ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
+                className={`mt-8 grid gap-6 ${canEdit ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
             >
                 <div className="min-w-0 space-y-6">
                     <SubtasksSection
@@ -466,7 +466,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                   />
                                 </Field>
 
-                                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+                                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
                                     <Field id="task-status" label="Status">
                                         <select
                                             id="task-status"

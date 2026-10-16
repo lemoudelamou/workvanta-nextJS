@@ -333,7 +333,7 @@ export function KanbanBoard({
 
             {showFilters && (
                 <div className="mb-5 rounded-xl border border-border bg-card p-4">
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div className="relative">
                             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
@@ -505,7 +505,7 @@ export function KanbanBoard({
                 <div
                     role="group"
                     aria-label="Board columns"
-                    className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+                    className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4"
                 >
                     {TASK_COLUMNS.map((column) => (
                         <Column

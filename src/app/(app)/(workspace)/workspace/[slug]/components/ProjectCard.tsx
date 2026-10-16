@@ -3,7 +3,8 @@ import {PrivatePill} from "@/app/(app)/(workspace)/workspace/[slug]/components/P
 import {UpdatedAt} from "@/app/(app)/(workspace)/workspace/[slug]/components/UpdatedAt";
 import {Card} from "@/components/ui/Card";
 import {accentFor} from "@/app/(app)/(workspace)/workspace/components/helpers";
-import {FolderKanban, Lock} from "lucide-react";
+import {Lock} from "lucide-react";
+import { ProjectMark } from "@/components/ui/ProjectMark";
 import { ProjectItem} from "@/types/project-item";
 
 
@@ -62,17 +63,12 @@ export function ProjectCard({
                 className="flex h-full flex-col border border-border bg-card p-5 shadow-sm"
             >
                 <div className="flex items-center justify-between">
-                    <span
-                        aria-hidden="true"
-                        className="flex size-11 items-center justify-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--accent))]"
-                    >
-                        <FolderKanban className="size-5" />
-                    </span>
+                    <ProjectMark projectId={project.id} size="lg" />
 
                     {project.visibility === "PRIVATE" && <PrivatePill />}
                 </div>
 
-                <h3 className="mt-5 truncate font-semibold text-foreground transition-colors group-hover:text-[rgb(var(--accent))]">
+                <h3 className="mt-5 truncate font-semibold text-foreground transition-colors group-hover:text-brand">
                     {project.name}
                 </h3>
 

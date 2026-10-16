@@ -181,7 +181,9 @@ describe("createWorkspace – creation", () => {
             "NEXT_REDIRECT:/workspace/my-slug",
         );
 
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace");
         expect(mockRevalidate).toHaveBeenCalledWith("/dashboard");
         expect(mockRedirect).toHaveBeenCalledTimes(1);
@@ -294,7 +296,9 @@ describe("deleteWorkspace", () => {
         expect(db.workspace.delete).toHaveBeenCalledWith({ where: { id: "w1" } });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace");
         expect(mockRevalidate).toHaveBeenCalledWith("/dashboard");
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
     });
 
     it("propagates database errors without revalidating or redirecting", async () => {

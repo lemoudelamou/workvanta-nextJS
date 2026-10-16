@@ -53,7 +53,7 @@ export default function TaskLoading() {
                 </div>
 
                 {/* Body */}
-                <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div className="space-y-6">
                         <PanelSkeleton rows={3} />
                         <PanelSkeleton rows={1} />

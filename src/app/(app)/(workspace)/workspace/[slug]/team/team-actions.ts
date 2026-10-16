@@ -17,6 +17,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import { sendWorkspaceInvitationEmail } from "@/lib/email/mailer";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 
 type InviteRole = Exclude<WorkspaceRoleName, "OWNER">;
 
@@ -59,6 +60,7 @@ function teamPath(slug: string) {
 }
 
 function revalidateWorkspace(slug: string) {
+    revalidateAppShell();
     revalidatePath(teamPath(slug));
     revalidatePath(`/workspace/${slug}`);
     revalidatePath("/workspace");
@@ -421,6 +423,7 @@ export async function leaveWorkspaceAction(slug: string): Promise<ActionResult> 
 
     await notifyAccessRevoked(membership.workspace.id, membership.userId);
 
+    revalidateAppShell();
     revalidatePath("/workspace");
     revalidatePath("/dashboard");
     redirect("/workspace");

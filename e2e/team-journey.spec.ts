@@ -111,6 +111,11 @@ test("owner creates a workspace and a project", async () => {
     await page.waitForURL(/\/project\/[^/]+$/);
     await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
     projectUrl = page.url();
+
+    // The sidebar picks up the new project without a reload.
+    await expect(
+        page.getByRole("complementary", { name: "Sidebar" }).getByRole("link", { name: projectName }),
+    ).toHaveAttribute("aria-current", "page");
 });
 
 test("owner adds a task and drags it to In progress", async () => {

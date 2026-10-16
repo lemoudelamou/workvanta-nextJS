@@ -63,16 +63,12 @@ export function DashboardView({
                 description="Everything you're working on, across all of your workspaces."
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                            href="/workspace/new"
-                            className={buttonStyles({ variant: "secondary" })}
-                        >
+                        <Link href="/workspace" className={buttonStyles({ variant: "secondary" })}>
+                            All workspaces
+                        </Link>
+                        <Link href="/workspace/new" className={buttonStyles()}>
                             <Plus className="size-4" aria-hidden="true" />
                             New workspace
-                        </Link>
-                        <Link href="/workspace" className={buttonStyles()}>
-                            All workspaces
-                            <ArrowRight className="size-4" aria-hidden="true" />
                         </Link>
                     </div>
                 }

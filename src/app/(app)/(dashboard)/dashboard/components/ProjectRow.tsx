@@ -1,7 +1,7 @@
-import { ArrowRight, Clock, FolderKanban, Lock } from "lucide-react";
+import { ArrowRight, Clock, Lock } from "lucide-react";
 import Link from "next/link";
 
-import { accentFor, accentVars } from "@/lib/accent";
+import { ProjectMark } from "@/components/ui/ProjectMark";
 
 import type { RecentProject } from "@/app/(app)/(dashboard)/dashboard/components/types";
 import { VisibilityPill } from "./VisibilityPill";
@@ -53,22 +53,19 @@ export function ProjectRow({ project }: { project: RecentProject }) {
     return (
         <Link
             href={`/workspace/${project.workspace.slug}`}
-            style={accentVars(accentFor(project.workspace.slug))}
             className="
                 group flex items-center gap-3 rounded-lg px-2.5 py-3 sm:gap-4 sm:px-3 sm:py-3.5
                 outline-none transition-colors
-                hover:bg-[rgb(var(--accent)/0.07)]
-                focus-visible:bg-[rgb(var(--accent)/0.07)]
-                focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.5)]
+                hover:bg-muted/70
+                focus-visible:bg-muted/70
+                focus-visible:ring-2 focus-visible:ring-brand
             "
         >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--accent))]">
-                <FolderKanban className="size-5" aria-hidden="true" />
-            </span>
+            <ProjectMark projectId={project.id} />
 
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                    <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-[rgb(var(--accent))]">
+                    <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-brand">
                         {project.name}
                     </h3>
                     <VisibilityPill visibility={project.visibility} />
@@ -84,7 +81,7 @@ export function ProjectRow({ project }: { project: RecentProject }) {
             {updated}
 
             <ArrowRight
-                className="size-4 shrink-0 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:text-[rgb(var(--accent))]"
+                className="size-4 shrink-0 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand"
                 aria-hidden="true"
             />
         </Link>

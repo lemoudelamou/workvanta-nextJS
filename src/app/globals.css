@@ -11,6 +11,7 @@
   --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-heading: var(--font-sans);
   --color-canvas: var(--canvas);
+  --color-sidebar-hover: var(--sidebar-hover);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
@@ -60,6 +61,7 @@
 :root {
   /* Workvanta palette — see README → "Design tokens". */
   --canvas: #f5f6f8;            /* app background */
+  --sidebar-hover: rgba(23, 26, 33, 0.05);
   --background: #ffffff;        /* inputs and plain surfaces */
   --foreground: #171a21;        /* ink */
   --card: #ffffff;
@@ -97,7 +99,7 @@
   --chart-4: var(--status-done);
   --chart-5: var(--brand);
   --radius: 0.625rem;
-  --sidebar: #ffffff;
+  --sidebar: #eceef2;           /* app shell behind the main panel */
   --sidebar-foreground: #171a21;
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
@@ -109,6 +111,7 @@
 
 .dark {
   --canvas: #0f1115;
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
   --background: #14161b;
   --foreground: #eceef2;
   --card: #181b21;
@@ -144,7 +147,7 @@
   --chart-3: var(--status-review);
   --chart-4: var(--status-done);
   --chart-5: var(--brand);
-  --sidebar: #14161b;
+  --sidebar: #0a0b0e;
   --sidebar-foreground: #eceef2;
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #0f1115;
@@ -172,4 +175,11 @@
   html {
     @apply font-sans;
   }
+}
+/* App shell: menus pop in, the phone drawer slides in. */
+@keyframes shell-pop {
+  from { opacity: 0; transform: translateY(-3px) scale(0.98); }
+}
+@keyframes shell-drawer {
+  from { transform: translateX(-100%); }
 }
