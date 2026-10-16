@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
     AlarmClock,
+    LayoutGrid,
+    List,
     Clock3,
     ListTodo,
     TriangleAlert,
@@ -26,6 +28,7 @@ import {
     updateProjectDetailsAction,
 } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { KanbanBoard, type BoardTask } from "./kanbanboard/kanban-board";
+import { ProjectListView } from "./listview/project-list-view";
 import { PageBody } from "@/components/ui/PageBody";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
@@ -45,10 +48,13 @@ const DUE_DATE_FORMAT = new Intl.DateTimeFormat("en", {
 
 export default async function ProjectPage({
                                               params,
+                                              searchParams,
                                           }: {
     params: Promise<{ slug: string; projectId: string }>;
+    searchParams?: Promise<{ view?: string }>;
 }) {
     const { slug, projectId } = await params;
+    const view = (await searchParams)?.view === "list" ? "list" : "board";
 
     let access: ProjectAccessResult;
 
@@ -134,6 +140,7 @@ export default async function ProjectPage({
         status: t.status,
         priority: t.priority,
         dueLabel: t.dueDate ? DUE_DATE_FORMAT.format(t.dueDate) : null,
+        dueAt: t.dueDate ? t.dueDate.toISOString() : null,
         overdue: !!t.dueDate && t.status !== "DONE" && t.dueDate < now,
         assignee: t.assignee,
         subtaskTotal: t.subtasks.length,
@@ -217,15 +224,56 @@ export default async function ProjectPage({
 
             <ProgressBar done={doneTasks} total={totalTasks} percent={progress} />
 
-            <section aria-label="Task board" className="mt-8">
-                <KanbanBoard
-                    slug={project.workspace.slug}
-                    projectId={project.id}
-                    tasks={boardTasks}
-                    members={members}
-                    canEdit={canEdit}
-                />
-            </section>
+            <nav aria-label="Task views" className="mt-8 flex justify-end">
+                <div className="inline-flex rounded-xl border border-border bg-card p-1 shadow-sm">
+                    {(
+                        [
+                            { key: "board", label: "Board", icon: <LayoutGrid className="size-4" aria-hidden="true" /> },
+                            { key: "list", label: "List", icon: <List className="size-4" aria-hidden="true" /> },
+                        ] as const
+                    ).map((option) => (
+                        <Link
+                            key={option.key}
+                            href={
+                                option.key === "list"
+                                    ? `/workspace/${project.workspace.slug}/project/${project.id}?view=list`
+                                    : `/workspace/${project.workspace.slug}/project/${project.id}`
+                            }
+                            aria-current={view === option.key ? "page" : undefined}
+                            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors ${
+                                view === option.key
+                                    ? "bg-muted text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            {option.icon}
+                            {option.label}
+                        </Link>
+                    ))}
+                </div>
+            </nav>
+
+            {view === "list" ? (
+                <section aria-label="Task list" className="mt-4">
+                    <ProjectListView
+                        slug={project.workspace.slug}
+                        projectId={project.id}
+                        tasks={boardTasks}
+                        members={members}
+                        canEdit={canEdit}
+                    />
+                </section>
+            ) : (
+                <section aria-label="Task board" className="mt-4">
+                    <KanbanBoard
+                        slug={project.workspace.slug}
+                        projectId={project.id}
+                        tasks={boardTasks}
+                        members={members}
+                        canEdit={canEdit}
+                    />
+                </section>
+            )}
 
             {canChangeVisibility && (
                 <EditDetailsForm

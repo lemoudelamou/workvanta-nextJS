@@ -8,6 +8,7 @@ import { extractLink, waitForEmail } from "./mail-server";
  *
  *   owner signs up → creates a workspace and a project → adds a task →
  *   drags it to "In progress" (and it stays there after a reload) →
+ *   switches to the list view and moves it to "In review" →
  *   invites a teammate → teammate follows the email link, signs up,
  *   signs in, lands back on the invite, accepts → sees the project and task.
  */
@@ -143,6 +144,25 @@ test("owner adds a task and drags it to In progress", async () => {
     }).toPass({ timeout: 20_000 });
 });
 
+test("owner switches to the list view and moves the task to In review", async () => {
+    const page = ownerPage;
+
+    await page.getByRole("link", { name: "List" }).click();
+    await page.waitForURL(/view=list/);
+
+    const status = page.getByRole("combobox", { name: `Status of ${taskTitle}` });
+    await expect(status).toHaveValue("IN_PROGRESS");
+    await status.selectOption("IN_REVIEW");
+
+    // Saved, not just shown: still In review after a reload.
+    await expect(async () => {
+        await page.reload();
+        await expect(
+            page.getByRole("combobox", { name: `Status of ${taskTitle}` }),
+        ).toHaveValue("IN_REVIEW", { timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
+});
+
 test("owner invites a teammate by email", async () => {
     const page = ownerPage;
 
@@ -179,7 +199,7 @@ test("teammate accepts the invitation and sees the work", async () => {
     await page.getByRole("link", { name: `Open project ${projectName}` }).click();
     await page.waitForURL(projectUrl.replace(/^https?:\/\/[^/]+/, "**"));
     await expect(
-        page.getByRole("region", { name: "In progress" }).getByText(taskTitle),
+        page.getByRole("region", { name: "In review" }).getByText(taskTitle),
     ).toBeVisible();
 
     await context.close();

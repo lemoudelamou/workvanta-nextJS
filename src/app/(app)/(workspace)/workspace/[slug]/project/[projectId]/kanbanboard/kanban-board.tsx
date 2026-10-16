@@ -24,6 +24,7 @@ import { reorderTasksAction } from "@/app/(app)/(workspace)/workspace/[slug]/pro
 import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
 import { getPriorityLabel, getStatusLabel, getAssigneeLabel } from "./kanban-helpers";
 import { findColumn, groupTasks, idsOf } from "./board-utils";
+import { filterTasks } from "../listview/list-utils";
 import { Column } from "./kanban-column";
 import { FilterChip } from "./filter-chip";
 import { FilterSelect } from "./filter-select";
@@ -92,33 +93,10 @@ export function KanbanBoard({
         [columns],
     );
 
-    const filteredTasks = useMemo(() => {
-        const search = filters.search.trim().toLowerCase();
-
-        return allTasks.filter((task) => {
-            const matchesSearch =
-                !search || task.title.toLowerCase().includes(search);
-
-            const matchesPriority =
-                filters.priority === "ALL" || task.priority === filters.priority;
-
-            const matchesStatus =
-                filters.status === "ALL" || task.status === filters.status;
-
-            const matchesAssignee =
-                filters.assignee === "ALL" ||
-                (filters.assignee === "UNASSIGNED"
-                    ? !task.assignee
-                    : task.assignee?.email === filters.assignee);
-
-            return (
-                matchesSearch &&
-                matchesPriority &&
-                matchesStatus &&
-                matchesAssignee
-            );
-        });
-    }, [allTasks, filters]);
+    const filteredTasks = useMemo(
+        () => filterTasks(allTasks, filters),
+        [allTasks, filters],
+    );
 
     const filteredColumns = useMemo(() => {
         const filteredIds = new Set(filteredTasks.map((task) => task.id));
@@ -373,6 +351,7 @@ export function KanbanBoard({
 
                         <FilterSelect
                             icon={<span className="size-2 rounded-full bg-amber-500" />}
+                            ariaLabel="Filter by priority"
                             value={filters.priority}
                             onChange={(value) => updateFilter("priority", value)}
                         >
@@ -385,6 +364,7 @@ export function KanbanBoard({
 
                         <FilterSelect
                             icon={<span className="size-2 rounded-full bg-blue-500" />}
+                            ariaLabel="Filter by status"
                             value={filters.status}
                             onChange={(value) => updateFilter("status", value)}
                         >
@@ -398,6 +378,7 @@ export function KanbanBoard({
 
                         <FilterSelect
                             icon={<UserRound className="size-3.5 text-slate-400" />}
+                            ariaLabel="Filter by assignee"
                             value={filters.assignee}
                             onChange={(value) => updateFilter("assignee", value)}
                         >

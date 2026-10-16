@@ -1,0 +1,334 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Plus, Search, UserRound } from "lucide-react";
+
+import { buttonStyles } from "@/app/style/button-style";
+import type { TaskFormMember } from "@/components/ui/TaskFormFields";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/task-status";
+import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
+import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
+
+import { FilterSelect } from "../kanbanboard/filter-select";
+import { COLUMN_DOTS } from "../kanbanboard/board-utils";
+import { getPriorityLabel } from "../kanbanboard/kanban-helpers";
+import type { BoardTask, Filters } from "../kanbanboard/kanban-types";
+import {
+    DEFAULT_SORT,
+    filterTasks,
+    nextSort,
+    sortTasks,
+    type SortKey,
+} from "./list-utils";
+
+const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL" };
+
+const PRIORITY_DOTS: Record<string, string> = {
+    URGENT: "bg-rose-500",
+    HIGH: "bg-orange-500",
+    MEDIUM: "bg-amber-400",
+    LOW: "bg-sky-400",
+};
+
+const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
+    { key: "title", label: "Task" },
+    { key: "status", label: "Status", className: "w-40" },
+    { key: "priority", label: "Priority", className: "w-28" },
+    { key: "assignee", label: "Assignee", className: "w-44" },
+    { key: "due", label: "Due", className: "w-28" },
+];
+
+export function ProjectListView({
+    slug,
+    projectId,
+    tasks,
+    members,
+    canEdit,
+}: {
+    slug: string;
+    projectId: string;
+    tasks: BoardTask[];
+    members: TaskFormMember[];
+    canEdit: boolean;
+}) {
+    // Local copy so status changes show instantly; reset when the server
+    // sends new data (after a refresh), using the render-time sync pattern.
+    const [rows, setRows] = useState(tasks);
+    const [syncedFrom, setSyncedFrom] = useState(tasks);
+    if (syncedFrom !== tasks) {
+        setSyncedFrom(tasks);
+        setRows(tasks);
+    }
+
+    const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    const [sort, setSort] = useState(DEFAULT_SORT);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [, startTransition] = useTransition();
+
+    const visible = useMemo(
+        () => sortTasks(filterTasks(rows, filters), sort.key, sort.direction),
+        [rows, filters, sort],
+    );
+
+    const assignees = useMemo(() => {
+        const seen = new Map<string, string>();
+        for (const task of rows) {
+            if (task.assignee) {
+                seen.set(task.assignee.email, task.assignee.name ?? task.assignee.email);
+            }
+        }
+        return [...seen].sort((a, b) => a[1].localeCompare(b[1]));
+    }, [rows]);
+
+    const hasFilters =
+        filters.search.trim() !== "" ||
+        filters.priority !== "ALL" ||
+        filters.status !== "ALL" ||
+        filters.assignee !== "ALL";
+
+    function update<K extends keyof Filters>(key: K, value: Filters[K]) {
+        setFilters((current) => ({ ...current, [key]: value }));
+    }
+
+    function changeStatus(task: BoardTask, status: TaskStatus) {
+        if (status === task.status) return;
+
+        const previous = rows;
+        setError(null);
+        setRows((current) =>
+            current.map((row) => (row.id === task.id ? { ...row, status } : row)),
+        );
+
+        startTransition(async () => {
+            try {
+                await moveCardAction(slug, projectId, task.id, status);
+            } catch {
+                setRows(previous);
+                setError(`Couldn't update "${task.title}". Please try again.`);
+            }
+        });
+    }
+
+    return (
+        <div>
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="search"
+                            value={filters.search}
+                            onChange={(event) => update("search", event.target.value)}
+                            placeholder="Search tasks..."
+                            aria-label="Search tasks"
+                            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/[0.06]"
+                        />
+                    </div>
+
+                    <FilterSelect
+                        ariaLabel="Filter by status"
+                        value={filters.status}
+                        onChange={(value) => update("status", value)}
+                        icon={<Filter className="size-4 text-slate-400" />}
+                    >
+                        <option value="ALL">All statuses</option>
+                        {TASK_COLUMNS.map((column) => (
+                            <option key={column.status} value={column.status}>
+                                {column.label}
+                            </option>
+                        ))}
+                    </FilterSelect>
+
+                    <FilterSelect
+                        ariaLabel="Filter by priority"
+                        value={filters.priority}
+                        onChange={(value) => update("priority", value)}
+                        icon={<Filter className="size-4 text-slate-400" />}
+                    >
+                        <option value="ALL">All priorities</option>
+                        <option value="URGENT">Urgent</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                    </FilterSelect>
+
+                    <FilterSelect
+                        ariaLabel="Filter by assignee"
+                        value={filters.assignee}
+                        onChange={(value) => update("assignee", value)}
+                        icon={<UserRound className="size-4 text-slate-400" />}
+                    >
+                        <option value="ALL">All assignees</option>
+                        <option value="UNASSIGNED">Unassigned</option>
+                        {assignees.map(([email, name]) => (
+                            <option key={email} value={email}>
+                                {name}
+                            </option>
+                        ))}
+                    </FilterSelect>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {hasFilters && (
+                        <button
+                            type="button"
+                            onClick={() => setFilters(EMPTY_FILTERS)}
+                            className={buttonStyles({ variant: "secondary" })}
+                        >
+                            Clear filters
+                        </button>
+                    )}
+                    {canEdit && (
+                        <button
+                            type="button"
+                            onClick={() => setDialogOpen(true)}
+                            className={buttonStyles()}
+                        >
+                            <Plus className="size-4" aria-hidden="true" />
+                            New task
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {error && (
+                <p role="alert" className="mb-3 text-sm font-medium text-rose-600 dark:text-rose-400">
+                    {error}
+                </p>
+            )}
+
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+                <table className="w-full min-w-[720px] text-sm">
+                    <caption className="sr-only">
+                        Tasks in this project, sorted by {sort.key} ({sort.direction === "asc" ? "ascending" : "descending"})
+                    </caption>
+                    <thead className="border-b border-border bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                            {COLUMNS.map((column) => {
+                                const active = sort.key === column.key;
+                                const Icon = !active ? ArrowUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown;
+
+                                return (
+                                    <th
+                                        key={column.key}
+                                        scope="col"
+                                        className={`px-4 py-2.5 ${column.className ?? ""}`}
+                                        aria-sort={
+                                            active
+                                                ? sort.direction === "asc"
+                                                    ? "ascending"
+                                                    : "descending"
+                                                : "none"
+                                        }
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setSort((current) => nextSort(current, column.key))}
+                                            className={`inline-flex items-center gap-1.5 uppercase hover:text-foreground ${active ? "text-foreground" : ""}`}
+                                        >
+                                            {column.label}
+                                            <Icon className="size-3.5" aria-hidden="true" />
+                                        </button>
+                                    </th>
+                                );
+                            })}
+                        </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-border">
+                        {visible.length === 0 ? (
+                            <tr>
+                                <td colSpan={COLUMNS.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                                    {rows.length === 0
+                                        ? "No tasks yet."
+                                        : "No tasks match these filters."}
+                                </td>
+                            </tr>
+                        ) : (
+                            visible.map((task) => (
+                                <tr key={task.id} className="transition-colors hover:bg-muted/40">
+                                    <td className="px-4 py-3">
+                                        <Link
+                                            href={`/workspace/${slug}/project/${projectId}/tasks/${task.id}`}
+                                            className={`font-medium hover:underline ${task.status === "DONE" ? "text-muted-foreground line-through" : "text-foreground"}`}
+                                        >
+                                            {task.title}
+                                        </Link>
+                                        {task.subtaskTotal > 0 && (
+                                            <span className="ml-2 text-xs text-muted-foreground tabular-nums">
+                                                {task.subtaskDone}/{task.subtaskTotal} subtasks
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                        {canEdit ? (
+                                            <div className="relative inline-flex items-center">
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={`pointer-events-none absolute left-2.5 size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`}
+                                                />
+                                                <select
+                                                    value={task.status}
+                                                    onChange={(event) => changeStatus(task, event.target.value as TaskStatus)}
+                                                    aria-label={`Status of ${task.title}`}
+                                                    className="h-8 rounded-lg border border-border bg-card py-0 pl-6 pr-7 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                >
+                                                    {TASK_COLUMNS.map((column) => (
+                                                        <option key={column.status} value={column.status}>
+                                                            {column.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-2 text-xs font-medium">
+                                                <span aria-hidden="true" className={`size-1.5 rounded-full ${COLUMN_DOTS[task.status]}`} />
+                                                {TASK_COLUMNS.find((c) => c.status === task.status)?.label}
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
+                                            <span aria-hidden="true" className={`size-1.5 rounded-full ${PRIORITY_DOTS[task.priority] ?? "bg-slate-400"}`} />
+                                            {getPriorityLabel(task.priority)}
+                                        </span>
+                                    </td>
+
+                                    <td className="truncate px-4 py-3 text-xs text-muted-foreground">
+                                        {task.assignee ? (task.assignee.name ?? task.assignee.email) : "Unassigned"}
+                                    </td>
+
+                                    <td
+                                        className={`px-4 py-3 text-xs tabular-nums ${task.overdue ? "font-medium text-rose-600 dark:text-rose-400" : "text-muted-foreground"}`}
+                                    >
+                                        {task.dueLabel ?? "—"}
+                                        {task.overdue && <span className="sr-only"> (overdue)</span>}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <p className="mt-3 text-xs text-muted-foreground">
+                Showing {visible.length} of {rows.length} {rows.length === 1 ? "task" : "tasks"}
+            </p>
+
+            {canEdit && (
+                <CreateTaskDialog
+                    open={dialogOpen}
+                    onClose={() => setDialogOpen(false)}
+                    slug={slug}
+                    projectId={projectId}
+                    defaultStatus="TODO"
+                    members={members}
+                />
+            )}
+        </div>
+    );
+}

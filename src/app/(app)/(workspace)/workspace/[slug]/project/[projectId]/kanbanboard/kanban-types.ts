@@ -6,6 +6,8 @@ export type BoardTask = {
     status: TaskStatus;
     priority: string;
     dueLabel: string | null;
+    /** ISO due date, used for sorting in the list view. */
+    dueAt: string | null;
     overdue: boolean;
     assignee: {
         name: string | null;

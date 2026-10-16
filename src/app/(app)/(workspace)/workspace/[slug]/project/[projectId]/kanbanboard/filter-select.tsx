@@ -5,7 +5,9 @@ export function FilterSelect({
                                  onChange,
                                  icon,
                                  children,
+                                 ariaLabel,
                              }: {
+    ariaLabel?: string;
     value: string;
     onChange: (value: string) => void;
     icon: React.ReactNode;
@@ -20,6 +22,7 @@ export function FilterSelect({
             <select
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
+                aria-label={ariaLabel}
                 className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm font-medium text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:focus:bg-white/[0.06]"
             >
                 {children}

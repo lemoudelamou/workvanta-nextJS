@@ -27,6 +27,8 @@ jest.mock("next/link", () => ({
 }));
 jest.mock("lucide-react", () => ({
     AlarmClock: () => null,
+    LayoutGrid: () => null,
+    List: () => null,
     Clock3: () => null,
     ListTodo: () => null,
     TriangleAlert: () => null,
@@ -120,7 +122,14 @@ jest.mock("@/app/style/Kpi", () => ({
 
 // Capture the props passed to the board so we can assert on them.
 // The `mock` prefix is required for variables used inside jest.mock factories.
+let mockListProps: any;
 let mockBoardProps: any;
+jest.mock("./listview/project-list-view", () => ({
+    ProjectListView: (props: any) => {
+        mockListProps = props;
+        return <div data-testid="list-view" />;
+    },
+}));
 jest.mock("./kanbanboard/kanban-board", () => ({
     KanbanBoard: (props: any) => {
         mockBoardProps = props;
@@ -169,9 +178,10 @@ function makeTask(overrides: Record<string, unknown> = {}) {
     };
 }
 
-async function renderPage() {
+async function renderPage(query: { view?: string } = {}) {
     const ui = await ProjectPage({
         params: Promise.resolve({ slug: "acme", projectId: "p1" }),
+        searchParams: Promise.resolve(query),
     });
     return render(ui);
 }
@@ -379,6 +389,7 @@ describe("ProjectPage – board tasks", () => {
                 status: "IN_PROGRESS",
                 priority: "HIGH",
                 dueLabel: "Oct 20",
+                dueAt: "2026-10-20T00:00:00.000Z",
                 overdue: false,
                 assignee,
                 subtaskTotal: 3,
@@ -496,5 +507,31 @@ describe("ProjectPage – edit details", () => {
         await renderPage();
 
         expect(screen.queryByTestId("edit-details")).not.toBeInTheDocument();
+    });
+});
+
+
+describe("ProjectPage – views", () => {
+    it("shows the board by default and marks it as the current view", async () => {
+        await renderPage();
+
+        expect(screen.getByTestId("kanban-board")).toBeInTheDocument();
+        expect(screen.queryByTestId("list-view")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Board" })).toHaveAttribute("aria-current", "page");
+        expect(screen.getByRole("link", { name: "List" })).toHaveAttribute(
+            "href",
+            "/workspace/acme/project/p1?view=list",
+        );
+    });
+
+    it("shows the list with the same tasks and permissions when asked", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
+        await renderPage({ view: "list" });
+
+        expect(screen.getByTestId("list-view")).toBeInTheDocument();
+        expect(screen.queryByTestId("kanban-board")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+        expect(mockListProps).toMatchObject({ slug: "acme", projectId: "p1", canEdit: true });
     });
 });
