@@ -1,16 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { MoreHorizontal } from "lucide-react";
 
 export type ActionMenuItem =
     | { kind?: "item"; label: string; icon?: ReactNode; href?: string; onSelect?: () => void; danger?: boolean }
     | { kind: "separator" };
 
+const GAP = 6;
+const EDGE = 8;
+
+/**
+ * Where the open menu goes: under the button, right edges aligned, or above
+ * it when there's no room below. Kept inside the window.
+ */
+export function placeMenu(button: DOMRect, menu: { width: number; height: number }, viewport: { width: number; height: number }) {
+    const fitsBelow = button.bottom + GAP + menu.height <= viewport.height - EDGE;
+    const fitsAbove = button.top - GAP - menu.height >= EDGE;
+    const top = fitsBelow || !fitsAbove ? button.bottom + GAP : button.top - GAP - menu.height;
+    const left = Math.min(Math.max(EDGE, button.right - menu.width), viewport.width - EDGE - menu.width);
+    return { top, left };
+}
+
 /**
  * The "⋯" button for less frequent actions (rename, leave, delete…).
  * Arrow keys move between items, Escape or a click outside closes it.
+ *
+ * The open menu is drawn on top of the page (in a portal, fixed to the
+ * button), so a list or card that hides its overflow can't cut it off.
  */
 export function ActionMenu({
     label,
@@ -25,19 +44,47 @@ export function ActionMenu({
     const id = useId();
     const rootRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
         if (!open) return;
         function onPointerDown(event: PointerEvent) {
-            if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+            const target = event.target as Node;
+            if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
         }
         document.addEventListener("pointerdown", onPointerDown);
         return () => document.removeEventListener("pointerdown", onPointerDown);
     }, [open]);
 
+    // Place the menu next to its button, and keep it there while the page scrolls or resizes.
+    // Written straight to the menu's style: it's layout, not app state.
+    useLayoutEffect(() => {
+        if (!open) return;
+        function place() {
+            const button = buttonRef.current?.getBoundingClientRect();
+            const menu = menuRef.current;
+            if (!button || !menu) return;
+            const { top, left } = placeMenu(
+                button,
+                { width: menu.offsetWidth, height: menu.offsetHeight },
+                { width: window.innerWidth, height: window.innerHeight },
+            );
+            menu.style.top = `${top}px`;
+            menu.style.left = `${left}px`;
+            menu.style.visibility = "visible";
+        }
+        place();
+        window.addEventListener("scroll", place, true);
+        window.addEventListener("resize", place);
+        return () => {
+            window.removeEventListener("scroll", place, true);
+            window.removeEventListener("resize", place);
+        };
+    }, [open]);
+
     function menuItems() {
-        return Array.from(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+        return Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
     }
 
     function show() {
@@ -95,13 +142,15 @@ export function ActionMenu({
                 <MoreHorizontal className="size-4" aria-hidden="true" />
             </button>
 
-            {open && (
+            {open && createPortal(
                 <div
+                    ref={menuRef}
                     id={id}
                     role="menu"
                     aria-label={label}
                     onKeyDown={onKeyDown}
-                    className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-[0_16px_40px_-12px_rgba(15,17,21,0.28)] motion-safe:animate-[shell-pop_120ms_ease-out]"
+                    style={{ top: 0, left: 0, visibility: "hidden" }}
+                    className="fixed z-[60] w-56 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-[0_16px_40px_-12px_rgba(15,17,21,0.28)] motion-safe:animate-[shell-pop_120ms_ease-out]"
                 >
                     {items.map((item, index) =>
                         item.kind === "separator" ? (
@@ -135,7 +184,8 @@ export function ActionMenu({
                             </button>
                         ),
                     )}
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );
