@@ -25,16 +25,7 @@ jest.mock("next/link", () => ({
         </a>
     ),
 }));
-jest.mock("lucide-react", () => ({
-    AlarmClock: () => null,
-    LayoutGrid: () => null,
-    List: () => null,
-    Clock3: () => null,
-    ListTodo: () => null,
-    TriangleAlert: () => null,
-    User: () => null,
-    UsersRound: () => null,
-}));
+
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));
 jest.mock("@/lib/auth/members", () => ({
@@ -59,48 +50,33 @@ jest.mock(
         return { setProjectVisibilityAction: jest.fn(), updateProjectDetailsAction };
     },
 );
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/DeleteProjectButton",
-    () => ({
-        DeleteProjectButton: ({ projectName }: any) => (
-            <button data-testid="delete-project">Delete {projectName}</button>
-        ),
-    }),
-);
+jest.mock("./components/ProjectActions", () => ({
+    ProjectActions: ({ project, membersHref, updateDetails, setVisibility, canDelete }: any) => (
+        <div data-testid="project-actions" data-members={membersHref}>
+            {updateDetails && <span data-testid="edit-details">{String(updateDetails)}</span>}
+            {setVisibility && (
+                <button data-testid="toggle-visibility" onClick={() => setVisibility("WORKSPACE")}>
+                    {project.visibility}
+                </button>
+            )}
+            {canDelete && <span data-testid="delete-project">Delete {project.name}</span>}
+        </div>
+    ),
+}));
 jest.mock("./components/StatusRail", () => ({
-    StatusRail: ({ counts, overdue, members }: any) => (
+    StatusRail: ({ counts, overdue, dueSoon, unassigned }: any) => (
         <div data-testid="rail">
             <span data-testid="rail-counts">
                 {`${counts.TODO}/${counts.IN_PROGRESS}/${counts.IN_REVIEW}/${counts.DONE}`}
             </span>
             <span data-testid="rail-overdue">{overdue}</span>
-            <span data-testid="rail-members">{members}</span>
+            <span data-testid="rail-due-soon">{dueSoon}</span>
+            <span data-testid="rail-unassigned">{unassigned}</span>
         </div>
-    ),
-}));
-jest.mock("@/components/ui/EditDetailsForm", () => ({
-    EditDetailsForm: ({ title, defaultName }: any) => (
-        <div data-testid="edit-details" data-name={defaultName}>{title}</div>
-    ),
-}));
-jest.mock("@/components/ui/ToggleVisibilityButton", () => ({
-    ToggleVisibilityButton: ({ visibility, onToggle }: any) => (
-        <button data-testid="toggle-visibility" onClick={() => onToggle()}>
-            {visibility}
-        </button>
     ),
 }));
 jest.mock("@/components/ui/PageBody", () => ({
     PageBody: ({ children }: any) => <main>{children}</main>,
-}));
-jest.mock("@/components/ui/PageHeader", () => ({
-    PageHeader: ({ title, description, actions }: any) => (
-        <header>
-            <h1>{title}</h1>
-            <p data-testid="description">{description}</p>
-            {actions}
-        </header>
-    ),
 }));
 jest.mock("@/components/ui/BreadCrumb", () => ({
     Breadcrumb: ({ items }: any) => (
@@ -121,13 +97,13 @@ let mockBoardProps: any;
 jest.mock("./listview/project-list-view", () => ({
     ProjectListView: (props: any) => {
         mockListProps = props;
-        return <div data-testid="list-view" />;
+        return <div data-testid="list-view">{props.leading}</div>;
     },
 }));
 jest.mock("./kanbanboard/kanban-board", () => ({
     KanbanBoard: (props: any) => {
         mockBoardProps = props;
-        return <div data-testid="kanban-board" />;
+        return <div data-testid="kanban-board">{props.leading}</div>;
     },
 }));
 
@@ -270,7 +246,8 @@ describe("ProjectPage – header", () => {
     it("renders the project name, description and breadcrumb", async () => {
         await renderPage();
 
-        expect(screen.getByRole("heading", { name: "Apollo" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { level: 1, name: "Apollo" })).toBeInTheDocument();
+        expect(screen.getByText("Private")).toBeInTheDocument();
         expect(screen.getByTestId("description")).toHaveTextContent("Moon landing");
         expect(screen.getByTestId("breadcrumb")).toHaveTextContent("Acme Inc > Apollo");
     });
@@ -303,19 +280,22 @@ describe("ProjectPage – header", () => {
 });
 
 describe("ProjectPage – status rail", () => {
-    it("passes per-status counts, overdue and member totals", async () => {
+    it("passes per-status counts and what needs attention", async () => {
         db.task.findMany.mockResolvedValue([
-            makeTask({ id: "1", status: "DONE" }),
-            makeTask({ id: "2", status: "IN_PROGRESS" }),
-            makeTask({ id: "3", status: "IN_REVIEW" }),
+            makeTask({ id: "1", status: "DONE", dueDate: new Date("2026-10-17T00:00:00Z") }),
+            makeTask({ id: "2", status: "IN_PROGRESS", assignee: { name: "A", email: "a@x.com", image: null } }),
+            makeTask({ id: "3", status: "IN_REVIEW", dueDate: new Date("2026-10-20T00:00:00Z") }),
             makeTask({ id: "4", status: "TODO", dueDate: new Date("2026-10-01T00:00:00Z") }),
+            makeTask({ id: "5", status: "TODO", dueDate: new Date("2026-11-30T00:00:00Z") }),
         ]);
 
         await renderPage();
 
-        expect(screen.getByTestId("rail-counts")).toHaveTextContent("1/1/1/1");
+        expect(screen.getByTestId("rail-counts")).toHaveTextContent("2/1/1/1");
         expect(screen.getByTestId("rail-overdue")).toHaveTextContent("1");
-        expect(screen.getByTestId("rail-members")).toHaveTextContent("3");
+        // Only open tasks due within seven days count; done ones never do.
+        expect(screen.getByTestId("rail-due-soon")).toHaveTextContent("1");
+        expect(screen.getByTestId("rail-unassigned")).toHaveTextContent("3");
     });
 
     it("passes zeros when there are no tasks", async () => {
@@ -444,7 +424,8 @@ describe("ProjectPage – permissions", () => {
 
         expect(screen.queryByTestId("toggle-visibility")).not.toBeInTheDocument();
         expect(screen.queryByTestId("delete-project")).not.toBeInTheDocument();
-        expect(screen.queryByText("Delete this project")).not.toBeInTheDocument();
+        // Everyone still gets the menu, with the members link.
+        expect(screen.getByTestId("project-actions")).toHaveAttribute("data-members", "/workspace/acme/project/p1/members");
     });
 
     it("binds the visibility action to the workspace slug and project id", async () => {
@@ -453,7 +434,7 @@ describe("ProjectPage – permissions", () => {
         await renderPage();
         fireEvent.click(screen.getByTestId("toggle-visibility"));
 
-        expect(mockSetVisibility).toHaveBeenCalledWith("acme", "p1");
+        expect(mockSetVisibility).toHaveBeenCalledWith("acme", "p1", "WORKSPACE");
     });
 });
 
@@ -463,7 +444,7 @@ describe("ProjectPage – edit details", () => {
 
         await renderPage();
 
-        expect(screen.getByTestId("edit-details")).toHaveTextContent("Project details");
+        expect(screen.getByTestId("edit-details")).toHaveTextContent("bound-update-details");
     });
 
     it("hides the edit panel from editors", async () => {

@@ -47,12 +47,15 @@ export function KanbanBoard({
                                 tasks,
                                 members,
                                 canEdit,
+                                leading,
                             }: {
     slug: string;
     projectId: string;
     tasks: BoardTask[];
     members: TaskFormMember[];
     canEdit: boolean;
+    /** Shown at the start of the toolbar, e.g. the Board/List switch. */
+    leading?: React.ReactNode;
 }) {
     const [columns, setColumns] = useState(() => groupTasks(tasks));
     const [syncedFrom, setSyncedFrom] = useState(tasks);
@@ -290,43 +293,55 @@ export function KanbanBoard({
         filters.status !== "ALL" ? filters.status : "",
         filters.assignee !== "ALL" ? filters.assignee : "",
     ].filter(Boolean).length;
+    // Search has its own box; this counts the filters behind the Filters button.
+    const panelFilterCount = activeFilterCount - (filters.search ? 1 : 0);
 
     return (
         <div>
-            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold">Tasks</h2>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+                {/* Its own slot: it comes from the server page, next to static siblings. */}
+                <div className="contents">{leading}</div>
+                <span className="hidden text-[13px] tabular-nums text-muted-foreground sm:inline">
+                    {hasFilters ? `${filteredTasks.length} of ${allTasks.length}` : allTasks.length}{" "}
+                    {allTasks.length === 1 ? "task" : "tasks"}
+                </span>
+                {!canEdit && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        View only
+                    </span>
+                )}
 
-                        <span className="text-sm tabular-nums text-muted-foreground">
-                            {hasFilters
-                                ? `${filteredTasks.length}/${allTasks.length}`
-                                : allTasks.length}
-                        </span>
-                    </div>
+                <div className="ml-auto flex min-w-0 items-center gap-2">
+                    <label className="relative min-w-0">
+                        <span className="sr-only">Search tasks</span>
+                        <Search
+                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                            aria-hidden="true"
+                        />
+                        <input
+                            type="search"
+                            value={filters.search}
+                            onChange={(event) => updateFilter("search", event.target.value)}
+                            placeholder="Search tasks"
+                            className="h-9 w-36 rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none transition-[width,box-shadow] placeholder:text-muted-foreground focus:w-52 focus:border-brand focus:ring-4 focus:ring-brand/15 sm:w-48 sm:focus:w-60"
+                        />
+                    </label>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {canEdit
-                            ? "Drag cards to change status or reorder them."
-                            : "You have view-only access to this board."}
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => setShowFilters((value) => !value)}
+                        aria-expanded={showFilters}
                         className={cn(
                             buttonStyles({ variant: "secondary" }),
                             "gap-2",
                             showFilters && "border-brand/40 bg-brand-soft text-brand dark:bg-brand/15",
                         )}
                     >
-                        <Filter className="size-4" />
-                        Filters
-                        {hasFilters && (
+                        <Filter className="size-4" aria-hidden="true" />
+                        <span className="sr-only sm:not-sr-only">Filters</span>
+                        {panelFilterCount > 0 && (
                             <span className="flex size-5 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white dark:text-[#0f1115]">
-                                {activeFilterCount}
+                                {panelFilterCount}
                             </span>
                         )}
                     </button>
@@ -335,10 +350,10 @@ export function KanbanBoard({
                         <button
                             type="button"
                             onClick={() => openDialog("TODO")}
-                            className={buttonStyles()}
+                            className={cn(buttonStyles(), "whitespace-nowrap")}
                         >
-                            <Plus className="size-4" />
-                            New task
+                            <Plus className="size-4" aria-hidden="true" />
+                            <span className="sr-only sm:not-sr-only">New task</span>
                         </button>
                     )}
                 </div>
@@ -346,21 +361,7 @@ export function KanbanBoard({
 
             {showFilters && (
                 <div className="mb-5 rounded-xl border border-border bg-card p-4">
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-                            <input
-                                type="text"
-                                value={filters.search}
-                                onChange={(event) =>
-                                    updateFilter("search", event.target.value)
-                                }
-                                placeholder="Search tasks..."
-                                className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-brand focus:ring-2 focus:ring-brand/15"
-                            />
-                        </div>
-
+                    <div className="grid gap-3 sm:grid-cols-3">
                         <FilterSelect
                             icon={<span className="size-2 rounded-full bg-amber-500" />}
                             ariaLabel="Filter by priority"
@@ -431,14 +432,8 @@ export function KanbanBoard({
                 </div>
             )}
 
-            {hasFilters && !showFilters && (
+            {panelFilterCount > 0 && !showFilters && (
                 <div className="mb-4 flex flex-wrap items-center gap-2">
-                    {filters.search && (
-                        <FilterChip
-                            label={`Search: ${filters.search}`}
-                            onRemove={() => updateFilter("search", "")}
-                        />
-                    )}
 
                     {filters.priority !== "ALL" && (
                         <FilterChip

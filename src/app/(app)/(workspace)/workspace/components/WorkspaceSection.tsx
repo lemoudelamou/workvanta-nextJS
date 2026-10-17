@@ -22,12 +22,12 @@ export function WorkspaceSection({
 }) {
     return (
         <section aria-labelledby={id} className={className}>
-            <div className="mb-5 flex items-center gap-2.5">
+            <div className="mb-3 flex items-center gap-2.5">
                 <div>
                     <div className="flex items-center gap-2.5">
                         <h2
                             id={id}
-                            className="text-lg font-semibold tracking-tight text-foreground"
+                            className="text-base font-semibold text-foreground"
                         >
                             {title}
                         </h2>
@@ -42,7 +42,7 @@ export function WorkspaceSection({
             </div>
 
             {items.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {items.map((item) => (
                         <WorkspaceCard key={item.workspace.slug} item={item} />
                     ))}
