@@ -52,5 +52,15 @@ export function isTypingTarget(target: EventTarget | null) {
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 }
 
+/**
+ * Is this a browser or system command (⌘ anything, Ctrl+letter) rather than
+ * a character? Alt Gr (reported as Ctrl+Alt on Windows) and Option on a Mac
+ * type characters like "[" on French, German and other layouts, so those
+ * still count as typing a character.
+ */
+export function isCommandKey(event: Pick<KeyboardEvent, "metaKey" | "ctrlKey" | "altKey">) {
+    return event.metaKey || (event.ctrlKey && !event.altKey);
+}
+
 /** Event other parts of the app dispatch to open the shortcuts panel. */
 export const SHOW_SHORTCUTS_EVENT = "workvanta:show-shortcuts";
