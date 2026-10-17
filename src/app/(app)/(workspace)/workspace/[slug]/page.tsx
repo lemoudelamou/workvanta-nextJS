@@ -95,6 +95,42 @@ export default async function WorkspacePage({
         }))
         .filter((project) => project.accessible);
 
+    // Progress and people for each card: one grouped count, one distinct
+    // lookup, both limited to projects this user can open.
+    const projectIds = projects.map((project) => project.id);
+    const [statusCounts, assigned] = projectIds.length
+        ? await Promise.all([
+              prisma.task.groupBy({
+                  by: ["projectId", "status"],
+                  where: { projectId: { in: projectIds } },
+                  _count: { _all: true },
+              }),
+              prisma.task.findMany({
+                  where: { projectId: { in: projectIds }, assigneeId: { not: null } },
+                  distinct: ["projectId", "assigneeId"],
+                  orderBy: { updatedAt: "desc" },
+                  select: {
+                      projectId: true,
+                      assignee: { select: { id: true, name: true, email: true, image: true } },
+                  },
+              }),
+          ])
+        : [[], []];
+
+    for (const project of projects) {
+        project.counts = { TODO: 0, IN_PROGRESS: 0, IN_REVIEW: 0, DONE: 0 };
+        project.people = [];
+    }
+    const byId = new Map(projects.map((project) => [project.id, project]));
+    for (const row of statusCounts) {
+        const counts = byId.get(row.projectId)?.counts;
+        if (counts && row.status in counts) counts[row.status as keyof typeof counts] = row._count._all;
+    }
+    for (const row of assigned) {
+        const people = byId.get(row.projectId)?.people;
+        if (people && row.assignee && people.length < 4) people.push(row.assignee);
+    }
+
     const isGuest = role === "GUEST";
     const accessibleCount = projects.length;
 

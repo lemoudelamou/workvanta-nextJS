@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Plus, Search, UserRound } from "lucide-react";
 
 import { buttonStyles } from "@/app/style/button-style";
+import { useLiveHighlights } from "@/lib/realtime/live-highlight";
 import type { TaskFormMember } from "@/components/ui/TaskFormFields";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/task-status";
 import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
@@ -62,6 +63,10 @@ export function ProjectListView({
     }
 
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    // Rows a teammate just changed flash briefly after the live refresh.
+    const justChanged = useLiveHighlights();
+    const flash = (task: BoardTask) =>
+        justChanged.has(task.id) ? "motion-safe:animate-[row-flash_2.4s_ease-out]" : "";
     const [sort, setSort] = useState(DEFAULT_SORT);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -241,7 +246,7 @@ export function ProjectListView({
                     <li className="px-4 py-10 text-center text-sm text-muted-foreground">{emptyMessage}</li>
                 ) : (
                     visible.map((task) => (
-                        <li key={task.id} className="px-4 py-3">
+                        <li key={task.id} className={`px-4 py-3 ${flash(task)}`}>
                             <Link
                                 href={taskHref(task)}
                                 className={`text-sm font-medium ${task.status === "DONE" ? "text-muted-foreground line-through" : "text-foreground"}`}
@@ -315,7 +320,7 @@ export function ProjectListView({
                             </tr>
                         ) : (
                             visible.map((task) => (
-                                <tr key={task.id} className="transition-colors hover:bg-muted/40">
+                                <tr key={task.id} className={`transition-colors hover:bg-muted/40 ${flash(task)}`}>
                                     <td className="px-4 py-3">
                                         <Link
                                             href={taskHref(task)}

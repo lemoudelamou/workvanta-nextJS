@@ -12,6 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { hairline, glass, starlightEdge, iconTile, smallPrimaryButton, smallGhostButton, bubbleClass, editFieldClass } from "@/app/style/ui-tokens";
+import { personColor } from "@/lib/ui/person-color";
 
 type Author = {
     id: string;
@@ -166,7 +167,7 @@ function Avatar({
 
     return (
         <div
-            className={`${v.box} flex items-center justify-center rounded-full bg-slate-900 ${v.text} font-bold text-white dark:bg-white dark:text-slate-950 ${v.fallback}`}
+            className={`${v.box} flex items-center justify-center rounded-full ${v.text} font-semibold ${personColor(author.email)} ${v.fallback}`}
         >
             {getInitials(author.name, author.email)}
         </div>

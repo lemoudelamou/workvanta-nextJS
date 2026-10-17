@@ -25,6 +25,8 @@ import {
 import { KanbanBoard, type BoardTask } from "./kanbanboard/kanban-board";
 import { ProjectListView } from "./listview/project-list-view";
 import { PageBody } from "@/components/ui/PageBody";
+import { ProjectMark } from "@/components/ui/ProjectMark";
+import { projectHex } from "@/lib/navigation/project-color";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
@@ -144,7 +146,7 @@ export default async function ProjectPage({
     const overdueTasks = boardTasks.filter((t) => t.overdue).length;
 
     return (
-        <PageBody>
+        <PageBody glow={projectHex(project.id)}>
             <Breadcrumb
                 items={[
                     { label: project.workspace.name, href: `/workspace/${project.workspace.slug}` },
@@ -154,6 +156,7 @@ export default async function ProjectPage({
 
             <PageHeader
                 eyebrow="Project"
+                icon={<ProjectMark projectId={project.id} size="lg" />}
                 title={project.name}
                 description={
                     project.description ||

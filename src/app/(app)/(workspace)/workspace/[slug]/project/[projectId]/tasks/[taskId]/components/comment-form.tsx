@@ -3,6 +3,7 @@
 import { AtSign, Send, User } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
 import { hairline, commentButton, iconTile} from "@/app/style/ui-tokens";
+import { personColor } from "@/lib/ui/person-color";
 
 type Member = {
   id: string;
@@ -197,7 +198,7 @@ export function CommentForm({ action, members }: CommentFormProps) {
                           onClick={() => selectMember(member)}
                           className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors duration-200 hover:bg-slate-500/[0.07]"
                       >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-bold text-white dark:bg-white dark:text-slate-950">
+                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${personColor(member.email)}`}>
                     {getInitials(member.name, member.email)}
                   </span>
 

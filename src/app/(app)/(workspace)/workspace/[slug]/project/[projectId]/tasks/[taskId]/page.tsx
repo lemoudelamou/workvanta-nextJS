@@ -28,6 +28,7 @@ import { AttachmentUpload } from "./components/attachement-upload";
 import { DeleteAttachmentButton } from "./components/delete-attachment-button";
 import {createCommentAction, deleteCommentAction, updateCommentAction, updateTaskAction, deleteTaskAction, uploadAttachmentAction, deleteAttachmentAction } from "./task-actions";
 import { fieldClass, NEUTRAL_DOT} from "@/app/style/ui-tokens";
+import { personColor } from "@/lib/ui/person-color";
 
 
 
@@ -126,7 +127,7 @@ function Avatar({
     image: string | null;
 }) {
     return (
-        <span className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[11px] font-semibold text-muted-foreground">
+        <span className={`relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-semibold ${personColor(email)}`}>
       {image ? (
           <Image src={image} alt="" fill className="object-cover" sizes="32px" />
       ) : (
