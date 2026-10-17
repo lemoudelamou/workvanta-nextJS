@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
+import { BookOpen, ChevronsUpDown, LogOut, Settings } from "lucide-react";
 
 import { logout } from "@/app/(auth)/signin/actions";
 import { useDismiss } from "./use-dismiss";
@@ -81,6 +81,18 @@ export function UserMenu({
                     >
                         <Settings className="size-3.5 text-muted-foreground" aria-hidden="true" />
                         Settings
+                    </Link>
+                    <Link
+                        href="/guide"
+                        role="menuitem"
+                        onClick={() => {
+                            setOpen(false);
+                            onNavigate?.();
+                        }}
+                        className={`${itemClass} text-foreground hover:bg-muted focus-visible:bg-muted`}
+                    >
+                        <BookOpen className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                        Help &amp; guide
                     </Link>
                     <form
                         action={async () => {

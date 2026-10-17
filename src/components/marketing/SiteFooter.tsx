@@ -4,6 +4,7 @@ import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 
 const LINKS = [
     { href: "/#features", label: "Features" },
+    { href: "/guide", label: "Guide" },
     { href: "/signin", label: "Sign in" },
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
