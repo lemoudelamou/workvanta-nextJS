@@ -281,4 +281,21 @@ describe("AppShell keyboard shortcuts", () => {
         fireEvent.keyDown(window, { key: "[" });
         expect(document.cookie).toContain("wv-sidebar=collapsed");
     });
+
+    it("accepts [ typed with Alt Gr or Option, as on French and German keyboards", () => {
+        renderShell({ collapsed: true });
+        fireEvent.keyDown(window, { key: "[", altKey: true, shiftKey: true }); // Mac: Option+Shift+5
+        expect(document.cookie).toContain("wv-sidebar=open");
+        fireEvent.keyDown(window, { key: "[", ctrlKey: true, altKey: true }); // Windows: Alt Gr+5
+        expect(document.cookie).toContain("wv-sidebar=collapsed");
+    });
+
+    it("leaves browser shortcuts alone", () => {
+        renderShell();
+        const before = document.cookie;
+        fireEvent.keyDown(window, { key: "[", metaKey: true }); // ⌘[ is the browser's Back
+        fireEvent.keyDown(window, { key: "[", ctrlKey: true });
+        expect(document.cookie).toBe(before);
+        expect(mockPush).not.toHaveBeenCalled();
+    });
 });

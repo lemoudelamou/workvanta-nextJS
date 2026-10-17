@@ -13,7 +13,7 @@ import { workspaceInitials } from "./WorkspaceSwitcher";
 import type { ShellUser } from "./UserMenu";
 
 import { LAST_WORKSPACE_COOKIE, SIDEBAR_COOKIE } from "@/lib/navigation/shell-cookies";
-import { goToHref, isTypingTarget, SHOW_SHORTCUTS_EVENT } from "@/lib/shortcuts";
+import { goToHref, isCommandKey, isTypingTarget, SHOW_SHORTCUTS_EVENT } from "@/lib/shortcuts";
 
 /** The workspace the URL is in, if any ("/workspace/new" is not one). */
 export function slugFromPath(pathname: string) {
@@ -90,7 +90,7 @@ export function AppShell({
                 setSearchOpen(true);
                 return;
             }
-            if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (event.defaultPrevented || isCommandKey(event)) return;
             if (isTypingTarget(event.target)) return;
             if (document.querySelector("dialog[open], [role='dialog'], [role='alertdialog'], [role='menu']")) return;
 
