@@ -182,16 +182,16 @@ export function NotificationBell({
                 <Bell className="size-4" />
 
                 {unread > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white dark:ring-slate-950">
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white dark:ring-slate-950">
             {unread > 99 ? "99+" : unread}
           </span>
                 )}
             </button>
 
             {open && (
-                <div className="fixed inset-x-4 top-[4.25rem] z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 shadow-xl shadow-slate-950/10 backdrop-blur-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-white/[0.08] dark:bg-slate-950/95 dark:shadow-black/40">
+                <div className="fixed inset-x-4 top-[4.25rem] z-50 overflow-hidden rounded-xl border border-slate-200/70 bg-white/95 shadow-xl shadow-slate-950/10 backdrop-blur-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-white/[0.08] dark:bg-slate-950/95 dark:shadow-black/40">
                     <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/[0.08]">
-                        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">
+                        <h2 className="text-sm font-semibold text-foreground">
                             Notifications
                         </h2>
 
@@ -211,7 +211,7 @@ export function NotificationBell({
                     {items.length === 0 ? (
                         <div className="px-4 py-10 text-center">
                             <Bell className="mx-auto size-5 text-slate-300 dark:text-slate-600" />
-                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-2 text-sm text-muted-foreground">
                                 You&apos;re all caught up
                             </p>
                         </div>
@@ -237,8 +237,8 @@ export function NotificationBell({
                       <span
                           className={`block text-sm ${
                               notification.readAt
-                                  ? "font-medium text-slate-600 dark:text-slate-300"
-                                  : "font-semibold text-slate-950 dark:text-white"
+                                  ? "font-medium text-muted-foreground"
+                                  : "font-semibold text-foreground"
                           }`}
                       >
                         {getNotificationText(notification.type)}

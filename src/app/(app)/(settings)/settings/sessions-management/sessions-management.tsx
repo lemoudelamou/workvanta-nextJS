@@ -119,7 +119,7 @@ export default async function SessionsManagement() {
 
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                            <p className="text-sm font-semibold text-foreground">
                                                 {activeSession.device ??
                                                     "Unknown device"}
                                                 {" · "}
@@ -139,11 +139,11 @@ export default async function SessionsManagement() {
                                                 <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400 dark:text-slate-500" />
 
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
                                                         Location
                                                     </p>
 
-                                                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                                    <p className="mt-1 text-sm text-muted-foreground">
                                                         {formatLocation(
                                                             activeSession,
                                                         )}
@@ -155,11 +155,11 @@ export default async function SessionsManagement() {
                                                 <Globe2 className="mt-0.5 size-4 shrink-0 text-slate-400 dark:text-slate-500" />
 
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
                                                         IP address
                                                     </p>
 
-                                                    <p className="mt-1 break-all text-sm text-slate-600 dark:text-slate-300">
+                                                    <p className="mt-1 break-all text-sm text-muted-foreground">
                                                         {activeSession.ipAddress ??
                                                             "Unavailable"}
                                                     </p>
@@ -167,7 +167,7 @@ export default async function SessionsManagement() {
                                             </div>
                                         </div>
 
-                                        <div className="mt-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                                             <Clock3 className="size-4" />
 
                                             <span>

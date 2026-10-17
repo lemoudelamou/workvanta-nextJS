@@ -21,7 +21,7 @@ const panelClass =
     "rounded-xl border border-slate-200/80 bg-white/60 p-5 dark:border-white/[0.08] dark:bg-white/[0.03]";
 
 const primaryButtonClass =
-    "inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200";
+    "inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand dark:text-[#0f1115] dark:hover:bg-brand-strong";
 
 const secondaryButtonClass =
     "inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.07]";
@@ -247,7 +247,7 @@ export default function TwoFactorSettings({
 
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                            <h3 className="text-sm font-semibold text-foreground">
                                 Two-factor authentication
                             </h3>
 
@@ -263,7 +263,7 @@ export default function TwoFactorSettings({
                             </span>
                         </div>
 
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">
+                        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                             Add an authenticator app to protect your account
                             with an additional verification step.
                         </p>
@@ -274,7 +274,7 @@ export default function TwoFactorSettings({
             {error && (
                 <div
                     role="alert"
-                    className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"
+                    className="mt-5 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
                 >
                     {error}
                 </div>
@@ -286,16 +286,16 @@ export default function TwoFactorSettings({
                         <div className={panelClass}>
                             <div className="flex items-start gap-3">
                                 <KeyRound
-                                    className="mt-0.5 size-5 shrink-0 text-slate-500 dark:text-slate-400"
+                                    className="mt-0.5 size-5 shrink-0 text-muted-foreground"
                                     aria-hidden="true"
                                 />
 
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                    <h4 className="text-sm font-semibold text-foreground">
                                         Protect your account
                                     </h4>
 
-                                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                         Use an authenticator app such as Google
                                         Authenticator, Authy, 1Password, or
                                         another TOTP-compatible app.
@@ -317,18 +317,18 @@ export default function TwoFactorSettings({
                     ) : (
                         <div className={panelClass}>
                             <div>
-                                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                <h4 className="text-sm font-semibold text-foreground">
                                     Scan the QR code
                                 </h4>
 
-                                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                     Open your authenticator app and scan this QR
                                     code.
                                 </p>
                             </div>
 
                             <div className="mt-5 flex justify-center">
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/[0.08]">
+                                <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/[0.08]">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={qrCode}
@@ -340,7 +340,7 @@ export default function TwoFactorSettings({
 
                             {secret && (
                                 <div className="mt-5">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
                                         Manual setup key
                                     </p>
 
@@ -353,7 +353,7 @@ export default function TwoFactorSettings({
                             <div className="mt-6">
                                 <label
                                     htmlFor="two-factor-code"
-                                    className="block text-sm font-semibold text-slate-900 dark:text-white"
+                                    className="block text-sm font-semibold text-foreground"
                                 >
                                     Verification code
                                 </label>
@@ -405,11 +405,11 @@ export default function TwoFactorSettings({
                     <div className={panelClass}>
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                <h4 className="text-sm font-semibold text-foreground">
                                     Backup codes
                                 </h4>
 
-                                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                     {backupCount} unused backup{" "}
                                     {backupCount === 1
                                         ? "code remains"
@@ -439,7 +439,7 @@ export default function TwoFactorSettings({
                                     Enter a code to confirm
                                 </label>
 
-                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                <p className="text-xs leading-5 text-muted-foreground">
                                     Your authenticator code or one of your
                                     current backup codes.
                                 </p>
@@ -490,7 +490,7 @@ export default function TwoFactorSettings({
                         {backupCodes.length > 0 && (
                             <div className="mt-5">
                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
                                         New backup codes
                                     </p>
 
@@ -525,7 +525,7 @@ export default function TwoFactorSettings({
                                     ))}
                                 </div>
 
-                                <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
                                     <Check
                                         className="mt-0.5 size-4 shrink-0"
                                         aria-hidden="true"
@@ -542,12 +542,12 @@ export default function TwoFactorSettings({
                     </div>
 
                     {/* Disable 2FA */}
-                    <div className="rounded-xl border border-red-200/80 bg-red-50/50 p-5 dark:border-red-400/15 dark:bg-red-400/[0.04]">
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="rounded-xl border border-danger/30 bg-danger/[0.06] p-5">
+                        <h4 className="text-sm font-semibold text-foreground">
                             Disable two-factor authentication
                         </h4>
 
-                        <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
                             Your account will be protected by your password
                             only, and your other devices will be signed out.
                             Backup codes can&apos;t be used for this — you need
@@ -559,7 +559,7 @@ export default function TwoFactorSettings({
                                 <button
                                     type="button"
                                     onClick={openDisableConfirm}
-                                    className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-400/20 dark:bg-red-400/[0.06] dark:text-red-300 dark:hover:bg-red-400/10"
+                                    className="inline-flex items-center justify-center rounded-xl border border-danger/30 bg-white px-4 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger/[0.06]"
                                 >
                                     Disable 2FA
                                 </button>
@@ -599,7 +599,7 @@ export default function TwoFactorSettings({
                                         disabled={
                                             loading || disableCode.length !== 6
                                         }
-                                        className="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="inline-flex items-center justify-center rounded-xl bg-danger px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         {loading
                                             ? "Disabling..."

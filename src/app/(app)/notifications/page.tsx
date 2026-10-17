@@ -68,21 +68,21 @@ export default async function NotificationsPage() {
             </div>
 
             <section
-                className={`${glass} ${hairline} ${starlightEdge} relative mt-4 overflow-hidden rounded-2xl`}
+                className={`${glass} ${hairline} ${starlightEdge} relative mt-4 overflow-hidden rounded-xl`}
             >
                 {notifications.length === 0 ? (
                     <div className="flex flex-col items-center px-6 py-16 text-center sm:px-10">
                         <div
-                            className={`${iconTile} mb-6 size-14 rounded-2xl`}
+                            className={`${iconTile} mb-6 size-14 rounded-xl`}
                         >
                             <Inbox className="size-6" />
                         </div>
 
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                        <h2 className="text-xl font-semibold tracking-tight text-foreground">
                             You&apos;re all caught up
                         </h2>
 
-                        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                             There&apos;s nothing new here right now. When
                             something needs your attention, it&apos;ll
                             appear in this space.
@@ -94,12 +94,12 @@ export default async function NotificationsPage() {
                             <div>
                                 <p className={eyebrow}>Inbox</p>
 
-                                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
+                                <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
                                     Recent activity
                                 </h2>
                             </div>
 
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                            <span className="text-xs text-muted-foreground">
                                 Latest 50
                             </span>
                         </div>
@@ -122,7 +122,7 @@ export default async function NotificationsPage() {
 
             {notifications.length > 0 && (
                 <div className="mt-5 flex items-center justify-between px-1">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                         Showing your most recent notifications.
                     </p>
 

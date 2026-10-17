@@ -18,6 +18,7 @@ import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
 import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
 import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 
 function projectPath(slug: string, projectId: string) {
     return `/workspace/${slug}/project/${projectId}`;
@@ -97,6 +98,7 @@ export async function deleteProjectAction(projectId: string) {
 
     const workspacePath = `/workspace/${slug}`;
 
+    revalidateAppShell();
     revalidatePath(workspacePath);
     revalidatePath("/dashboard");
     redirect(workspacePath);
@@ -387,6 +389,7 @@ export async function setProjectVisibilityAction(
     });
 
     revalidateProject(slug, projectId);
+    revalidateAppShell();
     revalidatePath(membersPath(slug, projectId));
 }
 
@@ -444,6 +447,7 @@ export async function updateProjectDetailsAction(
     }
 
     revalidateProject(slug, projectId);
+    revalidateAppShell();
     revalidatePath(`/workspace/${slug}`);
     revalidatePath("/dashboard");
 

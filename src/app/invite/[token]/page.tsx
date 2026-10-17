@@ -104,12 +104,12 @@ function InvalidInvite({
 }) {
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
-            <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
-                <h1 className="text-lg font-semibold text-slate-950 dark:text-white">
+            <div className="max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
+                <h1 className="text-lg font-semibold text-foreground">
                     Invitation unavailable
                 </h1>
 
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-sm text-muted-foreground">
                     {reason}
                 </p>
             </div>
@@ -126,12 +126,12 @@ function WrongAccountNotice({
 }) {
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
-            <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
-                <h1 className="text-lg font-semibold text-slate-950 dark:text-white">
+            <div className="max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
+                <h1 className="text-lg font-semibold text-foreground">
                     Wrong account
                 </h1>
 
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-sm text-muted-foreground">
                     You&apos;re signed in as{" "}
                     <strong>{loggedInAs}</strong>, but this invitation
                     was sent to <strong>{invitedEmail}</strong>. Sign
@@ -141,7 +141,7 @@ function WrongAccountNotice({
                 <form action={logout.bind(null, invitedEmail)}>
                     <button
                         type="submit"
-                        className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
+                        className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white dark:bg-brand dark:text-[#0f1115]"
                     >
                         Sign out and switch accounts
                     </button>
@@ -162,12 +162,12 @@ function AcceptInviteConfirmation({
 }) {
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
-            <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
-                <h1 className="text-lg font-semibold text-slate-950 dark:text-white">
+            <div className="max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
+                <h1 className="text-lg font-semibold text-foreground">
                     Join {workspaceName}
                 </h1>
 
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-sm text-muted-foreground">
                     {projectName
                         ? `You've been invited to the "${projectName}" project in this workspace.`
 : "You've been invited to join this workspace."}
@@ -176,7 +176,7 @@ function AcceptInviteConfirmation({
 <form action={acceptInvitationAction.bind(null, token)}>
     <button
         type="submit"
-        className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
+        className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white dark:bg-brand dark:text-[#0f1115]"
     >
         Accept invitation
     </button>

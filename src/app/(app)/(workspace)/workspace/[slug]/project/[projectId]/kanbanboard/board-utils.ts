@@ -2,10 +2,10 @@ import { TASK_STATUSES, isTaskStatus, type TaskStatus } from "@/lib/task-status"
 import type { BoardTask, Columns } from "./kanban-types";
 
 export const COLUMN_DOTS: Record<TaskStatus, string> = {
-    TODO: "bg-slate-400",
-    IN_PROGRESS: "bg-blue-500",
-    IN_REVIEW: "bg-amber-500",
-    DONE: "bg-emerald-500",
+    TODO: "bg-status-todo",
+    IN_PROGRESS: "bg-status-progress",
+    IN_REVIEW: "bg-status-review",
+    DONE: "bg-status-done",
 };
 
 export function groupTasks(tasks: BoardTask[]): Columns {

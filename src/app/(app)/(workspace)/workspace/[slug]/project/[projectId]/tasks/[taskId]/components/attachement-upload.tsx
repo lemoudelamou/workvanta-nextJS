@@ -44,16 +44,16 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
 
     return (
         <form ref={formRef} action={handleSubmit} className="space-y-3">
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 transition-colors duration-200 hover:border-slate-400 hover:bg-white/80 dark:border-white/[0.12] dark:bg-white/[0.02] dark:hover:border-white/[0.2] dark:hover:bg-white/[0.04]">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-4 transition-colors duration-200 hover:border-slate-400 hover:bg-white/80 dark:border-white/[0.12] dark:bg-white/[0.02] dark:hover:border-white/[0.2] dark:hover:bg-white/[0.04]">
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <div>
                         <label
                             htmlFor="attachment"
-                            className="block text-sm font-semibold tracking-tight text-slate-950 dark:text-white"
+                            className="block text-sm font-semibold tracking-tight text-foreground"
                         >
                             Upload file
                         </label>
-                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
                             Images, PDF, ZIP, and text files are supported.
                         </p>
                     </div>
@@ -74,7 +74,7 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
                     className="block w-full cursor-pointer rounded-xl border border-slate-200 bg-white/70 px-3 py-2.5 text-xs text-slate-500 outline-none transition-all duration-200 hover:border-slate-300 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/15 disabled:cursor-not-allowed disabled:opacity-50 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200/70 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-400 dark:hover:border-white/[0.16] dark:focus:border-white/25 dark:focus:ring-white/10 dark:file:bg-white/[0.08] dark:file:text-slate-200"
                 />
 
-                <p className="mt-2.5 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-2.5 text-xs text-muted-foreground">
                     Maximum file size: 10 MB
                 </p>
             </div>
@@ -82,7 +82,7 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
             {error && (
                 <div
                     role="alert"
-                    className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-700 dark:text-rose-300"
+                    className="rounded-xl border border-danger/25 bg-danger/10 px-3 py-2.5 text-xs text-danger"
                 >
                     {error}
                 </div>

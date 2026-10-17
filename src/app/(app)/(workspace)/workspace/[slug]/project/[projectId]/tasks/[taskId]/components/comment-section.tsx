@@ -220,7 +220,7 @@ function ModeratorDeleteButton({
                 type="button"
                 onClick={handleDelete}
                 disabled={isPending}
-                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-60 dark:text-slate-400 dark:hover:text-rose-300"
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:opacity-60 dark:text-slate-400"
             >
                 {isPending ? (
                     <Loader2 className="size-3 motion-safe:animate-spin" />
@@ -230,7 +230,7 @@ function ModeratorDeleteButton({
                 Remove
             </button>
             {error && (
-                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{error}</p>
+                <p className="text-xs font-medium text-danger">{error}</p>
             )}
         </div>
     );
@@ -298,7 +298,7 @@ function OwnCommentActions({
     if (editing) {
         return (
             <div
-                className={`${hairline} mt-4 overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/90`}
+                className={`${hairline} mt-4 overflow-hidden rounded-xl bg-white/90 dark:bg-slate-900/90`}
             >
                 <div className="border-b border-slate-200/70 bg-slate-50/70 px-4 py-3.5 dark:border-white/[0.06] dark:bg-white/[0.03]">
                     <div className="flex items-center gap-3">
@@ -307,10 +307,10 @@ function OwnCommentActions({
             </span>
 
                         <div>
-                            <p className="text-xs font-semibold text-slate-950 dark:text-white">
+                            <p className="text-xs font-semibold text-foreground">
                                 Edit comment
                             </p>
-                            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            <p className="mt-0.5 text-xs text-muted-foreground">
                                 Update your message and save the changes.
                             </p>
                         </div>
@@ -329,12 +329,12 @@ function OwnCommentActions({
           />
 
                     <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+            <span className="text-xs tabular-nums text-muted-foreground">
               {content.length.toLocaleString()} / {MAX_LENGTH.toLocaleString()}
             </span>
 
                         {error && (
-                            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                            <p className="text-xs font-medium text-danger">
                                 {error}
                             </p>
                         )}
@@ -394,7 +394,7 @@ function OwnCommentActions({
                     type="button"
                     onClick={handleDelete}
                     disabled={isPending}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-rose-600 transition-colors duration-200 hover:bg-rose-500/10 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-400 dark:hover:text-rose-300"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-danger transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <Trash2 className="size-3" />
                     {isPending ? "Deleting..." : "Delete"}
@@ -402,7 +402,7 @@ function OwnCommentActions({
             </div>
 
             {error && (
-                <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                <p className="mt-2 text-xs font-medium text-danger">
                     {error}
                 </p>
             )}
@@ -427,7 +427,7 @@ export function CommentsSection({
     return (
         // overflow-visible on purpose: the mention dropdown extends below the composer
         <section
-            className={`${glass} ${hairline} ${starlightEdge} relative overflow-visible rounded-2xl`}
+            className={`${glass} ${hairline} ${starlightEdge} relative overflow-visible rounded-xl`}
         >
             <div className="relative border-b border-slate-200/70 px-5 py-5 sm:px-6 dark:border-white/[0.06]">
                 <div className="flex items-center justify-between gap-4">
@@ -485,11 +485,11 @@ export function CommentsSection({
                 )}
                 {comments.length === 0 ? (
                     <div className="px-5 py-12 text-center sm:px-6">
-                        <div className={`${iconTile} mx-auto size-14 rounded-2xl border-dashed`}>
+                        <div className={`${iconTile} mx-auto size-14 rounded-xl border-dashed`}>
                             <MessageSquare className="size-6" />
                         </div>
 
-                        <h3 className="mt-4 text-sm font-semibold text-slate-950 dark:text-white">
+                        <h3 className="mt-4 text-sm font-semibold text-foreground">
                             No comments yet
                         </h3>
 
@@ -514,7 +514,7 @@ export function CommentsSection({
 
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                      <span className="text-sm font-semibold text-foreground">
                         {getDisplayName(comment.author)}
                       </span>
 
@@ -526,14 +526,14 @@ export function CommentsSection({
                         </span>
                                             )}
 
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                            <span className="text-xs text-muted-foreground">
                         {formatCommentDate(comment.createdAt)}
                       </span>
 
                                             {wasEdited(comment) && (
                                                 <>
                                                     <span className="text-slate-300 dark:text-slate-600">•</span>
-                                                    <span className="text-xs italic text-slate-500 dark:text-slate-400">
+                                                    <span className="text-xs italic text-muted-foreground">
                             edited
                           </span>
                                                 </>
@@ -578,10 +578,10 @@ export function CommentsSection({
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold text-slate-950 dark:text-white">
+                        <p className="text-xs font-semibold text-foreground">
                             Add a comment
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                             Mention teammates with @
                         </p>
                     </div>

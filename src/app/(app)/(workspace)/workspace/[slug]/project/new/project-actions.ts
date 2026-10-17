@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { canWorkspace, isProjectVisibility } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 
 function getText(value: FormDataEntryValue | null) {
     return typeof value === "string" ? value.trim() : "";
@@ -88,6 +89,7 @@ export async function createProject(
             },
         });
 
+        revalidateAppShell();
         revalidatePath(`/workspace/${slug}`);
         revalidatePath("/dashboard");
 

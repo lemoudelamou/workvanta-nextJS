@@ -1,71 +1,89 @@
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 
+// A static preview of the project status bar, so the sign-in page shows
+// the product rather than describing it.
+const PREVIEW = [
+    { label: "To do", count: 6, className: "bg-status-todo" },
+    { label: "In progress", count: 5, className: "bg-status-progress" },
+    { label: "In review", count: 3, className: "bg-status-review" },
+    { label: "Done", count: 14, className: "bg-status-done" },
+];
+
+const PREVIEW_TASKS = [
+    { title: "Finalize pricing page copy", status: "In review", dot: "bg-status-review", due: "Today" },
+    { title: "QA checkout on mobile", status: "In progress", dot: "bg-status-progress", due: "Thu" },
+    { title: "Send launch email to beta list", status: "To do", dot: "bg-status-todo", due: "Fri" },
+];
+
 export default function LoginBrandPanel() {
-  return (
-    <section className="relative hidden overflow-hidden bg-[#101828] lg:flex">
-      {/* Decorative shapes */}
-      <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
-      <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl" />
+    const total = PREVIEW.reduce((sum, item) => sum + item.count, 0);
+    const done = PREVIEW.find((item) => item.label === "Done")?.count ?? 0;
 
-      <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
-        {/* Brand */}
-        <WorkvantaBrand light />
+    return (
+        <section className="relative hidden overflow-hidden bg-[#171a21] lg:flex">
+            <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
+                <WorkvantaBrand light />
 
-        {/* Main content */}
-        <div className="max-w-xl">
-          <div className="mb-6 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-            ✦ Built for modern teams
-          </div>
+                <div className="max-w-xl">
+                    <h1 className="text-[2.75rem] font-semibold leading-[1.1] tracking-[-0.02em] text-white xl:text-5xl">
+                        Every project, every task, one clear view of where things stand.
+                    </h1>
 
-          <h1 className="text-5xl font-semibold leading-[1.08] tracking-tight text-white xl:text-6xl">
-            Work smarter.
-            <br />
-            <span className="text-indigo-400">
-              Manage everything.
-            </span>
-          </h1>
+                    <p className="mt-5 max-w-md text-base leading-7 text-[#a3a9b6]">
+                        Plan work on a board or a list, assign it, and see
+                        what&apos;s moving and what&apos;s late across your team.
+                    </p>
 
-          <p className="mt-6 max-w-lg text-lg leading-8 text-slate-400">
-            One powerful workspace to manage projects, teams, tasks,
-            workflows, and everything that keeps your business moving.
-          </p>
+                    <div
+                        aria-hidden="true"
+                        className="mt-12 rounded-xl bg-[#f5f6f8] p-1.5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6)]"
+                    >
+                        <div className="rounded-lg bg-white px-5 py-4">
+                            <div className="flex items-baseline justify-between">
+                                <p className="text-sm font-semibold text-[#171a21]">Product launch</p>
+                                <p className="text-xs text-[#5e6573]">
+                                    <span className="text-sm font-semibold text-[#171a21]">
+                                        {Math.round((done / total) * 100)}%
+                                    </span>{" "}
+                                    done
+                                </p>
+                            </div>
 
-          {/* Dashboard preview */}
-          <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-2xl backdrop-blur">
-            <div className="rounded-xl bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-400">
-                    PROJECT OVERVIEW
-                  </p>
+                            <div className="mt-3 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+                                {PREVIEW.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className={`${item.className} first:rounded-l-full last:rounded-r-full`}
+                                        style={{ flexGrow: item.count }}
+                                    />
+                                ))}
+                            </div>
 
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    Product launch
-                  </p>
+                            <ul className="mt-4 divide-y divide-[#e3e6eb] border-t border-[#e3e6eb]">
+                                {PREVIEW_TASKS.map((task) => (
+                                    <li
+                                        key={task.title}
+                                        className="flex items-center gap-3 py-2.5 text-[13px]"
+                                    >
+                                        <span className={`size-2 shrink-0 rounded-full ${task.dot}`} />
+                                        <span className="flex-1 truncate font-medium text-[#171a21]">
+                                            {task.title}
+                                        </span>
+                                        <span className="w-20 text-xs text-[#5e6573]">{task.status}</span>
+                                        <span className="w-10 text-right text-xs tabular-nums text-[#5e6573]">
+                                            {task.due}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600">
-                  On track
-                </div>
-              </div>
-
-              <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[72%] rounded-full bg-indigo-500" />
-              </div>
-
-              <div className="mt-3 flex justify-between text-xs text-slate-400">
-                <span>72% complete</span>
-                <span>18 tasks remaining</span>
-              </div>
+                <p className="text-sm text-[#6b7280]">
+                    © {new Date().getFullYear()} Workvanta
+                </p>
             </div>
-          </div>
-        </div>
-
-        {/* Copyright */}
-        <p className="text-sm text-slate-500">
-          © 2026 Workvanta. All rights reserved.
-        </p>
-      </div>
-    </section>
-  );
+        </section>
+    );
 }

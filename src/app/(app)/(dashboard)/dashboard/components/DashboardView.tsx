@@ -24,7 +24,7 @@ import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-2 xl:grid-cols-4";
+    "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border xl:grid-cols-4";
 
 
 
@@ -63,16 +63,12 @@ export function DashboardView({
                 description="Everything you're working on, across all of your workspaces."
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                            href="/workspace/new"
-                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
+                        <Link href="/workspace" className={buttonStyles({ variant: "secondary" })}>
+                            All workspaces
+                        </Link>
+                        <Link href="/workspace/new" className={buttonStyles()}>
                             <Plus className="size-4" aria-hidden="true" />
                             New workspace
-                        </Link>
-                        <Link href="/workspace" className={buttonStyles()}>
-                            All workspaces
-                            <ArrowRight className="size-4" aria-hidden="true" />
                         </Link>
                     </div>
                 }
@@ -110,7 +106,7 @@ export function DashboardView({
             </section>
 
             {memberships.length ? (
-                <div className="mt-12 grid gap-x-12 gap-y-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+                <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-10 sm:mt-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
                     <section aria-labelledby="recent-projects">
                         <div className="flex items-end justify-between gap-4">
                             <div id="recent-projects">
@@ -132,7 +128,7 @@ export function DashboardView({
                         </div>
 
                         {recentProjects.length ? (
-                            <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-sm">
+                            <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card p-1.5">
                                 <div className="divide-y divide-border">
                                     {recentProjects.map((project) => (
                                         <ProjectRow key={project.id} project={project} />
@@ -141,7 +137,7 @@ export function DashboardView({
                             </div>
                         ) : (
                             <EmptyState
-                                className="mt-5 rounded-2xl border border-dashed border-border"
+                                className="mt-5 rounded-xl border border-dashed border-border"
                                 icon={<FolderKanban />}
                                 title="No projects yet"
                                 description="Create a project in one of your workspaces and it will show up here."

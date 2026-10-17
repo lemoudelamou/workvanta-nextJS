@@ -47,11 +47,11 @@ function SectionHeader({
     return (
         <div className="relative flex items-start justify-between gap-4 border-b border-slate-200/70 px-5 py-5 sm:px-7 sm:py-6 dark:border-white/[0.06]">
             <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">
                     {title}
                 </h2>
 
-                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     {description}
                 </p>
             </div>
@@ -346,22 +346,22 @@ export default async function SettingsPage({
                     </section>
 
 
-                    <section className="overflow-hidden rounded-2xl border border-red-200/80 bg-white/70 shadow-[0_24px_80px_rgba(127,29,29,0.05)] backdrop-blur-xl dark:border-red-500/20 dark:bg-red-950/[0.08] dark:shadow-none sm:rounded-[28px]">
+                    <section className="overflow-hidden rounded-xl border border-danger/30 bg-card">
 
-                        <div className="border-b border-red-200/70 px-5 py-5 sm:px-7 sm:py-6 dark:border-red-500/15">
+                        <div className="border-b border-danger/30 px-5 py-5 sm:px-7 sm:py-6">
                             <div className="flex items-start justify-between gap-4">
 
                                 <div>
-                                    <h2 className="text-xl font-semibold tracking-tight text-red-950 dark:text-red-100">
+                                    <h2 className="text-xl font-semibold tracking-tight text-danger">
                                         Danger zone
                                     </h2>
 
-                                    <p className="mt-1 text-sm leading-6 text-red-700/70 dark:text-red-200/60">
+                                    <p className="mt-1 text-sm leading-6 text-danger/70">
                                         Irreversible account actions live here.
                                     </p>
                                 </div>
 
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-danger/30 bg-danger/[0.06] text-danger">
                                     <Trash2
                                         className="size-4"
                                         aria-hidden="true"
@@ -375,11 +375,11 @@ export default async function SettingsPage({
                         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
 
                             <div>
-                                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                <p className="text-sm font-semibold text-foreground">
                                     Delete your account
                                 </p>
 
-                                <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
                                     Permanently remove your Workvanta account and associated data.
                                 </p>
                             </div>
@@ -387,7 +387,7 @@ export default async function SettingsPage({
 
                             <Link
                                 href="/settings/delete-account"
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:border-red-300 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/[0.14]"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-2.5 text-sm font-semibold text-danger transition-colors hover:border-danger/30 hover:bg-danger/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                             >
                                 <Trash2
                                     className="size-4"

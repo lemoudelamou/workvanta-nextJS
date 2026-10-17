@@ -32,13 +32,13 @@ export function DeleteAttachmentButton({ action }: DeleteAttachmentButtonProps) 
           type="button"
           onClick={handleDelete}
           disabled={isPending}
-          className="text-sm font-medium text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-sm font-medium text-danger hover:underline disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending ? "Deleting..." : "Delete"}
       </button>
 
             {error && (
-                <span role="alert" className="text-xs font-medium text-red-600">
+                <span role="alert" className="text-xs font-medium text-danger">
           {error}
         </span>
             )}

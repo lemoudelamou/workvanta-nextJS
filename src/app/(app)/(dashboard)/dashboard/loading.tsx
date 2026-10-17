@@ -21,7 +21,7 @@ export default function DashboardLoading() {
                     </div>
                     <Bar className="hidden h-10 w-56 rounded-xl sm:block" />
                 </div>
-                <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="bg-card p-6">
                             <div className="flex items-center gap-3">
@@ -38,7 +38,7 @@ export default function DashboardLoading() {
                     <div>
                         <Bar className="h-5 w-40" />
                         <Bar className="mt-2 h-3 w-64" />
-                        <div className="mt-5 divide-y divide-border rounded-2xl border border-border bg-card p-1.5">
+                        <div className="mt-5 divide-y divide-border rounded-xl border border-border bg-card p-1.5">
                             {Array.from({ length: 5 }).map((_, i) => (
                                 <div key={i} className="flex items-center gap-4 px-3 py-3.5">
                                     <Bar className="size-10 rounded-xl" />
@@ -59,7 +59,7 @@ export default function DashboardLoading() {
                             {Array.from({ length: 3 }).map((_, i) => (
                                 <div
                                     key={i}
-                                    className="rounded-2xl border border-border bg-card p-4"
+                                    className="rounded-xl border border-border bg-card p-4"
                                 >
                                     <div className="flex items-center gap-3">
                                         <Bar className="size-10 rounded-xl" />

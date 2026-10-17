@@ -113,11 +113,11 @@ export default function UpdateProfile({
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                            <p className="text-sm font-semibold text-foreground">
                                 Profile
                             </p>
 
-                            <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                 Update the name associated with your account.
                             </p>
                         </div>
@@ -138,7 +138,7 @@ export default function UpdateProfile({
                         <div className="mt-5 max-w-xl">
                             <label
                                 htmlFor="settings-name"
-                                className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400"
+                                className="text-xs font-semibold tracking-[0.14em] text-muted-foreground"
                             >
                                 Name
                             </label>
@@ -177,7 +177,7 @@ export default function UpdateProfile({
                                     type="button"
                                     onClick={() => void handleSave()}
                                     disabled={isSaving}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-wait disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-wait disabled:opacity-60 dark:bg-brand dark:text-[#0f1115] dark:hover:bg-brand-strong"
                                 >
                                     <Check className="size-4" />
 
@@ -210,23 +210,23 @@ export default function UpdateProfile({
                         <>
                             <dl className="mt-5 grid gap-3 sm:grid-cols-2">
                                 <div className="rounded-xl border border-slate-200/80 bg-white/60 p-4 dark:border-white/[0.08] dark:bg-white/[0.03]">
-                                    <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    <dt className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground">
                                         Name
                                     </dt>
 
-                                    <dd className="mt-1.5 truncate text-sm font-medium text-slate-950 dark:text-white">
+                                    <dd className="mt-1.5 truncate text-sm font-medium text-foreground">
                                         {currentName || "Not set"}
                                     </dd>
                                 </div>
 
                                 <div className="rounded-xl border border-slate-200/80 bg-white/60 p-4 dark:border-white/[0.08] dark:bg-white/[0.03]">
-                                    <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    <dt className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground">
                                         Email
                                     </dt>
 
                                     <dd
                                         title={email}
-                                        className="mt-1.5 truncate text-sm font-medium text-slate-950 dark:text-white"
+                                        className="mt-1.5 truncate text-sm font-medium text-foreground"
                                     >
                                         {email || "Not available"}
                                     </dd>

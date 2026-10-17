@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createWorkspaceSchema } from "@/lib/validations/workspace";
 import { requireWorkspacePermission } from "@/lib/auth/team";
 import { ForbiddenError } from "@/lib/auth/permissions";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 
 export type UpdateDetailsState = { success?: boolean; error?: string };
 
@@ -84,6 +85,7 @@ export async function createWorkspace(formData: FormData) {
         throw error;
     }
 
+    revalidateAppShell();
     revalidatePath("/workspace");
     revalidatePath("/dashboard");
 
@@ -129,6 +131,7 @@ export async function deleteWorkspace(workspaceId: string) {
         },
     });
 
+    revalidateAppShell();
     revalidatePath("/workspace");
     revalidatePath("/dashboard");
 
@@ -185,6 +188,7 @@ export async function updateWorkspaceDetailsAction(
         throw error;
     }
 
+    revalidateAppShell();
     revalidatePath(`/workspace/${slug}`);
     revalidatePath("/workspace");
     revalidatePath("/dashboard");

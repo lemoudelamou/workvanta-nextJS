@@ -1,14 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-    AlarmClock,
     LayoutGrid,
     List,
-    Clock3,
-    ListTodo,
-    TriangleAlert,
     User,
-    UsersRound,
 } from "lucide-react";
 
 import { getSession } from "@/lib/auth/session";
@@ -33,11 +28,9 @@ import { PageBody } from "@/components/ui/PageBody";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
-import { Kpi } from "@/app/style/Kpi";
-import { ProgressBar } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/ProgressBar";
+import { StatusRail } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/StatusRail";
+import { buttonStyles } from "@/app/style/button-style";
 
-const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-2 lg:grid-cols-4";
 
 
 const DUE_DATE_FORMAT = new Intl.DateTimeFormat("en", {
@@ -147,13 +140,8 @@ export default async function ProjectPage({
         subtaskDone: t.subtasks.filter((s) => s.completed).length,
     }));
 
-    const totalTasks = tasks.length;
     const doneTasks = tasks.filter((t) => t.status === "DONE").length;
-    const inProgressTasks = tasks.filter(
-        (t) => t.status === "IN_PROGRESS" || t.status === "IN_REVIEW",
-    ).length;
     const overdueTasks = boardTasks.filter((t) => t.overdue).length;
-    const progress = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
     return (
         <PageBody>
@@ -182,7 +170,7 @@ export default async function ProjectPage({
 
                         <Link
                             href={`/workspace/${project.workspace.slug}/project/${project.id}/members`}
-                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className={buttonStyles({ variant: "secondary" })}
                         >
                             <User className="size-4" aria-hidden="true" />
                             Members
@@ -191,41 +179,21 @@ export default async function ProjectPage({
                 }
             />
 
-            <section aria-label="Project summary" className={`mt-8 ${KPI_STRIP}`}>
-                <Kpi
-                    tone="blue"
-                    icon={<ListTodo />}
-                    label="Tasks"
-                    value={totalTasks}
-                    helper={`${doneTasks} completed`}
+            <div className="mt-6">
+                <StatusRail
+                    counts={{
+                        TODO: tasks.filter((t) => t.status === "TODO").length,
+                        IN_PROGRESS: tasks.filter((t) => t.status === "IN_PROGRESS").length,
+                        IN_REVIEW: tasks.filter((t) => t.status === "IN_REVIEW").length,
+                        DONE: doneTasks,
+                    }}
+                    overdue={overdueTasks}
+                    members={memberCount}
                 />
-                <Kpi
-                    tone="violet"
-                    icon={<Clock3 />}
-                    label="In progress"
-                    value={inProgressTasks}
-                    helper="Being worked on or in review"
-                />
-                <Kpi
-                    tone={overdueTasks > 0 ? "red" : "amber"}
-                    icon={<AlarmClock />}
-                    label="Overdue"
-                    value={overdueTasks}
-                    helper={overdueTasks > 0 ? "Past their due date" : "Nothing is late"}
-                />
-                <Kpi
-                    tone="amber"
-                    icon={<UsersRound />}
-                    label="Members"
-                    value={memberCount}
-                    helper="People on this project"
-                />
-            </section>
+            </div>
 
-            <ProgressBar done={doneTasks} total={totalTasks} percent={progress} />
-
-            <nav aria-label="Task views" className="mt-8 flex justify-end">
-                <div className="inline-flex rounded-xl border border-border bg-card p-1 shadow-sm">
+            <nav aria-label="Task views" className="mt-8 border-b border-border">
+                <div className="-mb-px flex gap-5">
                     {(
                         [
                             { key: "board", label: "Board", icon: <LayoutGrid className="size-4" aria-hidden="true" /> },
@@ -240,10 +208,10 @@ export default async function ProjectPage({
                                     : `/workspace/${project.workspace.slug}/project/${project.id}`
                             }
                             aria-current={view === option.key ? "page" : undefined}
-                            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors ${
+                            className={`inline-flex h-10 items-center gap-1.5 border-b-2 text-sm font-medium transition-colors ${
                                 view === option.key
-                                    ? "bg-muted text-foreground"
-                                    : "text-muted-foreground hover:text-foreground"
+                                    ? "border-brand text-foreground"
+                                    : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                         >
                             {option.icon}
@@ -254,7 +222,7 @@ export default async function ProjectPage({
             </nav>
 
             {view === "list" ? (
-                <section aria-label="Task list" className="mt-4">
+                <section aria-label="Task list" className="mt-6">
                     <ProjectListView
                         slug={project.workspace.slug}
                         projectId={project.id}
@@ -264,7 +232,7 @@ export default async function ProjectPage({
                     />
                 </section>
             ) : (
-                <section aria-label="Task board" className="mt-4">
+                <section aria-label="Task board" className="mt-6">
                     <KanbanBoard
                         slug={project.workspace.slug}
                         projectId={project.id}
@@ -295,15 +263,9 @@ export default async function ProjectPage({
             {canDeleteProject && (
                 <section
                     aria-labelledby="danger-zone"
-                    className="mt-14 flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
                 >
                     <div className="flex items-start gap-3">
-                        <span
-                            aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400"
-                        >
-                            <TriangleAlert className="size-[18px]" />
-                        </span>
                         <div>
                             <h2
                                 id="danger-zone"

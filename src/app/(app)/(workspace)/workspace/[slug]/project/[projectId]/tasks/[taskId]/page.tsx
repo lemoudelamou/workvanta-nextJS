@@ -1,4 +1,4 @@
-import { Paperclip, Pencil, TriangleAlert } from "lucide-react";
+import { Paperclip, Pencil } from "lucide-react";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -39,7 +39,7 @@ const STATUSES: Record<string, { label: string; dot: string }> = {
 };
 
 const PRIORITIES: Record<string, { label: string; dot: string }> = {
-    URGENT: { label: "Urgent", dot: "bg-rose-500" },
+    URGENT: { label: "Urgent", dot: "bg-danger" },
     HIGH: { label: "High", dot: "bg-orange-500" },
     MEDIUM: { label: "Medium", dot: "bg-amber-400" },
     LOW: { label: "Low", dot: "bg-sky-400" },
@@ -74,7 +74,7 @@ function Panel({
     className?: string;
 }) {
     return (
-        <section className={`rounded-2xl border border-border bg-card shadow-sm ${className}`}>
+        <section className={`rounded-xl border border-border bg-card ${className}`}>
             {children}
         </section>
     );
@@ -138,9 +138,9 @@ function Avatar({
 
 function MetaCell({ label, children }: { label: string; children: ReactNode }) {
     return (
-        <div className="bg-card p-5">
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-2 min-h-8 text-sm font-medium text-foreground">{children}</dd>
+        <div className="min-w-0 bg-card px-3.5 py-3 sm:p-5">
+            <dt className="text-xs text-muted-foreground sm:text-sm">{label}</dt>
+            <dd className="mt-1.5 flex min-h-7 items-center text-sm font-medium text-foreground sm:mt-2">{children}</dd>
         </div>
     );
 }
@@ -201,8 +201,10 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
         if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
             throw error;
         }
+        // The project itself is gone: send people to the project URL so they
+        // get the project's not-found page, not "this task was deleted".
         if (error instanceof Error && error.message === "Project not found.") {
-            notFound();
+            redirect(`/workspace/${slug}/project/${projectId}`);
         }
         return (
             <AccessDeniedNotice
@@ -303,7 +305,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 )}
             </header>
 
-            <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:mt-8 lg:grid-cols-4">
                 <MetaCell label="Assignee">
                     {task.assignee ? (
                         <span className="flex items-center gap-2.5">
@@ -321,7 +323,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
 
                 <MetaCell label="Due date">
                     {task.dueDate ? (
-                        <span className={overdue ? "text-rose-600 dark:text-rose-400" : undefined}>
+                        <span className={overdue ? "font-medium text-danger" : undefined}>
               {DATE.format(task.dueDate)}
                             {overdue ? " (overdue)" : ""}
             </span>
@@ -340,7 +342,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             </dl>
 
             <div
-                className={`mt-8 grid gap-6 ${canEdit ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
+                className={`mt-8 grid gap-6 ${canEdit ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
             >
                 <div className="min-w-0 space-y-6">
                     <SubtasksSection
@@ -464,7 +466,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                   />
                                 </Field>
 
-                                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+                                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
                                     <Field id="task-status" label="Status">
                                         <select
                                             id="task-status"
@@ -536,15 +538,9 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             {canEdit && (
                 <section
                     aria-labelledby="danger-zone"
-                    className="mt-14 flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
                 >
                     <div className="flex items-start gap-3">
-            <span
-                aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400"
-            >
-              <TriangleAlert className="size-[18px]" />
-            </span>
                         <div>
                             <h2 id="danger-zone" className="text-sm font-semibold text-foreground">
                                 Delete this task

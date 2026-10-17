@@ -179,7 +179,7 @@ export default function CredentialsLoginForm() {
         {error && (
           <div
             role="alert"
-            className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+            className="mb-5 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
           >
             {error}
           </div>
@@ -237,7 +237,7 @@ export default function CredentialsLoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-[#101828] text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D2939] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center rounded-lg bg-brand text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? "Verifying..." : "Verify and sign in"}
           </button>
@@ -286,7 +286,7 @@ export default function CredentialsLoginForm() {
         <div
           role="alert"
           aria-live="polite"
-          className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+          className="mb-5 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-3 text-sm text-danger"
         >
           {error || oauthErrorMessage}
         </div>
@@ -366,7 +366,7 @@ export default function CredentialsLoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="flex h-12 w-full items-center justify-center rounded-xl bg-[#101828] text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D2939] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-center rounded-lg bg-brand text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? "Signing in..." : "Sign in"}
         </button>
@@ -379,7 +379,7 @@ export default function CredentialsLoginForm() {
         </div>
 
         <div className="relative flex justify-center">
-          <span className="px-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <span className="px-3 text-xs font-medium text-slate-400">
             Or continue with
           </span>
         </div>

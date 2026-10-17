@@ -25,7 +25,7 @@ export default async function NewWorkspacePage({
                 <Building2 />
             </IconBadge>
 
-            <p className="mt-6 text-sm font-medium text-violet-600 dark:text-violet-400">
+            <p className="mt-6 text-sm font-medium text-brand">
                 Get started
             </p>
 
@@ -33,7 +33,7 @@ export default async function NewWorkspacePage({
                 Create your workspace
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 A workspace is your team&apos;s shared home. Once it&apos;s ready,
                 you can create projects and invite teammates.
             </p>
@@ -76,7 +76,7 @@ export default async function NewWorkspacePage({
                 </button>
             </form>
 
-            <div className="mt-6 flex gap-2 rounded-xl bg-violet-50 p-3 text-xs leading-5 text-violet-800 dark:bg-violet-500/10 dark:text-violet-200">
+            <div className="mt-6 flex gap-2 rounded-lg bg-brand-soft p-3 text-xs leading-5 text-foreground dark:bg-brand/10">
                 <Sparkles className="mt-0.5 size-3.5 shrink-0" />
                 You&apos;ll be the workspace owner and can invite people once it&apos;s created.
             </div>

@@ -3,7 +3,8 @@ import {PrivatePill} from "@/app/(app)/(workspace)/workspace/[slug]/components/P
 import {UpdatedAt} from "@/app/(app)/(workspace)/workspace/[slug]/components/UpdatedAt";
 import {Card} from "@/components/ui/Card";
 import {accentFor} from "@/app/(app)/(workspace)/workspace/components/helpers";
-import {FolderKanban, Lock} from "lucide-react";
+import {Lock} from "lucide-react";
+import { ProjectMark } from "@/components/ui/ProjectMark";
 import { ProjectItem} from "@/types/project-item";
 
 
@@ -19,7 +20,7 @@ export function ProjectCard({
             <div
                 aria-disabled="true"
                 title="This project is private and you haven't been added to it."
-                className="flex h-full cursor-not-allowed flex-col rounded-2xl border border-dashed border-border bg-muted/30 p-5"
+                className="flex h-full cursor-not-allowed flex-col rounded-xl border border-dashed border-border bg-muted/30 p-5"
             >
                 <div className="flex items-center justify-between">
                     <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -49,7 +50,7 @@ export function ProjectCard({
             // link's accessible name, so name the link explicitly.
             aria-label={`Open project ${project.name}`}
             className="
-                group block h-full rounded-2xl outline-none
+                group block h-full rounded-xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
                 focus-visible:ring-offset-2
                 focus-visible:ring-offset-background
@@ -62,17 +63,12 @@ export function ProjectCard({
                 className="flex h-full flex-col border border-border bg-card p-5 shadow-sm"
             >
                 <div className="flex items-center justify-between">
-                    <span
-                        aria-hidden="true"
-                        className="flex size-11 items-center justify-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--accent))]"
-                    >
-                        <FolderKanban className="size-5" />
-                    </span>
+                    <ProjectMark projectId={project.id} size="lg" />
 
                     {project.visibility === "PRIVATE" && <PrivatePill />}
                 </div>
 
-                <h3 className="mt-5 truncate font-semibold text-foreground transition-colors group-hover:text-[rgb(var(--accent))]">
+                <h3 className="mt-5 truncate font-semibold text-foreground transition-colors group-hover:text-brand">
                     {project.name}
                 </h3>
 

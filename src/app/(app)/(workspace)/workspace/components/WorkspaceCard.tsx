@@ -13,7 +13,7 @@ export function WorkspaceCard({ item }: { item: WorkspaceItem }) {
         <Link
             href={`/workspace/${workspace.slug}`}
             className="
-                group block h-full rounded-2xl outline-none
+                group block h-full rounded-xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
                 focus-visible:ring-offset-2
                 focus-visible:ring-offset-background
@@ -28,7 +28,7 @@ export function WorkspaceCard({ item }: { item: WorkspaceItem }) {
                 <div className="flex items-start justify-between gap-4">
                     <span
                         aria-hidden="true"
-                        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-sm font-semibold text-[rgb(var(--accent))]"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-foreground text-sm font-semibold text-background"
                     >
                         {initials(workspace.name)}
                     </span>
@@ -36,7 +36,7 @@ export function WorkspaceCard({ item }: { item: WorkspaceItem }) {
                     <RoleBadge role={role} />
                 </div>
 
-                <h3 className="mt-5 truncate text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-[rgb(var(--accent))]">
+                <h3 className="mt-5 truncate text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-brand">
                     {workspace.name}
                 </h3>
 
@@ -59,7 +59,7 @@ export function WorkspaceCard({ item }: { item: WorkspaceItem }) {
 
                         <ArrowRight
                             aria-hidden="true"
-                            className="ml-auto size-4 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:text-[rgb(var(--accent))]"
+                            className="ml-auto size-4 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:text-brand"
                         />
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">

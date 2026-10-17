@@ -12,13 +12,13 @@ export function AccessDeniedNotice({
     workspaceSlug: string;
 }) {
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[#f8f8fa] px-4 text-slate-950 dark:bg-slate-950 dark:text-white">
+        <main className="flex min-h-[70dvh] items-center justify-center px-4 text-foreground">
             <Card as="div" className="max-w-sm p-8 text-center">
-                <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-rose-500/10 text-rose-600">
+                <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger">
                     <ShieldAlert className="size-5" />
                 </div>
                 <h1 className="text-lg font-semibold">Access denied</h1>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{message}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
                 <Link
                     href={`/workspace/${workspaceSlug}`}
                     className={buttonStyles({ className: "mt-5" })}

@@ -44,6 +44,11 @@ function renderList(canEdit = true) {
     );
 }
 
+// The list renders twice (a table from md up, a stacked list on phones; CSS
+// picks one). jsdom applies no CSS, so queries are scoped to one layout.
+const table = () => within(screen.getByRole("table"));
+const phoneList = () => within(screen.getByRole("list", { name: "Tasks" }));
+
 const rowTitles = () =>
     screen.getAllByRole("row").slice(1).map((row) => within(row).getAllByRole("cell")[0].textContent);
 
@@ -54,7 +59,7 @@ describe("ProjectListView", () => {
         renderList();
 
         expect(rowTitles()).toEqual(["Design hero1/3 subtasks", "Write copy", "Launch"]);
-        expect(screen.getByRole("link", { name: "Write copy" })).toHaveAttribute(
+        expect(table().getByRole("link", { name: "Write copy" })).toHaveAttribute(
             "href",
             "/workspace/acme/project/p1/tasks/1",
         );
@@ -91,7 +96,8 @@ describe("ProjectListView", () => {
         fireEvent.change(screen.getByRole("searchbox", { name: "Search tasks" }), {
             target: { value: "zzz" },
         });
-        expect(screen.getByText("No tasks match these filters.")).toBeInTheDocument();
+        expect(table().getByText("No tasks match these filters.")).toBeInTheDocument();
+        expect(phoneList().getByText("No tasks match these filters.")).toBeInTheDocument();
     });
 
     it("lets editors change status inline and saves it", async () => {
@@ -99,13 +105,13 @@ describe("ProjectListView", () => {
         renderList();
 
         await act(async () => {
-            fireEvent.change(screen.getByRole("combobox", { name: "Status of Write copy" }), {
+            fireEvent.change(table().getByRole("combobox", { name: "Status of Write copy" }), {
                 target: { value: "IN_REVIEW" },
             });
         });
 
         expect(mockMove).toHaveBeenCalledWith("acme", "p1", "1", "IN_REVIEW");
-        expect(screen.getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("IN_REVIEW");
+        expect(table().getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("IN_REVIEW");
     });
 
     it("rolls back and explains if saving the status fails", async () => {
@@ -113,13 +119,27 @@ describe("ProjectListView", () => {
         renderList();
 
         await act(async () => {
-            fireEvent.change(screen.getByRole("combobox", { name: "Status of Write copy" }), {
+            fireEvent.change(table().getByRole("combobox", { name: "Status of Write copy" }), {
                 target: { value: "DONE" },
             });
         });
 
         expect(screen.getByRole("alert")).toHaveTextContent(`Couldn't update "Write copy"`);
-        expect(screen.getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("TODO");
+        expect(table().getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("TODO");
+    });
+
+    it("shows each task as a compact row on phones", () => {
+        renderList();
+
+        const items = phoneList().getAllByRole("listitem");
+        expect(items.map((item) => within(item).getByRole("link").textContent)).toEqual([
+            "Design hero",
+            "Write copy",
+            "Launch",
+        ]);
+        expect(within(items[0]).getByText("Overdue, Oct 18")).toBeInTheDocument();
+        expect(within(items[1]).getByText("Due Oct 20")).toBeInTheDocument();
+        expect(within(items[1]).getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("TODO");
     });
 
     it("is read-only for viewers", () => {

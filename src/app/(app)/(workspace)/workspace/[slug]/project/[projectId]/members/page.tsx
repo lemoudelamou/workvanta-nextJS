@@ -31,7 +31,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en", {
 });
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-3";
+    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
 
 function getInitials(name: string | null, email: string) {
     const value = name?.trim() || email;
@@ -174,7 +174,7 @@ export default async function ProjectMembersPage({
             {isProjectAdmin && (
                 <section
                     aria-labelledby="add-member"
-                    className="mt-10 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                    className="mt-10 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
                 >
                     <div className="flex items-start gap-3">
                         <span
@@ -230,7 +230,7 @@ export default async function ProjectMembersPage({
 
                 {sortedMembers.length === 0 ? (
                     <EmptyState
-                        className="rounded-2xl border border-dashed border-border"
+                        className="rounded-xl border border-dashed border-border"
                         icon={<UsersRound />}
                         title="No one has been added yet"
                         description={
@@ -240,7 +240,7 @@ export default async function ProjectMembersPage({
                         }
                     />
                 ) : (
-                    <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                         {sortedMembers.map((member) => {
                             const isCurrentUser =
                                 member.userId === access.userId;

@@ -67,14 +67,17 @@ jest.mock(
         ),
     }),
 );
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/ProgressBar",
-    () => ({
-        ProgressBar: ({ done, total, percent }: any) => (
-            <div data-testid="progress">{`${done}/${total}/${percent}`}</div>
-        ),
-    }),
-);
+jest.mock("./components/StatusRail", () => ({
+    StatusRail: ({ counts, overdue, members }: any) => (
+        <div data-testid="rail">
+            <span data-testid="rail-counts">
+                {`${counts.TODO}/${counts.IN_PROGRESS}/${counts.IN_REVIEW}/${counts.DONE}`}
+            </span>
+            <span data-testid="rail-overdue">{overdue}</span>
+            <span data-testid="rail-members">{members}</span>
+        </div>
+    ),
+}));
 jest.mock("@/components/ui/EditDetailsForm", () => ({
     EditDetailsForm: ({ title, defaultName }: any) => (
         <div data-testid="edit-details" data-name={defaultName}>{title}</div>
@@ -111,15 +114,6 @@ jest.mock("@/components/ui/AccessDenied", () => ({
         <div data-testid="access-denied">{message}</div>
     ),
 }));
-jest.mock("@/app/style/Kpi", () => ({
-    Kpi: ({ label, value, helper, tone }: any) => (
-        <div data-testid={`kpi-${label}`} data-tone={tone}>
-            <span data-testid={`kpi-${label}-value`}>{value}</span>
-            <span data-testid={`kpi-${label}-helper`}>{helper}</span>
-        </div>
-    ),
-}));
-
 // Capture the props passed to the board so we can assert on them.
 // The `mock` prefix is required for variables used inside jest.mock factories.
 let mockListProps: any;
@@ -308,8 +302,8 @@ describe("ProjectPage – header", () => {
     });
 });
 
-describe("ProjectPage – KPIs and progress", () => {
-    it("computes totals, in-progress, overdue and progress percent", async () => {
+describe("ProjectPage – status rail", () => {
+    it("passes per-status counts, overdue and member totals", async () => {
         db.task.findMany.mockResolvedValue([
             makeTask({ id: "1", status: "DONE" }),
             makeTask({ id: "2", status: "IN_PROGRESS" }),
@@ -319,47 +313,16 @@ describe("ProjectPage – KPIs and progress", () => {
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Tasks-value")).toHaveTextContent("4");
-        expect(screen.getByTestId("kpi-Tasks-helper")).toHaveTextContent("1 completed");
-        expect(screen.getByTestId("kpi-In progress-value")).toHaveTextContent("2");
-        expect(screen.getByTestId("kpi-Overdue-value")).toHaveTextContent("1");
-        expect(screen.getByTestId("kpi-Members-value")).toHaveTextContent("3");
-        expect(screen.getByTestId("progress")).toHaveTextContent("1/4/25");
+        expect(screen.getByTestId("rail-counts")).toHaveTextContent("1/1/1/1");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("1");
+        expect(screen.getByTestId("rail-members")).toHaveTextContent("3");
     });
 
-    it("shows 0% progress and a calm overdue KPI when there are no tasks", async () => {
+    it("passes zeros when there are no tasks", async () => {
         await renderPage();
 
-        expect(screen.getByTestId("progress")).toHaveTextContent("0/0/0");
-        expect(screen.getByTestId("kpi-Overdue")).toHaveAttribute("data-tone", "amber");
-        expect(screen.getByTestId("kpi-Overdue-helper")).toHaveTextContent(
-            "Nothing is late",
-        );
-    });
-
-    it("uses the red tone when tasks are overdue", async () => {
-        db.task.findMany.mockResolvedValue([
-            makeTask({ dueDate: new Date("2026-10-10T00:00:00Z") }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("kpi-Overdue")).toHaveAttribute("data-tone", "red");
-        expect(screen.getByTestId("kpi-Overdue-helper")).toHaveTextContent(
-            "Past their due date",
-        );
-    });
-
-    it("rounds the progress percentage", async () => {
-        db.task.findMany.mockResolvedValue([
-            makeTask({ id: "1", status: "DONE" }),
-            makeTask({ id: "2" }),
-            makeTask({ id: "3" }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("progress")).toHaveTextContent("1/3/33");
+        expect(screen.getByTestId("rail-counts")).toHaveTextContent("0/0/0/0");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("0");
     });
 });
 
@@ -415,7 +378,7 @@ describe("ProjectPage – board tasks", () => {
         await renderPage();
 
         expect(mockBoardProps.tasks[0].overdue).toBe(false);
-        expect(screen.getByTestId("kpi-Overdue-value")).toHaveTextContent("0");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("0");
     });
 
     it("queries tasks ordered by position then createdAt", async () => {

@@ -21,7 +21,7 @@ import { buttonStyles } from "@/app/style/button-style";
 
 
 const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-3";
+    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
 
 
 
