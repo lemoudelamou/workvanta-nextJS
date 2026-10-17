@@ -6,6 +6,7 @@ import { CalendarDays, ChevronDown, Loader2, UserRound } from "lucide-react";
 
 import { personColor } from "@/lib/ui/person-color";
 import { PropertyMenu } from "./property-menu";
+import { useConfirmDone } from "../../../components/useConfirmDone";
 import {
     errorMessage,
     getInitials,
@@ -114,6 +115,7 @@ export function TaskProperties({
     overdue,
     canEdit,
     updateTask,
+    openBlockers = 0,
     extra,
 }: {
     /** More pills at the end of the row (e.g. Repeat). */
@@ -125,10 +127,13 @@ export function TaskProperties({
     overdue: boolean;
     canEdit: boolean;
     updateTask: UpdateTask;
+    /** Blockers that aren't done yet; marking this task done asks first. */
+    openBlockers?: number;
 }) {
     const [current, setCurrent] = useState(values);
     const [error, setError] = useState<string | null>(null);
     const [isSaving, startTransition] = useTransition();
+    const confirmDone = useConfirmDone();
 
     function change(field: keyof TaskValues, value: string) {
         const previous = current;
@@ -223,7 +228,11 @@ export function TaskProperties({
                 <PropertyMenu
                     label="Status"
                     value={current.status}
-                    onSelect={(v) => change("status", v)}
+                    onSelect={(v) =>
+                        v === "DONE" && current.status !== "DONE"
+                            ? confirmDone.guard({ title: current.title, openBlockers, confirm: () => change("status", v) })
+                            : change("status", v)
+                    }
                     triggerClassName={`${pill} ${interactive} ${statusTint}`}
                     trigger={<>{statusPill}<Caret /></>}
                     options={STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label, icon: <StatusDot status={o.value} /> }))}
@@ -296,6 +305,7 @@ export function TaskProperties({
                     {error}
                 </p>
             )}
+            {confirmDone.dialog}
         </div>
     );
 }
