@@ -26,6 +26,24 @@ export function wouldCreateCycle(edges: DependencyEdge[], blockedId: string, blo
     return false;
 }
 
+type WaitingTask = {
+    id: string;
+    status: string;
+    assigneeId: string | null;
+    blockedBy: { blockingTask: { status: string } }[];
+};
+
+/**
+ * Of the tasks that waited on one that just got done, the ones nothing
+ * holds up any more and that someone should hear about: still open,
+ * assigned, and every blocker done.
+ */
+export function newlyUnblocked<T extends WaitingTask>(waiting: T[]) {
+    return waiting.filter(
+        (t) => t.status !== "DONE" && t.assigneeId && openBlockerCount(t.blockedBy.map((b) => b.blockingTask)) === 0,
+    );
+}
+
 /** How many of a task's blockers are still open. */
 export function openBlockerCount(blockers: { status: string }[]) {
     return blockers.filter((b) => b.status !== "DONE").length;

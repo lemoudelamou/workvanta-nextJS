@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { AlertTriangle, AtSign, Bell, CalendarClock, Check, MessageSquare, UserRoundPlus } from "lucide-react";
+import { AlertTriangle, AtSign, Bell, CalendarClock, Check, LockOpen, MessageSquare, UserRoundPlus } from "lucide-react";
 
 import type { NotificationView } from "@/lib/notifications/notification-feed";
 import { DUE_TYPES } from "@/lib/notifications/notification-types";
@@ -15,6 +15,7 @@ const TYPE_BADGE: Record<string, { icon: typeof Bell; tone: string; label: strin
     TASK_ASSIGNED: { icon: UserRoundPlus, tone: "bg-status-done text-white", label: "Assigned" },
     TASK_DUE_SOON: { icon: CalendarClock, tone: "bg-amber-500 text-white", label: "Due soon" },
     TASK_OVERDUE: { icon: AlertTriangle, tone: "bg-danger text-white", label: "Overdue" },
+    TASK_UNBLOCKED: { icon: LockOpen, tone: "bg-status-done text-white", label: "Unblocked" },
 };
 
 /** Reminders show their own icon, large, in place of a face. */

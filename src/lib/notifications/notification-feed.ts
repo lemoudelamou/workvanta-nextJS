@@ -40,6 +40,7 @@ type NotificationData = {
     assignedBy?: string;
     commentedBy?: string;
     mentionedBy?: string;
+    completedBy?: string;
     taskTitle?: string;
     dueDate?: string;
 };
@@ -57,7 +58,7 @@ function readData(data: unknown): NotificationData {
 }
 
 function actorId(data: NotificationData) {
-    return data.mentionedBy ?? data.commentedBy ?? data.assignedBy ?? null;
+    return data.mentionedBy ?? data.commentedBy ?? data.assignedBy ?? data.completedBy ?? null;
 }
 
 export function notificationVerb(type: string) {
@@ -68,6 +69,8 @@ export function notificationVerb(type: string) {
             return "commented on";
         case "TASK_ASSIGNED":
             return "assigned you";
+        case "TASK_UNBLOCKED":
+            return "unblocked";
         case "INVITATION":
             return "invited you to a workspace";
         case "PROJECT_UPDATED":

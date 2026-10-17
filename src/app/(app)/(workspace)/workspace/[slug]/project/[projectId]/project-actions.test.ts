@@ -11,7 +11,7 @@ import {
 } from "@/lib/auth/members";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
-import { notifyTaskAssigned } from "@/lib/notifications/notify";
+import { notifyTaskAssigned, notifyTaskDone } from "@/lib/notifications/notify";
 import { runSerializable } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
@@ -61,6 +61,7 @@ jest.mock("@/lib/db/prisma", () => ({
 jest.mock("@/lib/db/serializable", () => ({ runSerializable: jest.fn() }));
 jest.mock("@/lib/notifications/notify", () => ({
     notifyTaskAssigned: jest.fn(),
+    notifyTaskDone: jest.fn(),
 }));
 jest.mock("@/lib/due-date", () => ({ endOfDay: jest.fn() }));
 jest.mock("@/generated/prisma/enums", () => ({
@@ -557,6 +558,18 @@ describe("moveCardAction", () => {
 
         expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
         expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+        // Tasks that were waiting on it hear they're unblocked.
+        expect(notifyTaskDone).toHaveBeenCalledWith(
+            expect.objectContaining({ taskId: "t1", projectId: "p1", workspaceSlug: "acme" }),
+        );
+    });
+
+    it("doesn't announce anything when a task moves between open columns", async () => {
+        tx.task.findFirst.mockResolvedValueOnce({ id: "t1", status: "TODO" });
+
+        await moveCardAction("acme", "p1", "t1", "IN_PROGRESS");
+
+        expect(notifyTaskDone).not.toHaveBeenCalled();
     });
 
     it("moves the task to the end of the new column and logs the status change", async () => {

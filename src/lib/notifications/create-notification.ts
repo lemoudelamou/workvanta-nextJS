@@ -31,6 +31,8 @@ const IN_APP_TOGGLE = {
     INVITATION: "inAppInvitations",
     TASK_DUE_SOON: "inAppDueDates",
     TASK_OVERDUE: "inAppDueDates",
+    // About tasks you're assigned, so it follows that setting.
+    TASK_UNBLOCKED: "inAppTaskAssignments",
 } as const;
 
 const EMAIL_TOGGLE = {

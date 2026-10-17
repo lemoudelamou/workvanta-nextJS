@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createNotification, sendNotificationEmailIfEnabled } from "@/lib/notifications/create-notification";
 import { sendMentionEmail, sendTaskAssignmentEmail, sendTaskCommentedEmail } from "@/lib/email/mailer";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
+import { newlyUnblocked } from "@/lib/tasks/dependencies";
 import type { NotificationType, Prisma } from "@/generated/prisma/client";
 
 export type TaskAssignedNotice = {
@@ -24,6 +25,15 @@ export type TaskCommentedNotice = {
     workspaceSlug: string;
     commentId: string;
     commentedBy: string;
+};
+
+/** A task was just marked done; tell whoever was waiting on it. */
+export type TaskDoneNotice = {
+    taskId: string;
+    projectId: string;
+    workspaceId: string;
+    workspaceSlug: string;
+    completedBy: string;
 };
 
 export type MentionNotice = {
@@ -65,7 +75,8 @@ type Delivery = {
     type: NotificationType;
     dedupeKey: string;
     data: Prisma.InputJsonValue;
-    sendEmail: (recipientEmail: string) => Promise<void>;
+    /** Leave out for in-app only. */
+    sendEmail?: (recipientEmail: string) => Promise<void>;
 };
 
 /** In-app notification (if wanted), a live badge update, then email (if wanted). */
@@ -79,6 +90,8 @@ export async function deliver({ userId, workspaceId, type, dedupeKey, data, send
             data: { userId, notificationId: notification.id },
         });
     }
+
+    if (!sendEmail) return;
 
     const recipient = await prisma.user.findUnique({
         where: { id: userId },
@@ -163,4 +176,47 @@ export function notifyMention(notice: MentionNotice) {
                 }),
         }),
     );
+}
+
+/**
+ * The tasks that waited on this one and now have no open blockers: each
+ * assignee gets an in-app "unblocked" notice (no email). Whoever finished
+ * the task already knows, so they're skipped.
+ */
+export function notifyTaskDone(notice: TaskDoneNotice) {
+    // Finishing it again later (after reopening) counts as new.
+    const completedAt = new Date().toISOString();
+
+    afterResponse("Unblocked notifications", async () => {
+        const waiting = await prisma.task.findMany({
+            where: { blockedBy: { some: { blockingTaskId: notice.taskId } } },
+            select: {
+                id: true,
+                title: true,
+                status: true,
+                assigneeId: true,
+                blockedBy: { select: { blockingTask: { select: { status: true } } } },
+            },
+        });
+
+        for (const task of newlyUnblocked(waiting)) {
+            const userId = task.assigneeId!;
+            if (userId === notice.completedBy) continue;
+
+            await deliver({
+                userId,
+                workspaceId: notice.workspaceId,
+                type: "TASK_UNBLOCKED",
+                dedupeKey: `task-unblocked:${task.id}:${notice.taskId}:${completedAt}`,
+                data: {
+                    taskId: task.id,
+                    projectId: notice.projectId,
+                    workspaceSlug: notice.workspaceSlug,
+                    taskTitle: task.title,
+                    completedBy: notice.completedBy,
+                    blockerId: notice.taskId,
+                },
+            });
+        }
+    });
 }

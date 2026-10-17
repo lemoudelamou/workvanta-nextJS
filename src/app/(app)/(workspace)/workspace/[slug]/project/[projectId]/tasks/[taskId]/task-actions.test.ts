@@ -22,6 +22,7 @@ import { createSubtaskSchema } from "@/lib/validations/subtask";
 import {
     notifyTaskAssigned,
     notifyTaskCommented,
+    notifyTaskDone,
     notifyMention,
 } from "@/lib/notifications/notify";
 
@@ -94,6 +95,7 @@ jest.mock("@/lib/validations/subtask", () => ({
 jest.mock("@/lib/notifications/notify", () => ({
     notifyTaskAssigned: jest.fn(),
     notifyTaskCommented: jest.fn(),
+    notifyTaskDone: jest.fn(),
     notifyMention: jest.fn(),
 }));
 
@@ -375,10 +377,13 @@ describe("reorderTasksAction", () => {
         await reorderTasksAction(args());
         expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
         expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+        expect(notifyTaskDone).toHaveBeenCalledWith(expect.objectContaining({ taskId: "t1", workspaceSlug: "acme" }));
 
         mockCreateNextOccurrence.mockClear();
+        (notifyTaskDone as jest.Mock).mockClear();
         await reorderTasksAction(args({ sourceStatus: "DONE", destinationStatus: "DONE", sourceTaskIds: ["t3", "t1"], destinationTaskIds: ["t3", "t1"] }));
         expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
+        expect(notifyTaskDone).not.toHaveBeenCalled();
     });
 
     it("revalidates the board after saving", async () => {
@@ -592,12 +597,14 @@ describe("updateTaskAction", () => {
 
         expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
         expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+        expect(notifyTaskDone).toHaveBeenCalledWith(expect.objectContaining({ taskId: "t1", workspaceId: "w1" }));
     });
 
     it("doesn't repeat when the status didn't change to done", async () => {
         ok(schema.updateTask, { title: "T", description: "", status: "IN_PROGRESS", priority: "MEDIUM", assigneeId: "", dueDate: "" });
         await expect(run()).rejects.toThrow();
         expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
+        expect(notifyTaskDone).not.toHaveBeenCalled();
     });
 
     it("logs an assignment and notifies the new assignee with the new title", async () => {
