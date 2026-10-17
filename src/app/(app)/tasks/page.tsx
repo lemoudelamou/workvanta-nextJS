@@ -20,7 +20,7 @@ const STATUS: Record<string, { label: string; dot: string }> = {
 };
 
 const PRIORITY: Record<string, { label: string; dot: string }> = {
-    URGENT: { label: "Urgent", dot: "bg-rose-500" },
+    URGENT: { label: "Urgent", dot: "bg-danger" },
     HIGH: { label: "High", dot: "bg-orange-500" },
     MEDIUM: { label: "Medium", dot: "bg-amber-400" },
     LOW: { label: "Low", dot: "bg-sky-400" },
@@ -116,7 +116,7 @@ export default async function MyTasksPage({
 
             {tasks.length === 0 ? (
                 <EmptyState
-                    className="mt-10 rounded-2xl border border-dashed border-border"
+                    className="mt-10 rounded-xl border border-dashed border-border"
                     icon={<CheckCircle2 />}
                     title="You're all caught up"
                     description="Nothing is assigned to you right now. Tasks you're assigned to in any project will show up here."
@@ -136,7 +136,7 @@ export default async function MyTasksPage({
                                         id={`bucket-${key}`}
                                         className={`text-sm font-semibold ${
                                             key === "overdue"
-                                                ? "text-rose-600 dark:text-rose-400"
+                                                ? "text-danger"
                                                 : "text-foreground"
                                         }`}
                                     >
@@ -147,7 +147,7 @@ export default async function MyTasksPage({
                                     </span>
                                 </div>
 
-                                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                                     {groups[key].map((task) => {
                                         const href = `/workspace/${task.project.workspace.slug}/project/${task.project.id}/tasks/${task.id}`;
                                         const status = STATUS[task.status] ?? STATUS.TODO;
@@ -180,7 +180,7 @@ export default async function MyTasksPage({
                                                         <span
                                                             className={`w-24 text-right text-xs tabular-nums ${
                                                                 key === "overdue"
-                                                                    ? "font-medium text-rose-600 dark:text-rose-400"
+                                                                    ? "font-medium text-danger"
                                                                     : "text-muted-foreground"
                                                             }`}
                                                         >

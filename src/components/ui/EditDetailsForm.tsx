@@ -34,7 +34,7 @@ export function EditDetailsForm({
     const [state, formAction, isPending] = useActionState(action, {});
 
     return (
-        <details className="group mt-14 rounded-2xl border border-border bg-card shadow-sm">
+        <details className="group mt-14 rounded-xl border border-border bg-card">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 [&::-webkit-details-marker]:hidden">
                 <div className="flex items-start gap-3">
                     <span
@@ -73,7 +73,7 @@ export function EditDetailsForm({
                 </Field>
 
                 {state.error && (
-                    <p role="alert" className="text-sm font-medium text-rose-600 dark:text-rose-400">
+                    <p role="alert" className="text-sm font-medium text-danger">
                         {state.error}
                     </p>
                 )}

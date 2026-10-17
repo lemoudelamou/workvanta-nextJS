@@ -1,9 +1,10 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Navbar } from "@/components/ui/Navbar";
+import { AppShell, LAST_WORKSPACE_COOKIE } from "@/components/shell/AppShell";
 import { getSession } from "@/lib/auth/session";
-import { getIsWorkspaceOwner } from "@/lib/auth/is-owner";
 import { prisma } from "@/lib/db/prisma";
+import { getShellWorkspaces } from "@/lib/navigation/shell-data";
 import { RealtimeProvider } from "@/lib/publisher/realtime-provider";
 
 export default async function AppLayout({
@@ -19,8 +20,8 @@ export default async function AppLayout({
 
     const userId = session.user.id;
 
-    const [isOwner, unreadCount, notifications] = await Promise.all([
-        getIsWorkspaceOwner(userId),
+    const [workspaces, unreadCount, notifications, cookieStore] = await Promise.all([
+        getShellWorkspaces(userId),
         prisma.notification.count({
             where: { userId, readAt: null },
         }),
@@ -36,21 +37,28 @@ export default async function AppLayout({
                 createdAt: true,
             },
         }),
+        cookies(),
     ]);
 
+    const name =
+        session.user.name?.trim() || session.user.email?.split("@")[0] || "User";
 
     return (
         <>
-            <Navbar
-                session={session}
-                isOwner={isOwner}
-                unreadNotificationCount={unreadCount}
+            <RealtimeProvider userId={userId} />
+            <AppShell
+                user={{
+                    name,
+                    email: session.user.email ?? "",
+                    image: session.user.image ?? null,
+                }}
+                workspaces={workspaces}
+                lastWorkspaceSlug={cookieStore.get(LAST_WORKSPACE_COOKIE)?.value ?? null}
+                unreadCount={unreadCount}
                 notifications={notifications}
-            />
-            <RealtimeProvider
-                userId={session.user.id}
-            />
-            {children}
+            >
+                {children}
+            </AppShell>
         </>
     );
 }

@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 
 import "./globals.css";
-import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { ThemePreference } from "@/generated/prisma/enums";
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
     title: "Workvanta",
@@ -47,7 +45,7 @@ export default async function RootLayout({
     const serverFallbackTheme = await getServerFallbackTheme();
 
     return (
-        <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+        <html lang="en" className={cn("font-sans")} suppressHydrationWarning>
         <head>
             <script
                 dangerouslySetInnerHTML={{

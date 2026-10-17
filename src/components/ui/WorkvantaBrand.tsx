@@ -16,16 +16,16 @@ export default function WorkvantaBrand({
       aria-label="Workvanta home"
     >
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-xl ${light
+        className={`flex size-9 items-center justify-center rounded-lg ${light
             ? "bg-white text-[#101828]"
-            : "bg-[#101828] text-white dark:bg-white dark:text-[#101828]"
+            : "bg-foreground text-background"
           }`}
       >
-        <span className="text-lg font-bold">W</span>
+        <span className="text-base font-bold">W</span>
       </div>
 
       <span
-        className={`text-xl font-semibold tracking-tight ${light ? "text-white" : "text-[#101828] dark:text-white"
+        className={`text-lg font-semibold tracking-[-0.01em] ${light ? "text-white" : "text-foreground"
           }`}
       >
         workvanta

@@ -167,7 +167,7 @@ export function CommentForm({ action, members }: CommentFormProps) {
           </div>
 
           {isMentionListOpen && (
-              <div className="absolute left-0 top-full z-[100] mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10 dark:border-white/[0.1] dark:bg-slate-950 dark:shadow-black/50">
+              <div className="absolute left-0 top-full z-[100] mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10 dark:border-white/[0.1] dark:bg-slate-950 dark:shadow-black/50">
                 <div className="border-b border-slate-200/70 bg-slate-50 px-3 py-2.5 dark:border-white/[0.06] dark:bg-slate-900">
                   <div className="flex items-center gap-2">
                 <span className={`${iconTile} size-7 rounded-lg`}>
@@ -175,12 +175,12 @@ export function CommentForm({ action, members }: CommentFormProps) {
                 </span>
 
                     <div>
-                      <p className="text-xs font-semibold text-slate-950 dark:text-white">
+                      <p className="text-xs font-semibold text-foreground">
                         Mention a teammate
                       </p>
 
                       {mentionQuery && (
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          <p className="text-[11px] text-muted-foreground">
                             Matching “{mentionQuery}”
                           </p>
                       )}
@@ -202,12 +202,12 @@ export function CommentForm({ action, members }: CommentFormProps) {
                   </span>
 
                         <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-slate-950 dark:text-white">
+                    <span className="block truncate text-xs font-semibold text-foreground">
                       {member.name ?? member.email}
                     </span>
 
                           {member.name && (
-                              <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                              <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                         {member.email}
                       </span>
                           )}
@@ -226,7 +226,7 @@ export function CommentForm({ action, members }: CommentFormProps) {
         {error && (
             <div
                 role="alert"
-                className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-700 dark:text-rose-300"
+                className="rounded-xl border border-danger/25 bg-danger/10 px-3 py-2.5 text-xs text-danger"
             >
               {error}
             </div>
@@ -234,7 +234,7 @@ export function CommentForm({ action, members }: CommentFormProps) {
 
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
+          <span className="text-[11px] tabular-nums text-muted-foreground">
             {content.length.toLocaleString()} / {MAX_LENGTH.toLocaleString()}
           </span>
 

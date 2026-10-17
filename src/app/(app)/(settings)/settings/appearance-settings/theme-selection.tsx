@@ -121,11 +121,11 @@ export default function ThemeSelection({
         <div className="p-5 sm:p-7">
             <section>
                 <div className="mb-4">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold text-foreground">
                         Theme
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Choose your preferred color scheme.
                     </p>
                 </div>
@@ -227,11 +227,11 @@ function ThemeOption({
                 )}
             </div>
 
-            <p className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">
+            <p className="mt-4 text-sm font-semibold text-foreground">
                 {title}
             </p>
 
-            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 {description}
             </p>
         </button>

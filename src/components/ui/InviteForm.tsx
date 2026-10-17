@@ -39,7 +39,7 @@ const optionClass =
     "bg-white text-slate-900 dark:bg-zinc-900 dark:text-white";
 
 const primaryButton =
-    "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-white/90";
+    "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-sm font-medium text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand dark:text-black dark:hover:bg-white/90";
 
 /**
  * Generic invite form: email + role dropdown + submit. Knows nothing

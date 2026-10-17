@@ -100,7 +100,7 @@ export default async function NewProjectPage({
                 Create a project
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 Projects give your team a focused place to plan, assign, and
                 complete work.
             </p>

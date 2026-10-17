@@ -18,6 +18,8 @@ import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
 import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
 import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
 
 function projectPath(slug: string, projectId: string) {
     return `/workspace/${slug}/project/${projectId}`;
@@ -97,6 +99,7 @@ export async function deleteProjectAction(projectId: string) {
 
     const workspacePath = `/workspace/${slug}`;
 
+    revalidateAppShell();
     revalidatePath(workspacePath);
     revalidatePath("/dashboard");
     redirect(workspacePath);
@@ -223,6 +226,7 @@ export async function createTaskAction(
         }
     }
 
+    await publishTaskChanged(access.project.id, { taskId: createdTaskId, kind: "created" });
     revalidateProject(slug, projectId);
 
     return { success: true };
@@ -266,7 +270,7 @@ export async function addCardAction(
         throw new Error("Title is too long.");
     }
 
-    await runSerializable(async (tx) => {
+    const createdId = await runSerializable(async (tx) => {
         const task = await tx.task.create({
             data: {
                 title,
@@ -287,8 +291,11 @@ export async function addCardAction(
                 taskId: task.id,
             },
         });
+
+        return task.id;
     });
 
+    await publishTaskChanged(access.project.id, { taskId: createdId, kind: "created" });
     revalidateProject(slug, projectId);
 }
 
@@ -337,6 +344,7 @@ export async function moveCardAction(
         }
     });
 
+    await publishTaskChanged(access.project.id, { taskId, kind: "moved" });
     revalidateProject(slug, projectId);
 }
 
@@ -367,6 +375,7 @@ export async function deleteCardAction(
         });
     });
 
+    await publishTaskChanged(access.project.id, { taskId, kind: "deleted" });
     revalidateProject(slug, projectId);
 }
 
@@ -387,6 +396,7 @@ export async function setProjectVisibilityAction(
     });
 
     revalidateProject(slug, projectId);
+    revalidateAppShell();
     revalidatePath(membersPath(slug, projectId));
 }
 
@@ -444,6 +454,7 @@ export async function updateProjectDetailsAction(
     }
 
     revalidateProject(slug, projectId);
+    revalidateAppShell();
     revalidatePath(`/workspace/${slug}`);
     revalidatePath("/dashboard");
 

@@ -45,12 +45,12 @@ export default function PreferencesSettings({
             <div>
                 <label
                     htmlFor="language"
-                    className="mb-2 block text-sm font-semibold text-slate-950 dark:text-white"
+                    className="mb-2 block text-sm font-semibold text-foreground"
                 >
                     Language
                 </label>
 
-                <p className="mb-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mb-3 text-sm leading-6 text-muted-foreground">
                     Choose the language used across the app.
                 </p>
 

@@ -15,12 +15,12 @@ function ResetPasswordError({
 }) {
     return (
         <main className="flex min-h-screen items-center justify-center px-6 py-12">
-            <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/75 p-8 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-                <h1 className="text-2xl font-semibold text-slate-950 dark:text-white">
+            <div className="w-full max-w-md rounded-xl border border-slate-200/80 bg-white/75 p-8 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.035] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                <h1 className="text-2xl font-semibold text-foreground">
                     {title}
                 </h1>
 
-                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
                     {message}
                 </p>
 

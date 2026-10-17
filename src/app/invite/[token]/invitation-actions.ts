@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { compareWorkspaceRoles } from "@/lib/auth/permissions";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 
 export async function acceptInvitationAction(token: string) {
     const session = await getSession();
@@ -105,5 +106,6 @@ export async function acceptInvitationAction(token: string) {
         });
     });
 
+    revalidateAppShell();
     redirect(`/workspace/${invitation.workspace.slug}`);
 }

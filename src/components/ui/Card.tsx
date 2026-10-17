@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { ACCENTS, type CardAccent } from "@/lib/accent";
 
 export const cardStyles =
-    "rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900";
+    "rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]";
 
 export type { CardAccent };
 export type CardAccentValue = CardAccent | readonly [string, string];

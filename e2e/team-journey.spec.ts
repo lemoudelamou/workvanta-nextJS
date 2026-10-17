@@ -8,8 +8,11 @@ import { extractLink, waitForEmail } from "./mail-server";
  *
  *   owner signs up → creates a workspace and a project → adds a task →
  *   drags it to "In progress" (and it stays there after a reload) →
+ *   switches to the list view and moves it to "In review" →
  *   invites a teammate → teammate follows the email link, signs up,
- *   signs in, lands back on the invite, accepts → sees the project and task.
+ *   signs in, lands back on the invite, accepts → sees the project and task →
+ *   owner changes the task and adds one; the teammate's open board updates
+ *   live, without reloading.
  */
 
 const PASSWORD = "Workvanta123";
@@ -70,6 +73,7 @@ async function dragTo(page: Page, handle: Locator, target: Locator) {
 
 let browser: Browser;
 let ownerPage: Page;
+let teammatePage: Page | null = null;
 let workspaceUrl = "";
 let projectUrl = "";
 
@@ -80,6 +84,7 @@ test.beforeAll(async ({ browser: b }) => {
 
 test.afterAll(async () => {
     await ownerPage?.context().close();
+    await teammatePage?.context().close();
 });
 
 test("owner signs up and signs in", async () => {
@@ -110,6 +115,11 @@ test("owner creates a workspace and a project", async () => {
     await page.waitForURL(/\/project\/[^/]+$/);
     await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
     projectUrl = page.url();
+
+    // The sidebar picks up the new project without a reload.
+    await expect(
+        page.getByRole("complementary", { name: "Sidebar" }).getByRole("link", { name: projectName }),
+    ).toHaveAttribute("aria-current", "page");
 });
 
 test("owner adds a task and drags it to In progress", async () => {
@@ -140,6 +150,25 @@ test("owner adds a task and drags it to In progress", async () => {
         await expect(
             page.getByRole("region", { name: "In progress" }).getByText(taskTitle),
         ).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
+});
+
+test("owner switches to the list view and moves the task to In review", async () => {
+    const page = ownerPage;
+
+    await page.getByRole("link", { name: "List" }).click();
+    await page.waitForURL(/view=list/);
+
+    const status = page.getByRole("combobox", { name: `Status of ${taskTitle}` });
+    await expect(status).toHaveValue("IN_PROGRESS");
+    await status.selectOption("IN_REVIEW");
+
+    // Saved, not just shown: still In review after a reload.
+    await expect(async () => {
+        await page.reload();
+        await expect(
+            page.getByRole("combobox", { name: `Status of ${taskTitle}` }),
+        ).toHaveValue("IN_REVIEW", { timeout: 2_000 });
     }).toPass({ timeout: 20_000 });
 });
 
@@ -179,8 +208,36 @@ test("teammate accepts the invitation and sees the work", async () => {
     await page.getByRole("link", { name: `Open project ${projectName}` }).click();
     await page.waitForURL(projectUrl.replace(/^https?:\/\/[^/]+/, "**"));
     await expect(
-        page.getByRole("region", { name: "In progress" }).getByText(taskTitle),
+        page.getByRole("region", { name: "In review" }).getByText(taskTitle),
     ).toBeVisible();
 
-    await context.close();
+    // Stay on the board for the live-update check.
+    teammatePage = page;
+});
+
+test("the teammate's open board updates live when the owner changes tasks", async () => {
+    const teammate = teammatePage!;
+    const owner = ownerPage;
+
+    // Owner works in the list view; the teammate just watches their board.
+    await owner.goto(`${projectUrl}?view=list`);
+    await owner
+        .getByRole("combobox", { name: `Status of ${taskTitle}` })
+        .selectOption("DONE");
+
+    await expect(
+        teammate.getByRole("region", { name: "Done" }).getByText(taskTitle),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // A brand-new task shows up too.
+    const newTask = "Book the launch photographer";
+    await owner.getByRole("button", { name: "New task" }).click();
+    const dialog = owner.getByRole("dialog");
+    await dialog.getByLabel("Title").fill(newTask);
+    await dialog.getByRole("button", { name: "Create task" }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(
+        teammate.getByRole("region", { name: "To do" }).getByText(newTask),
+    ).toBeVisible({ timeout: 15_000 });
 });

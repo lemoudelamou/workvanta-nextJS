@@ -42,7 +42,7 @@ export function CreateTaskDialog({
                 if (e.target === ref.current) onClose();
             }}
             aria-labelledby="create-task-title"
-            className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-0 text-slate-950 shadow-xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-sm dark:border-white/10 dark:bg-slate-900 dark:text-white"
+            className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-slate-200/80 bg-white p-0 text-slate-950 shadow-xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-sm dark:border-white/10 dark:bg-slate-900 dark:text-white"
         >
 
             {open && (
@@ -116,7 +116,7 @@ function CreateTaskForm({
                     <h2 id="create-task-title" className="text-lg font-semibold tracking-tight">
                         New task
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Only a title is required.
                     </p>
                 </div>
@@ -135,7 +135,7 @@ function CreateTaskForm({
                 {error && (
                     <p
                         role="alert"
-                        className="rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-300"
+                        className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger"
                     >
                         {error}
                     </p>
@@ -149,12 +149,12 @@ function CreateTaskForm({
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                     <input
                         type="checkbox"
                         checked={addAnother}
                         onChange={(e) => setAddAnother(e.target.checked)}
-                        className="size-4 rounded border-slate-300 accent-violet-600"
+                        className="size-4 rounded border-slate-300 accent-[var(--brand)]"
                     />
                     Create another
                 </label>

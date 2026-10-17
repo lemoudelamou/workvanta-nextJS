@@ -4,6 +4,7 @@
  * Override any of them with real environment variables if needed.
  */
 export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
+export const E2E_SOCKET_PORT = Number(process.env.E2E_SOCKET_PORT ?? 3999);
 export const E2E_SMTP_PORT = Number(process.env.E2E_SMTP_PORT ?? 2525);
 export const E2E_MAIL_DIR = process.env.E2E_MAIL_DIR ?? ".e2e-mail";
 
@@ -14,7 +15,7 @@ export const e2eEnv: Record<string, string> = {
         "postgresql://workvanta:workvanta@127.0.0.1:5432/workvanta",
     REDIS_URL: process.env.E2E_REDIS_URL ?? "redis://127.0.0.1:6379",
     NEXT_PUBLIC_APP_URL: `http://localhost:${E2E_PORT}`,
-    NEXT_PUBLIC_SOCKET_URL: "http://localhost:3999",
+    NEXT_PUBLIC_SOCKET_URL: `http://localhost:${E2E_SOCKET_PORT}`,
 
     SMTP_HOST: "127.0.0.1",
     SMTP_PORT: String(E2E_SMTP_PORT),

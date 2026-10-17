@@ -26,9 +26,11 @@ import {
     setProjectVisibilityAction,
     updateProjectDetailsAction,
 } from "./project-actions";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
 
 // ---------- module mocks ----------
 jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
+jest.mock("@/lib/realtime/task-events", () => ({ publishTaskChanged: jest.fn() }));
 jest.mock("next/navigation", () => ({
     // The real redirect() throws; mirroring that stops execution like production
     redirect: jest.fn((url: string) => {
@@ -80,6 +82,7 @@ const mockUserCanAccess = userCanAccessProject as jest.Mock;
 const mockCanEdit = canEditTasks as jest.Mock;
 const mockRequireEditor = requireTaskEditor as jest.Mock;
 const mockRunSerializable = runSerializable as jest.Mock;
+const mockPublishTaskChanged = publishTaskChanged as jest.Mock;
 const mockEndOfDay = endOfDay as jest.Mock;
 const mockSafeParse = createTaskSchema.safeParse as unknown as jest.Mock;
 const db = prisma as unknown as {
@@ -396,6 +399,8 @@ describe("createTaskAction – creation", () => {
         await createTaskAction("acme", "p1", makeFormData());
 
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        // Teammates with the board open see the new task live.
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "created" });
     });
 
     it("logs and returns a friendly error when the transaction fails", async () => {
@@ -499,6 +504,7 @@ describe("addCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "created" });
     });
 
     it("does not revalidate when the transaction fails", async () => {
@@ -563,6 +569,7 @@ describe("moveCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "moved" });
     });
 
     it("does not log an activity when the status is unchanged", async () => {
@@ -615,6 +622,7 @@ describe("deleteCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "deleted" });
     });
 });
 
@@ -657,7 +665,9 @@ describe("setProjectVisibilityAction", () => {
     it("revalidates the project page and the members page", async () => {
         await setProjectVisibilityAction("acme", "p1", "PRIVATE");
 
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1/members");
     });

@@ -25,11 +25,11 @@ export default function ActiveSessions({
                 className="flex w-full items-center justify-between gap-3 p-5 text-left transition-colors hover:bg-slate-50/60 dark:hover:bg-white/[0.03] sm:p-7"
             >
                 <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold text-foreground">
                         {count} active {sessionLabel}
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         {isOpen
                             ? "Hide devices signed in to your account"
                             : "Show devices signed in to your account"}

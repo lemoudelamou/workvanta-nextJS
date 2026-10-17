@@ -26,26 +26,26 @@ export default function ForgotPasswordForm() {
 
     return (
         <div className="w-full max-w-md">
-            <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
+            <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_70px_-25px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/80 dark:shadow-black/30 sm:p-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 dark:bg-white dark:text-slate-950">
+                    <div className="mb-6 flex size-12 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 dark:bg-white dark:text-slate-950">
                         <ShieldCheck
                             className="size-5"
                             strokeWidth={2}
                         />
                     </div>
 
-                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-400">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-slate-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-400">
                         <span className="size-1.5 rounded-full bg-emerald-500" />
                         Account recovery
                     </div>
 
-                    <h1 className="text-3xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
+                    <h1 className="text-3xl font-semibold tracking-[-0.03em] text-foreground">
                         Forgot your password?
                     </h1>
 
-                    <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
                         Enter the email address associated with your
                         Workvanta account and we&apos;ll send you a secure
                         password reset link.
@@ -87,17 +87,17 @@ export default function ForgotPasswordForm() {
                     {state.message && (
                         <div
                             role={state.success ? "status" : "alert"}
-                            className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 text-sm leading-5 ${
+                            className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm leading-5 ${
                                 state.success
                                     ? "border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06] dark:text-emerald-300"
-                                    : "border-red-200 bg-red-50/80 text-red-800 dark:border-red-500/20 dark:bg-red-500/[0.06] dark:text-red-300"
+                                    : "border-danger/30 bg-danger/[0.06] text-danger"
                             }`}
                         >
                             <span
                                 className={`mt-1.5 size-1.5 shrink-0 rounded-full ${
                                     state.success
                                         ? "bg-emerald-500"
-                                        : "bg-red-500"
+                                        : "bg-danger"
                                 }`}
                             />
 
@@ -109,7 +109,7 @@ export default function ForgotPasswordForm() {
                     <button
                         type="submit"
                         disabled={pending}
-                        className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-lg shadow-slate-950/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-950/15 active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:shadow-white/5 dark:hover:bg-slate-200"
+                        className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-strong hover:shadow-xl hover:shadow-slate-950/15 active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 dark:bg-brand dark:text-[#0f1115] dark:shadow-white/5 dark:hover:bg-brand-strong"
                     >
                         <span className="relative z-10">
                             {pending
@@ -124,10 +124,10 @@ export default function ForgotPasswordForm() {
                 </form>
 
                 {/* Security note */}
-                <div className="mt-7 flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/[0.06] dark:bg-white/[0.03]">
-                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                <div className="mt-7 flex items-start gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/[0.06] dark:bg-white/[0.03]">
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    <p className="text-xs leading-5 text-muted-foreground">
                         For your security, we&apos;ll only send a reset link
                         if this email is associated with an account.
                     </p>

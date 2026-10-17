@@ -226,7 +226,9 @@ describe("createProject – creation", () => {
             "NEXT_REDIRECT:/workspace/acme/project/p1",
         );
 
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme");
         expect(mockRevalidate).toHaveBeenCalledWith("/dashboard");
         expect(mockRedirect).toHaveBeenCalledTimes(1);
