@@ -60,6 +60,25 @@ export default function SignupGate() {
                     </button>
                 </div>
             )}
+
+            {/* Legal: on both steps, so Google and GitHub sign-ups see it too. */}
+            <p className="mt-6 text-center text-xs leading-5 text-slate-400">
+                By continuing, you agree to Workvanta&apos;s{" "}
+                <Link
+                    href="/terms"
+                    className="font-medium text-slate-500 transition hover:text-slate-700 hover:underline"
+                >
+                    Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                    href="/privacy"
+                    className="font-medium text-slate-500 transition hover:text-slate-700 hover:underline"
+                >
+                    Privacy Policy
+                </Link>
+                .
+            </p>
         </div>
     );
 }

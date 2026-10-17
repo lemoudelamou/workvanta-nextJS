@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { withCallbackUrl } from "@/lib/auth/callback-url";
 import {
@@ -371,25 +370,6 @@ export default function SignupForm() {
                     account information is protected.
                 </p>
             </div>
-
-            {/* Legal */}
-            <p className="pt-2 text-center text-xs leading-5 text-slate-400">
-                By continuing, you agree to Workvanta&apos;s{" "}
-                <Link
-                    href="/terms"
-                    className="font-medium text-slate-500 transition hover:text-slate-700 hover:underline"
-                >
-                    Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                    href="/privacy"
-                    className="font-medium text-slate-500 transition hover:text-slate-700 hover:underline"
-                >
-                    Privacy Policy
-                </Link>
-                .
-            </p>
         </div>
     );
 }

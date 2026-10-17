@@ -3,8 +3,11 @@ import Link from "next/link";
 import WorkvantaBrand from "@/components/ui/WorkvantaBrand";
 import { buttonStyles } from "@/app/style/button-style";
 
-/** The header on public pages: the home page and the legal pages. */
-export function SiteHeader() {
+/**
+ * The header on public pages: the home page and the legal pages. Signed-in
+ * people get a way back into the app instead of sign-in and sign-up.
+ */
+export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
     return (
         <header className="sticky top-0 z-40 border-b border-border/70 bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
             <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -17,15 +20,23 @@ export function SiteHeader() {
                     >
                         Features
                     </Link>
-                    <Link
-                        href="/signin"
-                        className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        Sign in
-                    </Link>
-                    <Link href="/signup" className={buttonStyles({ variant: "primary" })}>
-                        Get started
-                    </Link>
+                    {signedIn ? (
+                        <Link href="/dashboard" className={buttonStyles({ variant: "primary" })}>
+                            Open dashboard
+                        </Link>
+                    ) : (
+                        <>
+                            <Link
+                                href="/signin"
+                                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                Sign in
+                            </Link>
+                            <Link href="/signup" className={buttonStyles({ variant: "primary" })}>
+                                Get started
+                            </Link>
+                        </>
+                    )}
                 </nav>
             </div>
         </header>

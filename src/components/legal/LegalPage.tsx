@@ -3,14 +3,17 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { LEGAL } from "@/lib/legal";
+import { getSession } from "@/lib/auth/session";
 
 export type LegalSection = { id: string; title: string; body: ReactNode };
 
 /** The privacy policy and terms: a contents list, then numbered sections. */
-export function LegalPage({ title, intro, sections }: { title: string; intro: ReactNode; sections: LegalSection[] }) {
+export async function LegalPage({ title, intro, sections }: { title: string; intro: ReactNode; sections: LegalSection[] }) {
+    const session = await getSession();
+
     return (
         <div className="min-h-screen bg-canvas text-foreground">
-            <SiteHeader />
+            <SiteHeader signedIn={Boolean(session?.user?.id)} />
 
             <main className="mx-auto max-w-3xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
                 <h1 className="text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{title}</h1>

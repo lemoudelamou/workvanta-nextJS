@@ -7,11 +7,6 @@ import HomePage from "./page";
 import { getSession } from "@/lib/auth/session";
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));
-jest.mock("next/navigation", () => ({
-    redirect: jest.fn((url: string) => {
-        throw new Error(`NEXT_REDIRECT:${url}`);
-    }),
-}));
 jest.mock("next/link", () => ({
     __esModule: true,
     default: ({ href, children, ...rest }: any) => (
@@ -24,9 +19,15 @@ jest.mock("next/link", () => ({
 const session = getSession as jest.Mock;
 
 describe("HomePage", () => {
-    it("sends signed-in people straight to their dashboard", async () => {
+    it("is the first page for signed-in people too, with a way into the app", async () => {
         session.mockResolvedValue({ user: { id: "u1" } });
-        await expect(HomePage()).rejects.toThrow("NEXT_REDIRECT:/dashboard");
+        render(await HomePage());
+
+        expect(screen.getByRole("heading", { level: 1, name: "Every project, every task, one clear view." })).toBeInTheDocument();
+        const toDashboard = screen.getAllByRole("link", { name: /Open dashboard/ });
+        expect(toDashboard.length).toBeGreaterThan(0);
+        toDashboard.forEach((link) => expect(link).toHaveAttribute("href", "/dashboard"));
+        expect(screen.queryByRole("link", { name: /Get started/ })).not.toBeInTheDocument();
     });
 
     it("shows visitors what Workvanta is and how to start", async () => {

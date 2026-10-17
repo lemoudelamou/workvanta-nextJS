@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowRight, BellRing, Lock, ShieldCheck, SquareKanban, Tag, Zap } from "lucide-react";
 
 import { getSession } from "@/lib/auth/session";
@@ -55,13 +54,15 @@ const STEPS = [
     { title: "Plan and ship", text: "Add projects and tasks, assign them, and watch the board move." },
 ];
 
+// The first page for everyone; signed-in people get a way into the app.
 export default async function HomePage() {
     const session = await getSession();
-    if (session?.user?.id) redirect("/dashboard");
+    const signedIn = Boolean(session?.user?.id);
+    const primary = signedIn ? { href: "/dashboard", label: "Open dashboard" } : { href: "/signup", label: "Get started" };
 
     return (
         <div className="min-h-screen bg-canvas text-foreground">
-            <SiteHeader />
+            <SiteHeader signedIn={signedIn} />
 
             <main>
                 {/* Hero */}
@@ -76,13 +77,15 @@ export default async function HomePage() {
                             and what&apos;s late across your team.
                         </p>
                         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                            <Link href="/signup" className={buttonStyles({ variant: "primary", size: "lg" })}>
-                                Get started
+                            <Link href={primary.href} className={buttonStyles({ variant: "primary", size: "lg" })}>
+                                {primary.label}
                                 <ArrowRight className="size-4" aria-hidden="true" />
                             </Link>
-                            <Link href="/signin" className={buttonStyles({ variant: "secondary", size: "lg" })}>
-                                Sign in
-                            </Link>
+                            {!signedIn && (
+                                <Link href="/signin" className={buttonStyles({ variant: "secondary", size: "lg" })}>
+                                    Sign in
+                                </Link>
+                            )}
                         </div>
                     </div>
 
@@ -148,10 +151,10 @@ export default async function HomePage() {
                             </p>
                         </div>
                         <Link
-                            href="/signup"
+                            href={primary.href}
                             className={buttonStyles({ variant: "primary", size: "lg", className: "shrink-0" })}
                         >
-                            Get started
+                            {primary.label}
                             <ArrowRight className="size-4" aria-hidden="true" />
                         </Link>
                     </div>

@@ -72,7 +72,7 @@ function VerificationResult({
 
                     <div className="relative">
                         <div className="pt-2">
-                            < WorkvantaBrand />
+                            <WorkvantaBrand href="/" />
                         </div>
 
                         <div
