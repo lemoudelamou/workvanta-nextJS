@@ -7,6 +7,10 @@ import {
     consumePasswordResetToken,
     getPasswordResetToken,
 } from "@/lib/auth/reset-password";
+import { rateLimitByIp } from "@/lib/redis/rate-limit";
+
+const RESET_IP_LIMIT = 10;
+const RESET_IP_WINDOW = 15 * 60;
 
 export type ResetPasswordState = {
     success: boolean;
@@ -28,6 +32,17 @@ export async function resetPassword(
         return {
             success: false,
             message: "This password reset link is invalid.",
+        };
+    }
+
+    const limit = await rateLimitByIp("rate-limit:reset-password", {
+        limit: RESET_IP_LIMIT,
+        windowSeconds: RESET_IP_WINDOW,
+    });
+    if (!limit.success) {
+        return {
+            success: false,
+            message: "Too many attempts. Please wait a few minutes and try again.",
         };
     }
 

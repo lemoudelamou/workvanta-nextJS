@@ -8,6 +8,7 @@ import {
     consumePasswordResetToken,
     getPasswordResetToken,
 } from "@/lib/auth/reset-password";
+import { rateLimitByIp } from "@/lib/redis/rate-limit";
 
 import { resetPassword, type ResetPasswordState } from "@/app/(auth)/reset-password/reset-password-actions";
 
@@ -20,6 +21,7 @@ jest.mock("@/lib/auth/reset-password", () => ({
     getPasswordResetToken: jest.fn(),
     consumePasswordResetToken: jest.fn(),
 }));
+jest.mock("@/lib/redis/rate-limit", () => ({ rateLimitByIp: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
     prisma: {
         $transaction: jest.fn(),
@@ -76,6 +78,7 @@ beforeEach(() => {
     db.session.deleteMany.mockReturnValue("sessions-op");
     db.passwordResetToken.deleteMany.mockReturnValue("tokens-op");
     db.$transaction.mockResolvedValue([]);
+    (rateLimitByIp as jest.Mock).mockResolvedValue({ success: true, limit: 5, remaining: 4, resetAt: 0, redisAvailable: true });
 });
 
 afterEach(() => {
@@ -260,5 +263,18 @@ describe("resetPassword – failures after validation", () => {
 
         await expect(run()).rejects.toBe(error);
         expect(mockConsume).not.toHaveBeenCalled();
+    });
+});
+describe("resetPassword – rate limit", () => {
+    it("stops after too many attempts from one network", async () => {
+        (rateLimitByIp as jest.Mock).mockResolvedValue({ success: false, limit: 5, remaining: 0, resetAt: 0, redisAvailable: true });
+
+        const result = await run({ token: "tok", password: "Abcdefgh", confirmPassword: "Abcdefgh" });
+
+        expect(result).toEqual({
+            success: false,
+            message: "Too many attempts. Please wait a few minutes and try again.",
+        });
+        expect(mockGetToken).not.toHaveBeenCalled();
     });
 });

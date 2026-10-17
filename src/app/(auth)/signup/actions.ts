@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 
 import { createEmailVerificationToken } from "@/lib/auth/email-verification";
 import { sendEmailVerificationEmail } from "@/lib/email/mailer";
+import { rateLimitByIp } from "@/lib/redis/rate-limit";
+
+// New accounts per IP address: enough for a shared office, not for a bot.
+const SIGNUP_IP_LIMIT = 5;
+const SIGNUP_IP_WINDOW = 60 * 60;
 
 type SignupResult =
     | {
@@ -83,6 +88,14 @@ export async function signup(
 
     if (password !== confirmPassword) {
         return { success: false, error: "The passwords do not match." };
+    }
+
+    const limit = await rateLimitByIp("rate-limit:signup", {
+        limit: SIGNUP_IP_LIMIT,
+        windowSeconds: SIGNUP_IP_WINDOW,
+    });
+    if (!limit.success) {
+        return { success: false, error: "Too many sign-ups from this network. Please try again later." };
     }
 
     // All database and hashing work is inside one try/catch so a failure

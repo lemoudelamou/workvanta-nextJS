@@ -1,7 +1,30 @@
 
 import type { NextConfig } from "next";
 
+/**
+ * Sent with every response. The Content-Security-Policy only restricts what
+ * can't break the app (no framing, no plugins, no <base> hijacking); a full
+ * script policy would need per-request nonces.
+ */
+const securityHeaders = [
+    // HTTPS only, for two years, including subdomains.
+    { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+    // Nobody can show the app inside a frame (clickjacking).
+    { key: "X-Frame-Options", value: "DENY" },
+    { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
+    // Browsers must not guess file types (uploads served as their real type).
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    // Links to other sites carry only the origin, never paths with tokens.
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    // The app uses none of these.
+    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
+
   images: {
     remotePatterns: [
       {

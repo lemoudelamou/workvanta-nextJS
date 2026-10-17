@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { createPasswordResetToken } from "@/lib/auth/reset-password";
 import { sendPasswordResetEmail } from "@/lib/email/mailer";
+import { rateLimit, rateLimitByIp } from "@/lib/redis/rate-limit";
 
 import { forgotPassword, type ForgotPasswordState } from "@/app/(auth)/password-forgotten/password-forgotten-actions";
 
@@ -17,6 +18,7 @@ jest.mock("@/lib/auth/reset-password", () => ({
 jest.mock("@/lib/email/mailer", () => ({
     sendPasswordResetEmail: jest.fn(),
 }));
+jest.mock("@/lib/redis/rate-limit", () => ({ rateLimit: jest.fn(), rateLimitByIp: jest.fn() }));
 
 // ---------- typed handles ----------
 const mockCreateToken = createPasswordResetToken as jest.Mock;
@@ -42,6 +44,8 @@ beforeEach(() => {
     db.user.findUnique.mockResolvedValue({ id: "u1", email: "ada@x.com" });
     mockCreateToken.mockResolvedValue({ token: "tok123" });
     mockSendEmail.mockResolvedValue(undefined);
+    (rateLimit as jest.Mock).mockResolvedValue({ success: true, limit: 5, remaining: 4, resetAt: 0, redisAvailable: true });
+    (rateLimitByIp as jest.Mock).mockResolvedValue({ success: true, limit: 5, remaining: 4, resetAt: 0, redisAvailable: true });
     consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -196,6 +200,26 @@ describe("forgotPassword – failures", () => {
         mockCreateToken.mockRejectedValue(error);
 
         await expect(run("ada@x.com")).rejects.toBe(error);
+        expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+});
+describe("forgotPassword – rate limits", () => {
+    it("asks the visitor to wait when one network sends too many requests", async () => {
+        (rateLimitByIp as jest.Mock).mockResolvedValue({ success: false, limit: 5, remaining: 0, resetAt: 0, redisAvailable: true });
+
+        expect(await run("ada@x.com")).toEqual({
+            success: false,
+            message: "Too many requests. Please wait a few minutes and try again.",
+        });
+        expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it("stops emailing one address after a few requests, without saying so", async () => {
+        (rateLimit as jest.Mock).mockResolvedValue({ success: false, limit: 5, remaining: 0, resetAt: 0, redisAvailable: true });
+
+        expect(await run("Ada@X.com")).toEqual({ success: true, message: GENERIC });
+        expect(rateLimit).toHaveBeenCalledWith(expect.objectContaining({ key: "rate-limit:forgot-password:email:ada@x.com" }));
+        expect(mockCreateToken).not.toHaveBeenCalled();
         expect(mockSendEmail).not.toHaveBeenCalled();
     });
 });
