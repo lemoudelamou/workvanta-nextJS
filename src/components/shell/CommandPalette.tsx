@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
     ArrowRight,
     Bell,
+    BookOpen,
     CircleCheckBig,
     CornerDownLeft,
     FolderKanban,
@@ -41,6 +42,7 @@ export function buildPaletteItems(workspaces: ShellWorkspace[], current: ShellWo
         { id: "tasks", group: "Go to", label: "My tasks", href: "/tasks", icon: <CircleCheckBig className="size-4" />, keywords: "assigned todo" },
         { id: "notifications", group: "Go to", label: "Notifications", href: "/notifications", icon: <Bell className="size-4" />, keywords: "inbox alerts" },
         { id: "settings", group: "Go to", label: "Settings", href: "/settings", icon: <Settings className="size-4" />, keywords: "profile account password theme" },
+        { id: "guide", group: "Go to", label: "Help & guide", href: "/guide", icon: <BookOpen className="size-4" />, keywords: "help how to tutorial getting started faq" },
     ];
 
     if (current) {

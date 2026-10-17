@@ -20,6 +20,12 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
                     >
                         Features
                     </Link>
+                    <Link
+                        href="/guide"
+                        className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+                    >
+                        Guide
+                    </Link>
                     {signedIn ? (
                         <Link href="/dashboard" className={buttonStyles({ variant: "primary" })}>
                             Open dashboard
