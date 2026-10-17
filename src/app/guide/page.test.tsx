@@ -42,5 +42,12 @@ describe("GuidePage", () => {
         render(await GuidePage());
 
         expect(screen.getByRole("link", { name: "Open dashboard" })).toHaveAttribute("href", "/dashboard");
+        expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+        // Nothing asks a signed-in reader to sign in or sign up.
+        for (const link of screen.getAllByRole("link")) {
+            expect(link).not.toHaveAttribute("href", "/signin");
+            expect(link).not.toHaveAttribute("href", "/signup");
+        }
+        expect(screen.getByText(/You're already signed in/)).toBeInTheDocument();
     });
 });

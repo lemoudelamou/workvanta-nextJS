@@ -10,10 +10,11 @@ export type LegalSection = { id: string; title: string; body: ReactNode };
 /** The privacy policy and terms: a contents list, then numbered sections. */
 export async function LegalPage({ title, intro, sections }: { title: string; intro: ReactNode; sections: LegalSection[] }) {
     const session = await getSession();
+    const signedIn = Boolean(session?.user?.id);
 
     return (
         <div className="min-h-screen bg-canvas text-foreground">
-            <SiteHeader signedIn={Boolean(session?.user?.id)} />
+            <SiteHeader signedIn={signedIn} />
 
             <main className="mx-auto max-w-3xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
                 <h1 className="text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{title}</h1>
@@ -47,7 +48,7 @@ export async function LegalPage({ title, intro, sections }: { title: string; int
                 </div>
             </main>
 
-            <SiteFooter />
+            <SiteFooter signedIn={signedIn} />
         </div>
     );
 }
