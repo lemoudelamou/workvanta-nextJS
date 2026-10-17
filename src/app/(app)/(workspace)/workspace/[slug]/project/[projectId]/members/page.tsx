@@ -1,9 +1,18 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Crown, Eye, Lock, Trash2, UserPlus, UsersRound } from "lucide-react";
+import { Globe, Lock, UserMinus, UserPlus } from "lucide-react";
 
 import { requireProjectAccess, type ProjectAccessResult } from "@/lib/auth/members";
-import { canProject, isWorkspaceManager } from "@/lib/auth/permissions";
+import {
+    canProject,
+    effectiveProjectRole,
+    isWorkspaceManager,
+    PROJECT_ROLE_DESCRIPTIONS,
+    type ProjectRoleName,
+    type WorkspaceRoleName,
+} from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
+import { projectDot } from "@/lib/navigation/project-color";
 
 import { removeProjectMemberAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions";
 import { InviteProjectMemberForm } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/invite-project-member-form";
@@ -11,344 +20,268 @@ import { ProjectMemberRoleSelect } from "@/app/(app)/(workspace)/workspace/[slug
 
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { PageBody } from "@/components/ui/PageBody";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { RoleBadge } from "@/components/ui/RoleBadge";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
-import { buttonStyles } from "@/app/style/button-style";
-import { Kpi } from "@/app/style/Kpi";
-import { personColor } from "@/lib/ui/person-color";
+import { PersonAvatar } from "@/components/ui/PersonAvatar";
+import { RowActions } from "@/components/ui/RowActions";
+import { RolesGuide } from "@/components/ui/RolesGuide";
+import { SearchableList } from "@/components/ui/SearchableList";
 
-const ROLE_RANK: Record<string, number> = {
-    ADMIN: 0,
-    EDITOR: 1,
-    VIEWER: 2,
+const ROLE_RANK: Record<ProjectRoleName, number> = { ADMIN: 0, EDITOR: 1, VIEWER: 2 };
+
+const PROJECT_ROLE_DOTS: Record<ProjectRoleName, string> = {
+    ADMIN: "bg-brand",
+    EDITOR: "bg-status-done",
+    VIEWER: "bg-muted-foreground/60",
 };
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-});
-
-const KPI_STRIP =
-    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
-
-function getInitials(name: string | null, email: string) {
-    const value = name?.trim() || email;
-    const parts = value.split(/\s+/).filter(Boolean);
-
-    if (parts.length > 1) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-
-    return value.slice(0, 2).toUpperCase();
+function formatRole(role: string) {
+    return role.charAt(0) + role.slice(1).toLowerCase();
 }
 
-export default async function ProjectMembersPage({
-                                                     params,
-                                                 }: {
-    params: Promise<{ slug: string; projectId: string }>;
-}) {
+/** Why someone can open the project. */
+function accessSource(workspaceRole: WorkspaceRoleName, hasProjectRole: boolean) {
+    if (workspaceRole === "OWNER") return "Workspace owner";
+    if (workspaceRole === "ADMIN") return "Workspace admin";
+    if (hasProjectRole) return "Added to this project";
+    return "Everyone in the workspace";
+}
+
+const card =
+    "overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04),0_8px_24px_-16px_rgba(23,26,33,0.12)]";
+
+export default async function ProjectMembersPage({ params }: { params: Promise<{ slug: string; projectId: string }> }) {
     const { slug, projectId } = await params;
 
     let access: ProjectAccessResult;
-
     try {
         access = await requireProjectAccess(slug, projectId);
     } catch (error) {
         const digest = (error as { digest?: string })?.digest;
-
-        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
-            throw error;
-        }
-
-        if (error instanceof Error && error.message === "Project not found.") {
-            notFound();
-        }
-
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw error;
+        if (error instanceof Error && error.message === "Project not found.") notFound();
         return (
             <AccessDeniedNotice
                 workspaceSlug={slug}
-                message={
-                    error instanceof Error
-                        ? error.message
-                        : "Something went wrong loading this project."
-                }
+                message={error instanceof Error ? error.message : "Something went wrong loading this project."}
             />
         );
     }
 
     const isProjectAdmin = canProject(access.effectiveRole, "project.members.manage");
     const isWorkspaceAdmin = isWorkspaceManager(access.workspaceRole);
-
-    const members = await prisma.projectMember.findMany({
-        where: { projectId: access.project.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-            id: true,
-            userId: true,
-            role: true,
-            createdAt: true,
-            user: {
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    image: true,
-                },
-            },
-        },
-    });
-
-    const sortedMembers = [...members].sort(
-        (a, b) => (ROLE_RANK[a.role] ?? 99) - (ROLE_RANK[b.role] ?? 99),
-    );
-
     const isPrivate = access.project.visibility === "PRIVATE";
-    const adminCount = sortedMembers.filter(
-        (member) => member.role === "ADMIN",
-    ).length;
+
+    const [projectMembers, workspaceMembers] = await Promise.all([
+        prisma.projectMember.findMany({
+            where: { projectId: access.project.id },
+            select: { id: true, userId: true, role: true },
+        }),
+        prisma.workspaceMember.findMany({
+            where: { workspaceId: access.workspace.id },
+            orderBy: { createdAt: "asc" },
+            select: {
+                userId: true,
+                role: true,
+                user: { select: { id: true, name: true, email: true, image: true } },
+            },
+        }),
+    ]);
+    const projectRoleOf = new Map(projectMembers.map((m) => [m.userId, m]));
+
+    // Everyone who can open this project, and why.
+    const people = workspaceMembers
+        .map((wm) => {
+            const workspaceRole = wm.role as WorkspaceRoleName;
+            const explicit = projectRoleOf.get(wm.userId);
+            const role = effectiveProjectRole({
+                workspaceRole,
+                projectRole: (explicit?.role as ProjectRoleName | undefined) ?? null,
+                visibility: access.project.visibility,
+            });
+            return role ? { ...wm, workspaceRole, explicit, role } : null;
+        })
+        .filter((p): p is NonNullable<typeof p> => p !== null)
+        .sort((a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || (a.user.name ?? a.user.email).localeCompare(b.user.name ?? b.user.email));
+
+    const addedCount = people.filter((p) => p.explicit).length;
+    const projectHref = `/workspace/${slug}/project/${projectId}`;
 
     return (
         <PageBody>
             <Breadcrumb
                 items={[
-                    {
-                        label: "Workspace",
-                        href: `/workspace/${slug}`,
-                    },
-                    {
-                        label: access.project.name,
-                        href: `/workspace/${slug}/project/${projectId}`,
-                        truncate: true,
-                    },
-                    {
-                        label: "Members",
-                    },
+                    { label: access.workspace.name, href: `/workspace/${slug}`, truncate: true },
+                    { label: access.project.name, href: projectHref, truncate: true },
+                    { label: "Members" },
                 ]}
             />
 
-            <PageHeader
-                eyebrow={access.project.name}
-                title="Project members"
-                description={
-                    isPrivate
-                        ? "This project is private. Only the people listed here (plus workspace owners and admins) can open it."
-                        : "Workspace members can open and edit this project; guests can't. Add someone here to give them a specific role — for example Viewer for read-only access."
-                }
-            />
+            <header className="mt-4">
+                <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <span aria-hidden="true" className={`size-2.5 rounded-[3px] ${projectDot(projectId)}`} />
+                    {access.project.name}
+                </p>
+                <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Members & access</h1>
+            </header>
 
-            <section
-                aria-label="Members summary"
-                className={`mt-8 ${KPI_STRIP}`}
+            <div
+                className={`mt-5 flex items-start gap-3 rounded-2xl border px-4 py-3.5 text-sm ${
+                    isPrivate ? "border-amber-500/30 bg-amber-500/[0.07]" : "border-border bg-card"
+                }`}
             >
-                <Kpi
-                    tone="blue"
-                    icon={<UsersRound />}
-                    label="Members"
-                    value={sortedMembers.length}
-                    helper="Added to this project"
-                />
-
-                <Kpi
-                    tone="violet"
-                    icon={<Crown />}
-                    label="Project admins"
-                    value={adminCount}
-                    helper="Can manage members"
-                />
-
-                <Kpi
-                    tone="amber"
-                    icon={isPrivate ? <Lock /> : <Eye />}
-                    label="Access"
-                    value={isPrivate ? "Private" : "Workspace"}
-                    helper={
-                        isPrivate
-                            ? "Invited people only"
-                            : "Open to the whole workspace"
-                    }
-                />
-            </section>
-
-            {isProjectAdmin && (
-                <section
-                    aria-labelledby="add-member"
-                    className="mt-10 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                <span
+                    aria-hidden="true"
+                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${
+                        isPrivate ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" : "bg-brand-soft text-brand dark:bg-brand/15"
+                    }`}
                 >
-                    <div className="flex items-start gap-3">
-                        <span
-                            aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"
+                    {isPrivate ? <Lock className="size-4" /> : <Globe className="size-4" />}
+                </span>
+                <p className="leading-6 text-muted-foreground">
+                    <span className="font-semibold text-foreground">{isPrivate ? "Private project. " : "Shared with the workspace. "}</span>
+                    {isPrivate
+                        ? `Only people added here, plus ${access.workspace.name}'s owners and admins, can open it.`
+                        : `Everyone in ${access.workspace.name} except guests can open and edit it. Add someone with a role to give a guest access or to make someone view-only.`}{" "}
+                    <Link href={projectHref} className="font-medium text-brand hover:underline">
+                        Change in project settings
+                    </Link>
+                </p>
+            </div>
+
+            <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+                <div className="min-w-0 space-y-6">
+                    {isProjectAdmin && (
+                        <section aria-labelledby="add-member" className={`${card} p-5 sm:p-6`}>
+                            <div className="flex items-center gap-3">
+                                <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-brand-soft text-brand dark:bg-brand/15">
+                                    <UserPlus className="size-[18px]" />
+                                </span>
+                                <div>
+                                    <h2 id="add-member" className="text-[15px] font-semibold text-foreground">
+                                        Add people
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Someone already here? Add their email to change their role on this project.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <InviteProjectMemberForm slug={slug} projectId={projectId} />
+                            </div>
+                        </section>
+                    )}
+
+                    <section aria-labelledby="with-access" className={card}>
+                        <SearchableList
+                            count={people.length}
+                            placeholder="Search people"
+                            header={
+                                <h2 id="with-access" className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+                                    People with access
+                                    <span className="rounded-full bg-muted px-2 text-xs font-medium leading-5 tabular-nums text-muted-foreground">
+                                        {people.length}
+                                    </span>
+                                </h2>
+                            }
                         >
-                            <UserPlus className="size-[18px]" />
-                        </span>
+                            <ul className="divide-y divide-border border-t border-border">
+                                {people.map((person) => {
+                                    const isCurrentUser = person.userId === access.userId;
+                                    const displayName = person.user.name ?? person.user.email;
+                                    // Project admins can't edit their own row (that's how a project ends up
+                                    // with no admin); workspace owners/admins keep admin rights regardless.
+                                    const canManage =
+                                        !!person.explicit &&
+                                        !isWorkspaceManager(person.workspaceRole) &&
+                                        isProjectAdmin &&
+                                        (!isCurrentUser || isWorkspaceAdmin);
 
-                        <div>
-                            <h2
-                                id="add-member"
-                                className="text-lg font-semibold tracking-tight text-foreground"
-                            >
-                                Add a member
-                            </h2>
-
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Give someone access to this project and choose
-                                what they can do.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-5">
-                        <InviteProjectMemberForm
-                            slug={slug}
-                            projectId={projectId}
-                        />
-                    </div>
-                </section>
-            )}
-
-            <section aria-labelledby="members" className="mt-10">
-                <div className="mb-5">
-                    <div className="flex items-center gap-2.5">
-                        <h2
-                            id="members"
-                            className="text-lg font-semibold tracking-tight text-foreground"
-                        >
-                            Members
-                        </h2>
-
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-                            {sortedMembers.length}
-                        </span>
-                    </div>
-
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        People with a role on this project.
-                    </p>
-                </div>
-
-                {sortedMembers.length === 0 ? (
-                    <EmptyState
-                        className="rounded-xl border border-dashed border-border"
-                        icon={<UsersRound />}
-                        title="No one has been added yet"
-                        description={
-                            isProjectAdmin
-                                ? "Add people above to give them access to this project."
-                                : "A project admin can add people to this project."
-                        }
-                    />
-                ) : (
-                    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-                        {sortedMembers.map((member) => {
-                            const isCurrentUser =
-                                member.userId === access.userId;
-                            // Project admins can't edit their own row (that's how
-                                // a project ends up with no admin); workspace
-                                // owners/admins keep admin rights regardless.
-                                const canManage =
-                                isProjectAdmin && (!isCurrentUser || isWorkspaceAdmin);
-                            const displayName =
-                                member.user.name ?? member.user.email;
-
-                            return (
-                                <li
-                                    key={member.id}
-                                    className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:gap-6 sm:px-6"
-                                >
-                                    <div className="flex min-w-0 flex-1 items-center gap-3.5">
-                                        {member.user.image ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={member.user.image}
-                                                alt=""
-                                                className="size-10 shrink-0 rounded-full border border-border object-cover"
-                                            />
-                                        ) : (
-                                            <div
-                                                aria-hidden="true"
-                                                className={`flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${personColor(member.user.email)}`}
-                                            >
-                                                {getInitials(
-                                                    member.user.name,
-                                                    member.user.email,
-                                                )}
+                                    return (
+                                        <li
+                                            key={person.userId}
+                                            data-search={`${person.user.name ?? ""} ${person.user.email} ${person.role}`}
+                                            className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-5"
+                                        >
+                                            <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+                                                <PersonAvatar person={person.user} size={38} />
+                                                <div className="min-w-0">
+                                                    <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                                        <span className="truncate">{displayName}</span>
+                                                        {isCurrentUser && <span className="shrink-0 text-xs font-normal text-muted-foreground">(you)</span>}
+                                                    </p>
+                                                    <p className="truncate text-[13px] text-muted-foreground">{person.user.email}</p>
+                                                </div>
                                             </div>
-                                        )}
 
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <p className="truncate text-sm font-semibold text-foreground">
-                                                    {displayName}
-                                                </p>
+                                            <span className="hidden w-44 shrink-0 text-xs text-muted-foreground lg:block">
+                                                {accessSource(person.workspaceRole, !!person.explicit)}
+                                            </span>
 
-                                                {isCurrentUser && (
-                                                    <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                                        You
+                                            <div className="ml-auto flex shrink-0 items-center gap-1.5 pl-[50px] sm:pl-0">
+                                                {canManage ? (
+                                                    <ProjectMemberRoleSelect
+                                                        slug={slug}
+                                                        projectId={projectId}
+                                                        memberId={person.explicit!.id}
+                                                        currentRole={person.explicit!.role as ProjectRoleName}
+                                                    />
+                                                ) : (
+                                                    <span
+                                                        title={accessSource(person.workspaceRole, !!person.explicit)}
+                                                        className="inline-flex h-8 items-center gap-2 rounded-full bg-foreground/[0.05] px-3 text-[13px] font-medium text-foreground ring-1 ring-inset ring-foreground/10"
+                                                    >
+                                                        <span aria-hidden="true" className={`size-2 rounded-full ${PROJECT_ROLE_DOTS[person.role]}`} />
+                                                        {formatRole(person.role)}
                                                     </span>
                                                 )}
+                                                {canManage && !isCurrentUser ? (
+                                                    <RowActions
+                                                        label={`Actions for ${displayName}`}
+                                                        actions={[
+                                                            {
+                                                                label: "Remove from project",
+                                                                icon: <UserMinus />,
+                                                                danger: true,
+                                                                run: removeProjectMemberAction.bind(null, slug, projectId, person.explicit!.id),
+                                                                confirm: {
+                                                                    title: `Remove ${displayName} from ${access.project.name}?`,
+                                                                    description: isPrivate || person.workspaceRole === "GUEST"
+                                                                        ? "They'll no longer be able to open this project."
+                                                                        : "Their project role is removed. As a workspace member they can still open and edit it.",
+                                                                    confirmLabel: "Remove",
+                                                                    loadingLabel: "Removing...",
+                                                                },
+                                                            },
+                                                        ]}
+                                                    />
+                                                ) : (
+                                                    <span aria-hidden="true" className="w-8" />
+                                                )}
                                             </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </SearchableList>
+                        <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-5">
+                            {addedCount} added to this project directly, {people.length - addedCount} through the workspace.
+                        </p>
+                    </section>
+                </div>
 
-                                            <p className="truncate text-sm text-muted-foreground">
-                                                {member.user.email}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <time
-                                        dateTime={member.createdAt.toISOString()}
-                                        className="hidden w-28 shrink-0 text-xs text-muted-foreground lg:block"
-                                    >
-                                        Added{" "}
-                                        {DATE_FORMAT.format(member.createdAt)}
-                                    </time>
-
-                                    <div className="flex flex-wrap items-center gap-2 pl-[3.375rem] sm:justify-end sm:pl-0">
-                                        {canManage ? (
-                                            <ProjectMemberRoleSelect
-                                                slug={slug}
-                                                projectId={projectId}
-                                                memberId={member.id}
-                                                currentRole={
-                                                    member.role as
-                                                        | "ADMIN"
-                                                        | "EDITOR"
-                                                        | "VIEWER"
-                                                }
-                                            />
-                                        ) : (
-                                            <RoleBadge role={member.role} />
-                                        )}
-
-                                        {canManage && !isCurrentUser && (
-                                            <form action={removeProjectMemberAction.bind(
-                                                null,
-                                                slug,
-                                                projectId,
-                                                member.id,
-                                            )}
-                                            >
-                                                <button
-                                                    type="submit"
-                                                    title={`Remove ${displayName}`}
-                                                    aria-label={`Remove ${displayName}`}
-                                                    className={buttonStyles({
-                                                        variant: "danger",
-                                                        size: "sm",
-                                                    })}>
-                                                    <Trash2 className="size-3.5" aria-hidden="true"/>
-                                                    Remove
-                                                </button>
-                                            </form>
-                                        )}
-                                    </div>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
-            </section>
+                <RolesGuide
+                    title="Project roles"
+                    roles={(["ADMIN", "EDITOR", "VIEWER"] as const).map((role) => ({
+                        role,
+                        label: formatRole(role),
+                        description: PROJECT_ROLE_DESCRIPTIONS[role],
+                        dot: PROJECT_ROLE_DOTS[role],
+                        count: people.filter((p) => p.role === role).length,
+                        current: role === access.effectiveRole,
+                    }))}
+                    footer="Workspace owners and admins are always admins of every project."
+                />
+            </div>
         </PageBody>
     );
 }

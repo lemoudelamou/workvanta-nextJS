@@ -12,7 +12,16 @@ export type ActionMenuItem =
  * The "⋯" button for less frequent actions (rename, leave, delete…).
  * Arrow keys move between items, Escape or a click outside closes it.
  */
-export function ActionMenu({ label, items }: { label: string; items: ActionMenuItem[] }) {
+export function ActionMenu({
+    label,
+    items,
+    variant = "outline",
+}: {
+    label: string;
+    items: ActionMenuItem[];
+    /** "ghost" for rows in a list, where a bordered button would be noisy. */
+    variant?: "outline" | "ghost";
+}) {
     const id = useId();
     const rootRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +86,11 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
                 aria-controls={open ? id : undefined}
                 title={label}
                 onClick={() => (open ? close() : show())}
-                className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(23,26,33,0.04)] outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
+                className={`flex items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand ${
+                    variant === "ghost"
+                        ? "size-8"
+                        : "size-9 border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]"
+                }`}
             >
                 <MoreHorizontal className="size-4" aria-hidden="true" />
             </button>

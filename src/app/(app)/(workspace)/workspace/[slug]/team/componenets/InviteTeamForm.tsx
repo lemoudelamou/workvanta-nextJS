@@ -2,6 +2,7 @@
 
 import { InviteForm, type InviteRoleOption } from "@/components/ui/InviteForm";
 import { inviteTeamAction } from "@/app/(app)/(workspace)/workspace/[slug]/team/team-actions";
+import { WORKSPACE_ROLE_DESCRIPTIONS } from "@/lib/auth/permissions";
 
 interface InviteTeamFormProps {
     slug: string;
@@ -15,11 +16,11 @@ export function InviteTeamForm({
     const action = inviteTeamAction.bind(null, slug);
 
     const roleOptions: InviteRoleOption[] = [
-        { value: "MEMBER", label: "Member" },
+        { value: "MEMBER", label: "Member", description: WORKSPACE_ROLE_DESCRIPTIONS.MEMBER },
         ...(canInviteAdmin
-            ? [{ value: "ADMIN", label: "Admin" }]
+            ? [{ value: "ADMIN", label: "Admin", description: WORKSPACE_ROLE_DESCRIPTIONS.ADMIN }]
             : []),
-        { value: "GUEST", label: "Guest" },
+        { value: "GUEST", label: "Guest", description: WORKSPACE_ROLE_DESCRIPTIONS.GUEST },
     ];
 
     return (

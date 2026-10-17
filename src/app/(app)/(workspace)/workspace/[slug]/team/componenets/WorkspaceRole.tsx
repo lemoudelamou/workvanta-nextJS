@@ -7,8 +7,8 @@ import { updateTeamRole } from "@/app/(app)/(workspace)/workspace/[slug]/team/te
 type EditableWorkspaceRole = "ADMIN" | "MEMBER" | "GUEST";
 
 const WORKSPACE_ROLE_OPTIONS: RoleOption<EditableWorkspaceRole>[] = [
-    { value: "ADMIN", label: "Admin", dotColor: "bg-blue-500" },
-    { value: "MEMBER", label: "Member", dotColor: "bg-slate-400" },
+    { value: "ADMIN", label: "Admin", dotColor: "bg-brand" },
+    { value: "MEMBER", label: "Member", dotColor: "bg-status-done" },
     { value: "GUEST", label: "Guest", dotColor: "bg-amber-500" },
 ];
 

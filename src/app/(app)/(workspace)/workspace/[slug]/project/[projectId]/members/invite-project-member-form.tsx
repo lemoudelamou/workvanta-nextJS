@@ -1,6 +1,7 @@
 "use client";
 
 import { InviteForm, type InviteRoleOption } from "@/components/ui/InviteForm";
+import { PROJECT_ROLE_DESCRIPTIONS } from "@/lib/auth/permissions";
 import { inviteToProjectAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions";
 
 interface InviteProjectMemberFormProps {
@@ -9,9 +10,9 @@ interface InviteProjectMemberFormProps {
 }
 
 const PROJECT_ROLE_OPTIONS: InviteRoleOption[] = [
-    { value: "VIEWER", label: "Viewer" },
-    { value: "EDITOR", label: "Editor" },
-    { value: "ADMIN", label: "Admin" },
+    { value: "VIEWER", label: "Viewer", description: PROJECT_ROLE_DESCRIPTIONS.VIEWER },
+    { value: "EDITOR", label: "Editor", description: PROJECT_ROLE_DESCRIPTIONS.EDITOR },
+    { value: "ADMIN", label: "Admin", description: PROJECT_ROLE_DESCRIPTIONS.ADMIN },
 ];
 
 export function InviteProjectMemberForm({
@@ -26,7 +27,7 @@ export function InviteProjectMemberForm({
             roleOptions={PROJECT_ROLE_OPTIONS}
             defaultRole="VIEWER"
             submitLabel="Add to project"
-            pendingLabel="Sending..."
+            pendingLabel="Adding..."
             successTitle="Done"
             errorTitle="Couldn't add member"
             roleAriaLabel="Project role"
