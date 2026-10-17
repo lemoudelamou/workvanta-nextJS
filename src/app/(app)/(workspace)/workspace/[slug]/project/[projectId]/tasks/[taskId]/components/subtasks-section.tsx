@@ -1,7 +1,6 @@
-import { Check, ListChecks, Plus } from "lucide-react";
-import { hairline, glass, starlightEdge, iconTile, fieldClass, subtaskButton } from "@/app/style/ui-tokens";
+import { Check, Plus, X } from "lucide-react";
 
-import { createSubtaskAction, toggleSubtaskAction } from "../task-actions";
+import { createSubtaskAction, deleteSubtaskAction, toggleSubtaskAction } from "../task-actions";
 
 type Subtask = {
     id: string;
@@ -18,168 +17,149 @@ type SubtasksSectionProps = {
     canEdit?: boolean;
 };
 
-
-
-function checkboxClass(completed: boolean) {
-    const base = "flex size-5 shrink-0 items-center justify-center rounded-md border transition-all duration-200";
-
-    return completed
-        ? `${base} border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950`
-        : `${base} border-slate-300 bg-white/70 dark:border-white/[0.2] dark:bg-white/[0.04]`;
+function checkClass(completed: boolean) {
+    return `flex size-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors ${
+        completed ? "border-status-done bg-status-done text-white" : "border-muted-foreground/50"
+    }`;
 }
 
-export function SubtasksSection({
-                                    subtasks,
-                                    slug,
-                                    projectId,
-                                    taskId,
-                                    canEdit = true,
-                                }: SubtasksSectionProps) {
+/** A small ring that fills as subtasks get done. */
+function ProgressRing({ value }: { value: number }) {
+    const radius = 7;
+    const circumference = 2 * Math.PI * radius;
+    return (
+        <svg viewBox="0 0 18 18" className="size-4 -rotate-90" aria-hidden="true">
+            <circle cx="9" cy="9" r={radius} fill="none" strokeWidth="2.5" className="stroke-foreground/10" />
+            <circle
+                cx="9"
+                cy="9"
+                r={radius}
+                fill="none"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - value / 100)}
+                className={value === 100 ? "stroke-status-done" : "stroke-brand"}
+            />
+        </svg>
+    );
+}
+
+export function SubtasksSection({ subtasks, slug, projectId, taskId, canEdit = true }: SubtasksSectionProps) {
     const total = subtasks.length;
     const completedCount = subtasks.filter((subtask) => subtask.completed).length;
     const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
+    if (!canEdit && total === 0) return null;
+
     const createSubtask = createSubtaskAction.bind(null, slug, projectId, taskId);
 
     return (
-        <section
-            className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-xl`}
-        >
-            <div className="relative flex items-center justify-between gap-4 border-b border-slate-200/70 px-5 py-4 sm:px-6 dark:border-white/[0.06]">
-                <div>
-                    <div className="flex items-center gap-2.5">
-                        <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                            Subtasks
-                        </h2>
-
-                        <span
-                            className={`${hairline} rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 dark:bg-white/[0.04] dark:text-slate-300`}
-                        >
-              {completedCount}/{total}
-            </span>
-                    </div>
-
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                        {completedCount} of {total} completed
-                    </p>
-                </div>
-
-                <div className={`${iconTile} hidden size-9 rounded-xl sm:flex`}>
-                    <ListChecks className="size-4" />
-                </div>
-
-                <div
-                    role="progressbar"
-                    aria-label="Subtask progress"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={progress}
-                    className="absolute inset-x-0 -bottom-px h-0.5 bg-transparent"
-                >
-                    <div
-                        className="h-full rounded-r-full bg-slate-950 transition-all duration-500 dark:bg-white"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
+        <section aria-labelledby="subtasks-heading">
+            <div className="flex items-center gap-2.5">
+                <h2 id="subtasks-heading" className="text-sm font-semibold text-foreground">
+                    Subtasks
+                </h2>
+                {total > 0 && (
+                    <span
+                        role="progressbar"
+                        aria-label="Subtask progress"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={progress}
+                        className="flex items-center gap-1.5 text-[13px] tabular-nums text-muted-foreground"
+                    >
+                        <ProgressRing value={progress} />
+                        {completedCount} of {total} done
+                    </span>
+                )}
             </div>
 
-            {total === 0 ? (
-                <div className="px-5 py-10 text-center sm:px-6">
-          <span className={`${iconTile} mx-auto size-11 rounded-xl border-dashed`}>
-            <ListChecks className="size-5" />
-          </span>
-
-                    <p className="mt-4 text-sm font-medium text-foreground">
-                        No subtasks yet.
-                    </p>
-
-                    {canEdit && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Break this task into smaller steps below.
-                        </p>
-                    )}
-                </div>
-            ) : (
-                <div className="divide-y divide-slate-200/70 dark:divide-white/[0.06]">
-                    {subtasks.map((subtask) => {
-                        const check = subtask.completed && (
-                            <Check className="size-3" strokeWidth={3} />
-                        );
-
-                        return (
-                            <div
+            <div className="mt-3 overflow-hidden rounded-xl border border-border">
+                {total > 0 && (
+                    <ul className="divide-y divide-border">
+                        {subtasks.map((subtask) => (
+                            <li
                                 key={subtask.id}
-                                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-500/[0.04] sm:px-6"
+                                className="group flex min-h-11 items-center gap-3 px-3.5 py-2 transition-colors hover:bg-muted/40"
                             >
                                 {canEdit ? (
-                                    <form
-                                        action={toggleSubtaskAction.bind(
-                                            null,
-                                            slug,
-                                            projectId,
-                                            taskId,
-                                            subtask.id,
-                                        )}
-                                    >
+                                    <form action={toggleSubtaskAction.bind(null, slug, projectId, taskId, subtask.id)}>
                                         <button
                                             type="submit"
                                             aria-label={
                                                 subtask.completed
-                                                    ? "Mark subtask incomplete"
-                                                    : "Mark subtask complete"
+                                                    ? `Mark "${subtask.title}" not done`
+                                                    : `Mark "${subtask.title}" done`
                                             }
-                                            className={`${checkboxClass(subtask.completed)} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-white/30 ${
-                                                subtask.completed
-                                                    ? ""
-                                                    : "hover:border-slate-500 dark:hover:border-white/40"
+                                            className={`${checkClass(subtask.completed)} outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
+                                                subtask.completed ? "" : "hover:border-status-done hover:bg-status-done/10"
                                             }`}
                                         >
-                                            {check}
+                                            {subtask.completed && <Check className="size-3" strokeWidth={3} />}
                                         </button>
                                     </form>
                                 ) : (
-                                    <span aria-hidden="true" className={checkboxClass(subtask.completed)}>
-                    {check}
-                  </span>
+                                    <span aria-hidden="true" className={checkClass(subtask.completed)}>
+                                        {subtask.completed && <Check className="size-3" strokeWidth={3} />}
+                                    </span>
                                 )}
 
                                 <span
-                                    className={`min-w-0 flex-1 text-sm transition-colors ${
+                                    className={`min-w-0 flex-1 break-words text-sm ${
                                         subtask.completed
-                                            ? "text-slate-500 line-through decoration-slate-300 dark:text-slate-400 dark:decoration-slate-600"
+                                            ? "text-muted-foreground line-through decoration-muted-foreground/50"
                                             : "text-foreground"
                                     }`}
                                 >
-                  {subtask.title}
-                                    {!canEdit && subtask.completed && (
-                                        <span className="sr-only"> (completed)</span>
-                                    )}
-                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                                    {subtask.title}
+                                    {subtask.completed && <span className="sr-only"> (done)</span>}
+                                </span>
 
-            {canEdit && (
-                <div className="relative border-t border-slate-200/70 bg-slate-100/50 px-5 py-4 sm:px-6 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                    <form action={createSubtask} className="flex gap-2.5">
+                                {canEdit && (
+                                    <form action={deleteSubtaskAction.bind(null, slug, projectId, taskId, subtask.id)}>
+                                        <button
+                                            type="submit"
+                                            aria-label={`Delete "${subtask.title}"`}
+                                            title="Delete subtask"
+                                            className="flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-opacity hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
+                                        >
+                                            <X className="size-3.5" aria-hidden="true" />
+                                        </button>
+                                    </form>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                {canEdit && (
+                    <form
+                        action={createSubtask}
+                        className={`flex items-center gap-3 px-3.5 ${total > 0 ? "border-t border-border" : ""}`}
+                    >
+                        <Plus className="size-[18px] shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <label htmlFor="new-subtask" className="sr-only">
+                            New subtask
+                        </label>
                         <input
+                            id="new-subtask"
                             name="title"
                             type="text"
                             required
                             maxLength={200}
-                            placeholder="Add a subtask..."
-                            className={fieldClass}
+                            placeholder={total ? "Add a subtask" : "Break this task into smaller steps"}
+                            className="peer h-11 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                         />
-
-                        <button type="submit" className={subtaskButton}>
-                            <Plus className="size-4" />
+                        <button
+                            type="submit"
+                            className="h-7 shrink-0 rounded-md px-2.5 text-xs font-semibold text-brand opacity-0 outline-none transition-opacity hover:bg-brand-soft focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-brand peer-focus:opacity-100 peer-[:not(:placeholder-shown)]:opacity-100 dark:hover:bg-brand/15"
+                        >
                             Add
                         </button>
                     </form>
-                </div>
-            )}
+                )}
+            </div>
         </section>
     );
 }
