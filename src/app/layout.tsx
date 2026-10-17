@@ -5,11 +5,24 @@ import { cn } from "@/lib/utils";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { ThemePreference } from "@/generated/prisma/enums";
+import { SITE_URL } from "@/lib/legal";
 
 
 export const metadata: Metadata = {
+    // Makes relative URLs in metadata (canonical links, sharing previews) absolute.
+    metadataBase: new URL(SITE_URL),
     title: "Workvanta",
-    description: "Work smarter. Manage everything.",
+    description:
+        "Project management for small teams: plan work on a board, list or calendar, and see what's moving, blocked and late.",
+    applicationName: "Workvanta",
+    openGraph: {
+        type: "website",
+        siteName: "Workvanta",
+        title: "Workvanta · Project management for small teams",
+        description: "Every project, every task, one clear view of where things stand.",
+        url: "/",
+    },
+    twitter: { card: "summary" },
 };
 
 async function getServerFallbackTheme(): Promise<

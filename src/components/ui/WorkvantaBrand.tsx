@@ -3,15 +3,18 @@ import Link from "next/link";
 interface WorkvantaBrandProps {
   light?: boolean;
   className?: string;
+  /** Where the logo leads: the dashboard inside the app, the home page outside it. */
+  href?: string;
 }
 
 export default function WorkvantaBrand({
   light = false,
   className = "",
+  href = "/dashboard",
 }: WorkvantaBrandProps) {
   return (
     <Link
-      href="/dashboard"
+      href={href}
       className={`flex items-center gap-3 ${className}`}
       aria-label="Workvanta home"
     >
