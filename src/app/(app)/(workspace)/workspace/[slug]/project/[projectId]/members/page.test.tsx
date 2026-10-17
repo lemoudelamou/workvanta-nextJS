@@ -7,7 +7,7 @@ import ProjectMembersPage from "./page";
 import { notFound } from "next/navigation";
 import { requireProjectAccess } from "@/lib/auth/members";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor } from "@/lib/accent";
+import { personColor } from "@/lib/ui/person-color";
 import { buttonStyles } from "@/app/style/button-style";
 import { removeProjectMemberAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions";
 
@@ -31,10 +31,6 @@ jest.mock("lucide-react", () => ({
 jest.mock("@/lib/auth/members", () => ({ requireProjectAccess: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
     prisma: { projectMember: { findMany: jest.fn() } },
-}));
-jest.mock("@/lib/accent", () => ({
-    accentFor: jest.fn((id: string) => `accent-${id}`),
-    accentVars: jest.fn(() => ({})),
 }));
 
 // The bound action is replaced by a jest.fn, so we can assert on the bind() arguments
@@ -120,7 +116,6 @@ jest.mock("@/components/ui/AccessDenied", () => ({
 // ---------- typed handles ----------
 const mockNotFound = notFound as unknown as jest.Mock;
 const mockRequireProjectAccess = requireProjectAccess as jest.Mock;
-const mockAccentFor = accentFor as unknown as jest.Mock;
 const mockButtonStyles = buttonStyles as unknown as jest.Mock;
 const mockRemove = removeProjectMemberAction as unknown as { bind: jest.Mock };
 const db = prisma as unknown as { projectMember: { findMany: jest.Mock } };
@@ -387,7 +382,8 @@ describe("ProjectMembersPage – member list", () => {
         await renderPage();
 
         expect(screen.getByText("AL")).toBeInTheDocument();
-        expect(mockAccentFor).toHaveBeenCalledWith("u-ada");
+        // Each person keeps their own avatar color, keyed by email.
+        expect(screen.getByText("AL")).toHaveClass(...personColor("ada@x.com").split(" "));
     });
 
     it("renders two letters for a single-word name", async () => {

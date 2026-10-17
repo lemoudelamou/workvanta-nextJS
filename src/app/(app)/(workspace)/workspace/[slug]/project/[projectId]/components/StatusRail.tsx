@@ -55,7 +55,7 @@ export function StatusRail({
             </div>
 
             <div
-                className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-muted"
+                className="mt-3 flex h-2 origin-left gap-0.5 overflow-hidden rounded-full bg-muted motion-safe:animate-[bar-grow_800ms_cubic-bezier(.2,.8,.2,1)_both]"
                 role="img"
                 aria-label={TASK_COLUMNS.map(
                     ({ status, label }) => `${label}: ${counts[status]}`,

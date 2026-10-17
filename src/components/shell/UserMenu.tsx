@@ -7,6 +7,7 @@ import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
 
 import { logout } from "@/app/(auth)/signin/actions";
 import { useDismiss } from "./use-dismiss";
+import { personColor } from "@/lib/ui/person-color";
 
 export type ShellUser = {
     name: string;
@@ -30,7 +31,7 @@ export function UserAvatar({ user, size = "size-7" }: { user: ShellUser; size?: 
     return (
         <span
             aria-hidden="true"
-            className={`${size} flex shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-brand dark:bg-brand/20`}
+            className={`${size} flex shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${personColor(user.email)}`}
         >
             {(user.name.charAt(0) || "U").toUpperCase()}
         </span>

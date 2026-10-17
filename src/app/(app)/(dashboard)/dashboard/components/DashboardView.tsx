@@ -3,8 +3,6 @@ import {
     Building2,
     FolderKanban,
     Plus,
-    ShieldCheck,
-    UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -14,28 +12,29 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { buttonStyles } from "@/app/style/button-style";
 
 import type {
+    Focus,
     Membership,
     RecentProject,
 } from "@/app/(app)/(dashboard)/dashboard/components/types";
 
-import { Kpi } from "@/app/style/Kpi";
+import { FocusPanel, focusSummary } from "./FocusPanel";
 import { ProjectRow } from "./ProjectRow";
 import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";
 
-const KPI_STRIP =
-    "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border xl:grid-cols-4";
 
 
 
 export function DashboardView({
     session,
+    focus,
     memberships,
     recentProjects,
     accessibleProjectCountByWorkspace,
     totalAccessibleProjectCount,
 }: {
     session: { user: { name?: string | null; email?: string | null } };
+    focus: Focus;
     memberships: Membership[];
     recentProjects: RecentProject[];
     accessibleProjectCountByWorkspace: Map<string, number>;
@@ -60,7 +59,7 @@ export function DashboardView({
             <PageHeader
                 eyebrow="Dashboard"
                 title={`Welcome back, ${firstName}`}
-                description="Everything you're working on, across all of your workspaces."
+                description={focusSummary(focus)}
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
                         <Link href="/workspace" className={buttonStyles({ variant: "secondary" })}>
@@ -74,36 +73,17 @@ export function DashboardView({
                 }
             />
 
-            <section aria-label="Summary" className={`mt-8 ${KPI_STRIP}`}>
-                <Kpi
-                    tone="blue"
-                    icon={<Building2 />}
-                    label="Workspaces"
-                    value={memberships.length}
-                    helper="Teams you belong to"
-                />
-                <Kpi
-                    tone="violet"
-                    icon={<FolderKanban />}
-                    label="Projects"
-                    value={totalAccessibleProjectCount}
-                    helper="Projects you can open"
-                />
-                <Kpi
-                    tone="amber"
-                    icon={<UsersRound />}
-                    label="Teammates"
-                    value={teammateCount}
-                    helper="People across your workspaces"
-                />
-                <Kpi
-                    tone="green"
-                    icon={<ShieldCheck />}
-                    label="Managed by you"
-                    value={managedCount}
-                    helper="Workspaces where you're owner or admin"
-                />
+            <FocusPanel
+                focus={focus}
+                footer={
+                    <section aria-label="Summary" className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-sm text-muted-foreground">
+                <span><span className="font-semibold tabular-nums text-foreground">{memberships.length}</span> {memberships.length === 1 ? "workspace" : "workspaces"}</span>
+                <span><span className="font-semibold tabular-nums text-foreground">{totalAccessibleProjectCount}</span> {totalAccessibleProjectCount === 1 ? "project" : "projects"}</span>
+                <span><span className="font-semibold tabular-nums text-foreground">{teammateCount}</span> {teammateCount === 1 ? "teammate" : "teammates"}</span>
+                {managedCount > 0 && <span>You manage <span className="font-semibold tabular-nums text-foreground">{managedCount}</span></span>}
             </section>
+                }
+            />
 
             {memberships.length ? (
                 <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-10 sm:mt-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">

@@ -183,3 +183,19 @@
 @keyframes shell-drawer {
   from { transform: translateX(-100%); }
 }
+
+/* Progress bars grow in from the left once, when the page loads. */
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+}
+
+/* A card a teammate just changed: a brief glow that fades out. */
+@keyframes live-glow {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent); }
+  30%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand) 18%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes row-flash {
+  0%, 25% { background-color: var(--brand-soft); }
+  100%    { background-color: transparent; }
+}

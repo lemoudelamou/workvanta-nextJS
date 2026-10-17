@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { requireMembership } from "@/lib/auth/team";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor, accentVars } from "@/lib/accent";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { PageBody} from "@/components/ui/PageBody";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -25,6 +24,7 @@ import {
     RevokeInvitationButton,
     TransferOwnershipButton,
 } from "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/MemberActions";
+import { personColor } from "@/lib/ui/person-color";
 
 const ROLE_RANK: Record<string, number> = {
     OWNER: 0,
@@ -241,8 +241,7 @@ export default async function TeamPage({
                                     ) : (
                                         <div
                                             aria-hidden="true"
-                                            style={accentVars(accentFor(member.user.id))}
-                                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent)/0.14)] text-xs font-semibold text-[rgb(var(--accent))]"
+                                            className={`flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${personColor(member.user.email)}`}
                                         >
                                             {getInitials(member.user.name, member.user.email)}
                                         </div>

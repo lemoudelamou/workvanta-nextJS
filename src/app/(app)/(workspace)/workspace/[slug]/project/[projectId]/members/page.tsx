@@ -4,7 +4,6 @@ import { Crown, Eye, Lock, Trash2, UserPlus, UsersRound } from "lucide-react";
 import { requireProjectAccess, type ProjectAccessResult } from "@/lib/auth/members";
 import { canProject, isWorkspaceManager } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor, accentVars } from "@/lib/accent";
 
 import { removeProjectMemberAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions";
 import { InviteProjectMemberForm } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/invite-project-member-form";
@@ -18,6 +17,7 @@ import { RoleBadge } from "@/components/ui/RoleBadge";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
 import { buttonStyles } from "@/app/style/button-style";
 import { Kpi } from "@/app/style/Kpi";
+import { personColor } from "@/lib/ui/person-color";
 
 const ROLE_RANK: Record<string, number> = {
     ADMIN: 0,
@@ -268,10 +268,7 @@ export default async function ProjectMembersPage({
                                         ) : (
                                             <div
                                                 aria-hidden="true"
-                                                style={accentVars(
-                                                    accentFor(member.user.id),
-                                                )}
-                                                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--accent)/0.14)] text-xs font-semibold text-[rgb(var(--accent))]"
+                                                className={`flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${personColor(member.user.email)}`}
                                             >
                                                 {getInitials(
                                                     member.user.name,

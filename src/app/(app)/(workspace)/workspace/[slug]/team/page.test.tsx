@@ -6,7 +6,7 @@ import { render, screen, within } from "@testing-library/react";
 import TeamPage from "./page";
 import { requireMembership } from "@/lib/auth/team";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor } from "@/lib/accent";
+import { personColor } from "@/lib/ui/person-color";
 import { buttonStyles } from "@/app/style/button-style";
 import { removeTeamAction } from "@/app/(app)/(workspace)/workspace/[slug]/team/team-actions";
 
@@ -42,10 +42,6 @@ jest.mock("@/lib/db/prisma", () => ({
         workspaceMember: { findMany: jest.fn() },
         invitation: { findMany: jest.fn() },
     },
-}));
-jest.mock("@/lib/accent", () => ({
-    accentFor: jest.fn((id: string) => `accent-${id}`),
-    accentVars: jest.fn(() => ({})),
 }));
 
 // Replace the action with a jest.fn that has a spy-able bind()
@@ -116,7 +112,6 @@ jest.mock("@/components/ui/RoleBadge", () => ({
 
 // ---------- typed handles ----------
 const mockRequireMembership = requireMembership as jest.Mock;
-const mockAccentFor = accentFor as unknown as jest.Mock;
 const mockButtonStyles = buttonStyles as unknown as jest.Mock;
 const mockRemove = removeTeamAction as unknown as { bind: jest.Mock };
 const db = prisma as unknown as {
@@ -314,7 +309,7 @@ describe("TeamPage – member list", () => {
         expect(screen.getAllByText("bob@x.com")).toHaveLength(2); // display name + email line
     });
 
-    it("renders initials from a two-word name and seeds the accent from the user id", async () => {
+    it("renders initials from a two-word name in the person's own color", async () => {
         db.workspaceMember.findMany.mockResolvedValue([
             makeMember("ada", "MEMBER", { name: "Ada Lovelace" }),
         ]);
@@ -322,7 +317,8 @@ describe("TeamPage – member list", () => {
         await renderPage();
 
         expect(screen.getByText("AL")).toBeInTheDocument();
-        expect(mockAccentFor).toHaveBeenCalledWith("u-ada");
+        // Each person keeps their own avatar color, keyed by email.
+        expect(screen.getByText("AL")).toHaveClass(...personColor("ada@x.com").split(" "));
     });
 
     it("renders two letters for a single-word name", async () => {

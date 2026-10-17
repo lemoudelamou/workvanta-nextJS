@@ -6,6 +6,77 @@ import {accentFor} from "@/app/(app)/(workspace)/workspace/components/helpers";
 import {Lock} from "lucide-react";
 import { ProjectMark } from "@/components/ui/ProjectMark";
 import { ProjectItem} from "@/types/project-item";
+import { personColor } from "@/lib/ui/person-color";
+
+const SEGMENTS = [
+    ["DONE", "bg-status-done"],
+    ["IN_REVIEW", "bg-status-review"],
+    ["IN_PROGRESS", "bg-status-progress"],
+    ["TODO", "bg-status-todo/45"],
+] as const;
+
+function initialsOf(name: string | null, email: string) {
+    const source = name?.trim() || email;
+    const parts = source.split(/\s+/).filter(Boolean);
+    return ((parts.length > 1 ? parts[0][0] + parts[1][0] : source.slice(0, 2)) || "?").toUpperCase();
+}
+
+/** Done-first segmented bar, "x of y done", and who's working on it. */
+function ProjectProgress({
+    counts,
+    people,
+}: {
+    counts: NonNullable<ProjectItem["counts"]>;
+    people: NonNullable<ProjectItem["people"]>;
+}) {
+    const total = counts.TODO + counts.IN_PROGRESS + counts.IN_REVIEW + counts.DONE;
+
+    return (
+        <div className="mt-4">
+            <div
+                role="img"
+                aria-label={total ? `${counts.DONE} of ${total} tasks done` : "No tasks yet"}
+                className="flex h-1.5 origin-left gap-px overflow-hidden rounded-full bg-muted motion-safe:animate-[bar-grow_700ms_cubic-bezier(.2,.8,.2,1)_both]"
+            >
+                {total > 0 &&
+                    SEGMENTS.map(([status, color]) =>
+                        counts[status] > 0 ? (
+                            <span key={status} className={color} style={{ flexGrow: counts[status] }} />
+                        ) : null,
+                    )}
+            </div>
+            <div className="mt-2.5 flex items-center justify-between gap-3">
+                <span className="text-xs tabular-nums text-muted-foreground">
+                    {total ? (
+                        <>
+                            <span className="font-medium text-foreground">{counts.DONE}</span> of {total} done
+                        </>
+                    ) : (
+                        "No tasks yet"
+                    )}
+                </span>
+                {people.length > 0 && (
+                    <span className="flex -space-x-1.5" aria-label={`Assigned: ${people.map((p) => p.name ?? p.email).join(", ")}`}>
+                        {people.map((person) => (
+                            <span
+                                key={person.id}
+                                title={person.name ?? person.email}
+                                className={`flex size-6 items-center justify-center overflow-hidden rounded-full text-[9px] font-semibold ring-2 ring-card ${personColor(person.email)}`}
+                            >
+                                {person.image ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={person.image} alt="" className="size-full object-cover" />
+                                ) : (
+                                    initialsOf(person.name, person.email)
+                                )}
+                            </span>
+                        ))}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
 
 
 export function ProjectCard({
@@ -75,6 +146,8 @@ export function ProjectCard({
                 <p className="mt-1.5 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
                     {project.description || "No description yet."}
                 </p>
+
+                {project.counts && <ProjectProgress counts={project.counts} people={project.people ?? []} />}
 
                 <div className="mt-auto pt-5">
                     <div className="border-t border-border pt-4">
