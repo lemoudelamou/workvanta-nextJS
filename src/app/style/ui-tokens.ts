@@ -18,15 +18,15 @@ export const sectionClass = `${glass} ${hairline} ${starlightEdge} relative over
 
 export const cardClass = "rounded-lg border border-border bg-card p-4 transition-colors hover:border-foreground/15";
 
-export const labelClass = "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
+export const labelClass = "mb-1.5 block text-sm font-medium text-foreground";
 
-export const inputClass = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:focus:border-white/[0.2] dark:focus:ring-white/[0.08]";
+export const inputClass = "h-9 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 export const primaryButtonClass = "shrink-0 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50 dark:text-[#0f1115]";
 
 export const secondaryButtonClass = "shrink-0 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
-export const connectedBadgeClass = "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/[0.08] dark:text-emerald-300";
+export const connectedBadgeClass = "inline-flex items-center gap-1.5 rounded-full bg-status-done/12 px-2 py-0.5 text-xs font-medium text-status-done";
 
 export const dangerTile = "flex shrink-0 items-center justify-center border border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300";
 

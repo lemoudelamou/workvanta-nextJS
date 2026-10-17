@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 
 import type { ShellWorkspace } from "@/lib/navigation/shell-data";
 import { NotificationBell, type BellNotification } from "@/app/(app)/notifications/NotificationBell";
 import { SidebarContent } from "./SidebarContent";
+import { CommandPalette } from "./CommandPalette";
 import { workspaceInitials } from "./WorkspaceSwitcher";
 import type { ShellUser } from "./UserMenu";
 
-export const LAST_WORKSPACE_COOKIE = "wv-last-workspace";
+import { LAST_WORKSPACE_COOKIE, SIDEBAR_COOKIE } from "@/lib/navigation/shell-cookies";
 
 /** The workspace the URL is in, if any ("/workspace/new" is not one). */
 export function slugFromPath(pathname: string) {
@@ -41,6 +42,8 @@ export function AppShell({
     workspaces,
     lastWorkspaceSlug,
     unreadCount,
+    myOpenTasks = 0,
+    initiallyCollapsed = false,
     notifications,
     children,
 }: {
@@ -48,6 +51,9 @@ export function AppShell({
     workspaces: ShellWorkspace[];
     lastWorkspaceSlug: string | null;
     unreadCount: number;
+    myOpenTasks?: number;
+    /** From a cookie, so the first render already has the right width. */
+    initiallyCollapsed?: boolean;
     notifications: BellNotification[];
     children: ReactNode;
 }) {
@@ -55,6 +61,29 @@ export function AppShell({
     const current = resolveCurrentWorkspace(workspaces, pathname, lastWorkspaceSlug);
     const drawerRef = useRef<HTMLDialogElement>(null);
     const pathSlug = slugFromPath(pathname);
+    const [collapsed, setCollapsed] = useState(initiallyCollapsed);
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    function toggleCollapsed() {
+        setCollapsed((value) => {
+            const next = !value;
+            document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=31536000; samesite=lax`;
+            return next;
+        });
+    }
+
+    // Ctrl+K / ⌘K opens quick search from anywhere.
+    useEffect(() => {
+        function onKeyDown(event: KeyboardEvent) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                drawerRef.current?.close();
+                setSearchOpen(true);
+            }
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
 
     // Remember the workspace so Home and My tasks keep showing its projects.
     useEffect(() => {
@@ -76,21 +105,29 @@ export function AppShell({
         }
     }
 
-    const sidebar = () => (
+    const sidebar = (rail: boolean, inDrawer = false) => (
         <SidebarContent
             pathname={pathname}
             workspaces={workspaces}
             current={current}
             user={user}
             unreadCount={unreadCount}
+            myOpenTasks={myOpenTasks}
+            collapsed={rail}
+            // The phone drawer is always full width; collapsing is a desktop thing.
+            onToggleCollapsed={inDrawer ? undefined : toggleCollapsed}
+            onOpenSearch={() => setSearchOpen(true)}
         />
     );
 
     return (
         <div className="min-h-dvh bg-sidebar">
             {/* Desktop: fixed sidebar. */}
-            <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block" aria-label="Sidebar">
-                {sidebar()}
+            <aside
+                className={`fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-200 lg:block ${collapsed ? "w-16" : "w-64"}`}
+                aria-label="Sidebar"
+            >
+                {sidebar(collapsed)}
             </aside>
 
             {/* Phones and tablets: top bar plus a slide-out drawer. */}
@@ -114,6 +151,14 @@ export function AppShell({
                         {current?.name ?? "Workvanta"}
                     </span>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    aria-label="Search and jump to…"
+                    className="flex size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                    <Search className="size-[18px]" aria-hidden="true" />
+                </button>
                 {/* Also keeps the live notification connection open on every size. */}
                 <NotificationBell unreadCount={unreadCount} notifications={notifications} />
             </header>
@@ -132,13 +177,20 @@ export function AppShell({
                     <X className="size-4" aria-hidden="true" />
                 </button>
                 <div className="h-full pr-8" onClick={closeOnLink}>
-                    {sidebar()}
+                    {sidebar(false, true)}
                 </div>
             </dialog>
 
             {/* The page sits on a raised panel beside the sidebar. */}
-            <div className="lg:pl-64">
-                <div className="min-h-[calc(100dvh-3.5rem)] bg-canvas lg:m-2 lg:ml-0 lg:min-h-[calc(100dvh-1rem)] lg:rounded-xl lg:border lg:border-border lg:shadow-[0_1px_3px_rgba(23,26,33,0.06)]">
+            <CommandPalette
+                open={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                workspaces={workspaces}
+                current={current}
+            />
+
+            <div className={`transition-[padding] duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-64"}`}>
+                <div className="min-h-[calc(100dvh-3.5rem)] bg-canvas lg:m-2 lg:ml-0 lg:min-h-[calc(100dvh-1rem)] lg:rounded-xl lg:border lg:border-border lg:shadow-[0_1px_2px_rgba(23,26,33,0.04),0_8px_24px_-12px_rgba(23,26,33,0.10)]">
                     {children}
                 </div>
             </div>

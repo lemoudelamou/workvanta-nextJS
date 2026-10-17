@@ -3,24 +3,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { getSession } from "@/lib/auth/session";
 
-import {
-    Bell,
-    Globe2,
-    Link2,
-    Palette,
-    Shield,
-    Trash2,
-    User,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { PageBody } from "@/components/ui/PageBody";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertMessage } from "@/components/ui/AlertMessage";
-
-import {
-    iconTile,
-    sectionClass,
-} from "@/app/style/ui-tokens";
+import { buttonStyles } from "@/app/style/button-style";
 
 import EmailVerificationSettings from "@/app/(app)/(settings)/settings/account-verification/account-verification";
 import ConnectAccount from "@/app/(app)/(settings)/settings/connect-account/connect-account";
@@ -28,45 +16,23 @@ import ProfileUpdate from "@/app/(app)/(settings)/settings/profile-settings/upda
 import TwoFactorSettings from "@/app/(app)/(settings)/settings/two-factor-authentication/two-factor-auth";
 import ThemeSelection from "@/app/(app)/(settings)/settings/appearance-settings/theme-selection";
 import SessionsManagment from "@/app/(app)/(settings)/settings/sessions-management/sessions-management";
-import ChangeLanguage from "@/app/(app)/(settings)/settings/language-settings/change-language";
+import NotificationPreferences from "@/app/(app)/(settings)/settings/notification-settings/notification-preferences";
+import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/app/(app)/(settings)/settings/notification-settings/options";
+import { SettingsCard, SettingsSection } from "@/app/(app)/(settings)/settings/components/SettingsSection";
+import { SettingsNav } from "@/app/(app)/(settings)/settings/components/SettingsNav";
 
 
 import { getProviderStatus } from "@/lib/auth/provider-status";
 
 
 
-function SectionHeader({
-    title,
-    description,
-    icon: Icon,
-}: {
-    title: string;
-    description: string;
-    icon: typeof User;
-}) {
-    return (
-        <div className="relative flex items-start justify-between gap-4 border-b border-slate-200/70 px-5 py-5 sm:px-7 sm:py-6 dark:border-white/[0.06]">
-            <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                    {title}
-                </h2>
-
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {description}
-                </p>
-            </div>
-
-            <div className={`${iconTile} size-10 rounded-xl`}>
-                <Icon
-                    className="size-4"
-                    aria-hidden="true"
-                />
-            </div>
-        </div>
-    );
-}
-
-
+const SECTIONS = [
+    { id: "profile", label: "Profile" },
+    { id: "security", label: "Sign-in & security" },
+    { id: "notifications", label: "Notifications" },
+    { id: "preferences", label: "Preferences" },
+    { id: "delete-account", label: "Delete account" },
+];
 
 export default async function SettingsPage({
     searchParams,
@@ -169,16 +135,23 @@ export default async function SettingsPage({
     );
 
 
-    const preferences =
-        await prisma.userPreference.findUnique({
-            where: {
-                userId,
-            },
+    const [preferences, notificationPreferences] = await Promise.all([
+        prisma.userPreference.findUnique({
+            where: { userId },
+            select: { theme: true },
+        }),
+        prisma.notificationPreference.findUnique({
+            where: { userId },
             select: {
-                language: true,
-                theme: true,
+                inAppTaskAssignments: true,
+                inAppComments: true,
+                inAppMentions: true,
+                emailTaskAssignments: true,
+                emailComments: true,
+                emailMentions: true,
             },
-        });
+        }),
+    ]);
 
     const initialTheme =
         preferences?.theme === "LIGHT"
@@ -187,221 +160,134 @@ export default async function SettingsPage({
                 ? "dark"
                 : "system";
 
-
     return (
         <PageBody>
+            <div className="mx-auto max-w-5xl">
+                <PageHeader
+                    title="Settings"
+                    description="Your profile, how you sign in, and what Workvanta tells you about."
+                />
+            </div>
 
+            <div className="mx-auto mt-6 max-w-5xl lg:mt-8 lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-12">
+                <aside className="sticky top-14 z-10 -mx-4 bg-canvas/90 px-4 py-2 backdrop-blur lg:top-8 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+                    <SettingsNav items={SECTIONS} />
+                </aside>
 
-                <header className="mb-8">
-                    <PageHeader
-                        eyebrow="Workvanta"
-                        title="Settings"
-                        description="Manage your account, preferences, notifications, and connected services."
-                        actions=""
-                    />
-                </header>
-
-
-                <div className="space-y-7">
-
-
-                    <section className={sectionClass}>
-                        <div
-                            aria-hidden="true"
-                            className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-slate-200/40 blur-3xl dark:bg-blue-500/[0.05]"
-                        />
-
-                        <SectionHeader
-                            title="Account"
-                            description="Manage your Workvanta profile information."
-                            icon={User}
-                        />
-
-                        <ProfileUpdate
-                            name={session.user.name ?? ""}
-                            email={session.user.email ?? ""}
-                            image={session.user.image ?? ""}
-                            initials={initials || "U"}
-                        />
-
-                        <div className="border-t border-slate-200/70 dark:border-white/[0.06]">
-                            <EmailVerificationSettings
-                                email={email}
-                                verified={emailVerified}
+                <div className="mt-4 space-y-12 lg:mt-0">
+                    <SettingsSection
+                        id="profile"
+                        title="Profile"
+                        description="How you appear to teammates across your workspaces."
+                    >
+                        <SettingsCard>
+                            <ProfileUpdate
+                                name={session.user.name ?? ""}
+                                email={session.user.email ?? ""}
+                                image={session.user.image ?? ""}
+                                initials={initials || "U"}
                             />
-                        </div>
-                    </section>
-
-
-
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Connected accounts"
-                            description="Connect external accounts to your Workvanta account."
-                            icon={Link2}
-                        />
-
-                        <div className="relative space-y-4 p-5 sm:p-7">
-
-                            {githubStatus && (
-                                <AlertMessage
-                                    variant={githubStatus.variant}
-                                    title={githubStatus.title}
-                                    message={githubStatus.message}
-                                />
+                            {!emailVerified && (
+                                <div className="border-t border-border">
+                                    <EmailVerificationSettings email={email} verified={emailVerified} />
+                                </div>
                             )}
+                        </SettingsCard>
+                    </SettingsSection>
 
-                            {googleStatus && (
-                                <AlertMessage
-                                    variant={googleStatus.variant}
-                                    title={googleStatus.title}
-                                    message={googleStatus.message}
-                                />
-                            )}
+                    <SettingsSection
+                        id="security"
+                        title="Sign-in & security"
+                        description="The ways you can sign in, extra protection, and the devices you're signed in on."
+                    >
+                        {githubStatus && (
+                            <AlertMessage
+                                variant={githubStatus.variant}
+                                title={githubStatus.title}
+                                message={githubStatus.message}
+                            />
+                        )}
 
+                        {googleStatus && (
+                            <AlertMessage
+                                variant={googleStatus.variant}
+                                title={googleStatus.title}
+                                message={googleStatus.message}
+                            />
+                        )}
+
+                        <SettingsCard
+                            title="Sign-in methods"
+                            description="Use a password, GitHub or Google. Keep at least one."
+                        >
                             <ConnectAccount
-                                accounts={accounts.map(
-                                    (account) => ({
-                                        provider:
-                                            account.provider === "github"
-                                                ? "github"
-                                                : "google",
-                                    })
-                                )}
-                                hasPassword={Boolean(
-                                    user?.passwordHash
-                                )}
+                                accounts={accounts.map((account) => ({
+                                    provider: account.provider === "github" ? "github" : "google",
+                                }))}
+                                hasPassword={Boolean(user?.passwordHash)}
                             />
-                        </div>
-                    </section>
+                        </SettingsCard>
 
+                        <SettingsCard>
+                            <TwoFactorSettings
+                                initialEnabled={initialEnabled}
+                                initialBackupCodes={initialBackupCodes}
+                            />
+                        </SettingsCard>
 
+                        <SettingsCard
+                            title="Where you're signed in"
+                            description="Sign out any device you no longer use."
+                        >
+                            <SessionsManagment />
+                        </SettingsCard>
+                    </SettingsSection>
 
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Security"
-                            description="Manage your password, authentication, and sessions."
-                            icon={Shield}
-                        />
+                    <SettingsSection
+                        id="notifications"
+                        title="Notifications"
+                        description="Choose what reaches you in Workvanta and by email."
+                    >
+                        <SettingsCard>
+                            <NotificationPreferences
+                                initial={{ ...DEFAULT_NOTIFICATION_PREFERENCES, ...notificationPreferences }}
+                            />
+                        </SettingsCard>
+                    </SettingsSection>
 
-                        <TwoFactorSettings
-                            initialEnabled={initialEnabled}
-                            initialBackupCodes={
-                                initialBackupCodes
-                            }
-                        />
-                    </section>
+                    <SettingsSection
+                        id="preferences"
+                        title="Preferences"
+                        description="How Workvanta looks on this account."
+                    >
+                        <SettingsCard title="Theme" description="Pick a look, or follow your device's light and dark setting.">
+                            <ThemeSelection initialTheme={initialTheme} />
+                        </SettingsCard>
+                    </SettingsSection>
 
-
-
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Appearance"
-                            description="Customize how Workvanta looks and feels."
-                            icon={Palette}
-                        />
-
-                        <ThemeSelection
-                            initialTheme={initialTheme}
-                        />
-                    </section>
-
-
-
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Language"
-                            description="Change your language preferences."
-                            icon={Globe2}
-                        />
-
-                        <ChangeLanguage
-                            initialLanguage={
-                                preferences?.language ?? "en"
-                            }
-                        />
-                    </section>
-
-
-
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Notifications"
-                            description="Choose which updates you want to receive."
-                            icon={Bell}
-                        />
-
-                        {/* TODO: Add notification management */}
-                    </section>
-
-
-                    <section className={sectionClass}>
-                        <SectionHeader
-                            title="Sessions"
-                            description="Keep track of all connected devices."
-                            icon={Shield}
-                        />
-
-                        <SessionsManagment />
-                    </section>
-
-
-                    <section className="overflow-hidden rounded-xl border border-danger/30 bg-card">
-
-                        <div className="border-b border-danger/30 px-5 py-5 sm:px-7 sm:py-6">
-                            <div className="flex items-start justify-between gap-4">
-
-                                <div>
-                                    <h2 className="text-xl font-semibold tracking-tight text-danger">
-                                        Danger zone
-                                    </h2>
-
-                                    <p className="mt-1 text-sm leading-6 text-danger/70">
-                                        Irreversible account actions live here.
-                                    </p>
-                                </div>
-
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-danger/30 bg-danger/[0.06] text-danger">
-                                    <Trash2
-                                        className="size-4"
-                                        aria-hidden="true"
-                                    />
-                                </div>
-
-                            </div>
-                        </div>
-
-
-                        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-
-                            <div>
-                                <p className="text-sm font-semibold text-foreground">
-                                    Delete your account
+                    <SettingsSection
+                        id="delete-account"
+                        title="Delete account"
+                        description="Permanently remove your account and the data tied to it."
+                    >
+                        <SettingsCard tone="danger">
+                            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                                <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                                    If you own workspaces other people use, you&apos;ll hand them over
+                                    first. Deleting can&apos;t be undone.
                                 </p>
-
-                                <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
-                                    Permanently remove your Workvanta account and associated data.
-                                </p>
+                                <Link
+                                    href="/settings/delete-account"
+                                    className={`${buttonStyles({ variant: "danger" })} shrink-0`}
+                                >
+                                    Delete account
+                                    <ArrowRight className="size-4" aria-hidden="true" />
+                                </Link>
                             </div>
-
-
-                            <Link
-                                href="/settings/delete-account"
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-danger/30 bg-danger/[0.06] px-4 py-2.5 text-sm font-semibold text-danger transition-colors hover:border-danger/30 hover:bg-danger/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
-                            >
-                                <Trash2
-                                    className="size-4"
-                                    aria-hidden="true"
-                                />
-
-                                Delete your Account
-                            </Link>
-
-                        </div>
-                    </section>
-
+                        </SettingsCard>
+                    </SettingsSection>
                 </div>
+            </div>
         </PageBody>
     );
 }
-

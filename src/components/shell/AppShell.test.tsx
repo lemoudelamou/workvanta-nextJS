@@ -8,9 +8,6 @@ import { AppShell, resolveCurrentWorkspace, slugFromPath } from "./AppShell";
 
 let mockPathname = "/dashboard";
 
-jest.mock("next/navigation", () => ({
-    usePathname: () => mockPathname,
-}));
 jest.mock("next/link", () => ({
     __esModule: true,
     default: ({ href, children, ...rest }: any) => (
@@ -29,6 +26,11 @@ jest.mock("@/app/(app)/notifications/NotificationBell", () => ({
     ),
 }));
 jest.mock("@/app/(auth)/signin/actions", () => ({ logout: jest.fn() }));
+jest.mock("next/navigation", () => ({
+    usePathname: () => mockPathname,
+    useRouter: () => ({ push: mockPush }),
+}));
+const mockPush = jest.fn();
 
 const northwind: ShellWorkspace = {
     id: "w1",
@@ -36,9 +38,10 @@ const northwind: ShellWorkspace = {
     name: "Northwind Studio",
     role: "OWNER",
     canCreateProjects: true,
+    memberCount: 4,
     projects: [
-        { id: "p1", name: "Brand refresh", isPrivate: false },
-        { id: "p2", name: "Payroll", isPrivate: true },
+        { id: "p1", name: "Brand refresh", isPrivate: false, openTasks: 5 },
+        { id: "p2", name: "Payroll", isPrivate: true, openTasks: 0 },
     ],
 };
 const acme: ShellWorkspace = {
@@ -47,12 +50,22 @@ const acme: ShellWorkspace = {
     name: "Acme",
     role: "GUEST",
     canCreateProjects: false,
+    memberCount: 2,
     projects: [],
 };
 
 const user = { name: "Maya Chen", email: "maya@example.com", image: null };
 
-function renderShell(options: { pathname?: string; workspaces?: ShellWorkspace[]; last?: string | null; unread?: number } = {}) {
+function renderShell(
+    options: {
+        pathname?: string;
+        workspaces?: ShellWorkspace[];
+        last?: string | null;
+        unread?: number;
+        myOpenTasks?: number;
+        collapsed?: boolean;
+    } = {},
+) {
     mockPathname = options.pathname ?? "/dashboard";
     return render(
         <AppShell
@@ -60,6 +73,8 @@ function renderShell(options: { pathname?: string; workspaces?: ShellWorkspace[]
             workspaces={options.workspaces ?? [acme, northwind]}
             lastWorkspaceSlug={options.last ?? null}
             unreadCount={options.unread ?? 0}
+            myOpenTasks={options.myOpenTasks ?? 0}
+            initiallyCollapsed={options.collapsed ?? false}
             notifications={[]}
         >
             <p>Page content</p>
@@ -103,9 +118,10 @@ describe("AppShell sidebar", () => {
         renderShell({ pathname: "/workspace/northwind/project/p1/tasks/t9" });
 
         const projects = sidebar().getAllByRole("listitem").map((item) => item.textContent);
-        expect(projects).toEqual(["Brand refresh", "Payroll"]);
+        // Open-task counts sit next to each project (none shown for zero).
+        expect(projects).toEqual(["Brand refresh55 open tasks", "Payroll"]);
 
-        expect(sidebar().getByRole("link", { name: "Brand refresh" })).toHaveAttribute("aria-current", "page");
+        expect(sidebar().getByRole("link", { name: /^Brand refresh/ })).toHaveAttribute("aria-current", "page");
         expect(sidebar().getByRole("link", { name: /Payroll/ })).not.toHaveAttribute("aria-current");
         expect(sidebar().getByLabelText("Private")).toBeInTheDocument();
     });
@@ -113,12 +129,15 @@ describe("AppShell sidebar", () => {
     it("links workspace pages and only offers New project to people who can create one", () => {
         renderShell({ pathname: "/workspace/northwind/team" });
 
-        expect(sidebar().getByRole("link", { name: "Overview" })).toHaveAttribute("href", "/workspace/northwind");
-        expect(sidebar().getByRole("link", { name: "Team" })).toHaveAttribute("aria-current", "page");
-        expect(sidebar().getByRole("link", { name: "New project" })).toHaveAttribute(
-            "href",
-            "/workspace/northwind/project/new",
-        );
+        // The section is titled with the workspace's own name.
+        expect(sidebar().getByRole("heading", { name: "Northwind Studio" })).toBeInTheDocument();
+        expect(sidebar().getByRole("link", { name: /^All projects/ })).toHaveAttribute("href", "/workspace/northwind");
+        expect(sidebar().getByRole("link", { name: /^Team & invites/ })).toHaveAttribute("aria-current", "page");
+        expect(sidebar().getByRole("link", { name: /^Team & invites/ })).toHaveTextContent("4");
+        // Both the "+" and the visible "New project" row lead to the form.
+        for (const link of sidebar().getAllByRole("link", { name: "New project" })) {
+            expect(link).toHaveAttribute("href", "/workspace/northwind/project/new");
+        }
     });
 
     it("hides New project for guests and explains an empty workspace", () => {
@@ -135,12 +154,39 @@ describe("AppShell sidebar", () => {
         expect(sidebar().getByRole("link", { name: "My tasks" })).toHaveAttribute("aria-current", "page");
     });
 
-    it("shows the unread count on Inbox", () => {
-        renderShell({ unread: 3 });
+    it("shows unread notifications and open tasks as counts", () => {
+        renderShell({ unread: 3, myOpenTasks: 7 });
 
-        const inbox = sidebar().getByRole("link", { name: /Inbox/ });
-        expect(inbox).toHaveAttribute("href", "/notifications");
-        expect(inbox).toHaveTextContent("3 unread");
+        const notifications = sidebar().getByRole("link", { name: /Notifications/ });
+        expect(notifications).toHaveAttribute("href", "/notifications");
+        expect(notifications).toHaveTextContent("3 unread");
+        expect(sidebar().getByRole("link", { name: /My tasks/ })).toHaveTextContent("7 open");
+    });
+
+    it("links Settings directly from the sidebar", () => {
+        renderShell();
+        expect(sidebar().getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    });
+
+    it("collapses to an icon rail with labelled links and remembers the choice", () => {
+        renderShell({ pathname: "/workspace/northwind", collapsed: true, unread: 2 });
+
+        // Icon-only, but every link keeps its name (and the count) for screen readers.
+        expect(sidebar().getByRole("link", { name: "Notifications, 2 unread" })).toHaveAttribute("title", "Notifications");
+        expect(sidebar().getByRole("link", { name: /^All projects/ })).toHaveAttribute("aria-current", "page");
+
+        fireEvent.click(sidebar().getByRole("button", { name: "Expand sidebar" }));
+        expect(document.cookie).toContain("wv-sidebar=open");
+        expect(sidebar().getByRole("button", { name: "Collapse sidebar" })).toBeInTheDocument();
+    });
+
+    it("opens quick search with Ctrl+K", () => {
+        renderShell();
+        expect(document.querySelector('dialog[aria-label="Search and jump to"]')).not.toBeNull();
+
+        (HTMLDialogElement.prototype.showModal as jest.Mock).mockClear();
+        fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+        expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledTimes(1);
     });
 
     it("switches workspaces from the menu", () => {
