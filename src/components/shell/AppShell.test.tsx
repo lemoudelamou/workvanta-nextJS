@@ -163,9 +163,14 @@ describe("AppShell sidebar", () => {
         expect(sidebar().getByRole("link", { name: /My tasks/ })).toHaveTextContent("7 open");
     });
 
-    it("links Settings directly from the sidebar", () => {
+    it("keeps Settings in the account menu only, and lists All workspaces under Your work", () => {
         renderShell();
-        expect(sidebar().getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+        expect(sidebar().queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
+        expect(sidebar().getByRole("link", { name: "All workspaces" })).toHaveAttribute("href", "/workspace");
+
+        fireEvent.click(sidebar().getByRole("button", { name: /^Account/ }));
+        expect(sidebar().getByRole("menuitem", { name: "Settings" })).toHaveAttribute("href", "/settings");
+        expect(sidebar().getByRole("menuitem", { name: /Keyboard shortcuts/ })).toBeInTheDocument();
     });
 
     it("collapses to an icon rail with labelled links and remembers the choice", () => {
@@ -227,5 +232,53 @@ describe("AppShell sidebar", () => {
 
         fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
         expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled();
+    });
+});
+
+describe("AppShell keyboard shortcuts", () => {
+    beforeEach(() => mockPush.mockClear());
+
+    it("opens the shortcuts panel with ?", () => {
+        renderShell();
+        fireEvent.keyDown(window, { key: "?" });
+        // jsdom never really opens a <dialog>, so its content counts as hidden.
+        expect(screen.getByRole("heading", { name: "Keyboard shortcuts", hidden: true })).toBeInTheDocument();
+    });
+
+    it("goes places with G then a letter", () => {
+        renderShell({ pathname: "/workspace/northwind/team" });
+
+        fireEvent.keyDown(window, { key: "g" });
+        fireEvent.keyDown(window, { key: "t" });
+        expect(mockPush).toHaveBeenLastCalledWith("/tasks");
+
+        fireEvent.keyDown(window, { key: "g" });
+        fireEvent.keyDown(window, { key: "p" });
+        expect(mockPush).toHaveBeenLastCalledWith("/workspace/northwind");
+
+        // A letter on its own does nothing.
+        mockPush.mockClear();
+        fireEvent.keyDown(window, { key: "t" });
+        expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("stays out of the way while typing", () => {
+        renderShell();
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+
+        fireEvent.keyDown(input, { key: "g" });
+        fireEvent.keyDown(input, { key: "h" });
+        fireEvent.keyDown(input, { key: "?" });
+
+        expect(mockPush).not.toHaveBeenCalled();
+        expect(screen.queryByRole("heading", { name: "Keyboard shortcuts", hidden: true })).not.toBeInTheDocument();
+        input.remove();
+    });
+
+    it("collapses the sidebar with [", () => {
+        renderShell();
+        fireEvent.keyDown(window, { key: "[" });
+        expect(document.cookie).toContain("wv-sidebar=collapsed");
     });
 });
