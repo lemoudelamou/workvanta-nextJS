@@ -25,7 +25,7 @@ export default async function NotificationsPage() {
         <PageBody className="max-w-3xl">
             <h1 className="text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Notifications</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-                Mentions, comments on your tasks and new assignments, newest first.
+                Mentions, comments, assignments and due date reminders, newest first.
             </p>
             <NotificationsInbox initial={views} />
             {notifications.length === PAGE_SIZE && (

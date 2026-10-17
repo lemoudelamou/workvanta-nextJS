@@ -421,7 +421,8 @@ export const ModelName = {
   Subtask: 'Subtask',
   Comment: 'Comment',
   Attachment: 'Attachment',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  TaskDependency: 'TaskDependency'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -437,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "workspace" | "workspaceMember" | "project" | "projectMember" | "task" | "emailVerificationToken" | "passwordResetToken" | "account" | "session" | "verificationToken" | "twoFactorAuth" | "twoFactorBackupCode" | "twoFactorChallenge" | "twoFactorRememberToken" | "userPreference" | "notificationPreference" | "invitation" | "label" | "taskLabel" | "activity" | "subtask" | "comment" | "attachment" | "notification"
+    modelProps: "user" | "workspace" | "workspaceMember" | "project" | "projectMember" | "task" | "emailVerificationToken" | "passwordResetToken" | "account" | "session" | "verificationToken" | "twoFactorAuth" | "twoFactorBackupCode" | "twoFactorChallenge" | "twoFactorRememberToken" | "userPreference" | "notificationPreference" | "invitation" | "label" | "taskLabel" | "activity" | "subtask" | "comment" | "attachment" | "notification" | "taskDependency"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2291,6 +2292,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TaskDependency: {
+      payload: Prisma.$TaskDependencyPayload<ExtArgs>
+      fields: Prisma.TaskDependencyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TaskDependencyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TaskDependencyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        findFirst: {
+          args: Prisma.TaskDependencyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TaskDependencyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        findMany: {
+          args: Prisma.TaskDependencyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>[]
+        }
+        create: {
+          args: Prisma.TaskDependencyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        createMany: {
+          args: Prisma.TaskDependencyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TaskDependencyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>[]
+        }
+        delete: {
+          args: Prisma.TaskDependencyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        update: {
+          args: Prisma.TaskDependencyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        deleteMany: {
+          args: Prisma.TaskDependencyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TaskDependencyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TaskDependencyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>[]
+        }
+        upsert: {
+          args: Prisma.TaskDependencyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskDependencyPayload>
+        }
+        aggregate: {
+          args: Prisma.TaskDependencyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTaskDependency>
+        }
+        groupBy: {
+          args: Prisma.TaskDependencyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskDependencyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TaskDependencyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskDependencyCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2405,6 +2480,8 @@ export const TaskScalarFieldEnum = {
   projectId: 'projectId',
   assigneeId: 'assigneeId',
   creatorId: 'creatorId',
+  recurrence: 'recurrence',
+  nextOccurrenceId: 'nextOccurrenceId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2551,6 +2628,8 @@ export const NotificationPreferenceScalarFieldEnum = {
   inAppComments: 'inAppComments',
   inAppMentions: 'inAppMentions',
   inAppInvitations: 'inAppInvitations',
+  inAppDueDates: 'inAppDueDates',
+  emailDueDates: 'emailDueDates',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2661,6 +2740,15 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const TaskDependencyScalarFieldEnum = {
+  blockedTaskId: 'blockedTaskId',
+  blockingTaskId: 'blockingTaskId',
+  createdAt: 'createdAt'
+} as const
+
+export type TaskDependencyScalarFieldEnum = (typeof TaskDependencyScalarFieldEnum)[keyof typeof TaskDependencyScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2833,6 +2921,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'TaskRecurrence'
+ */
+export type EnumTaskRecurrenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskRecurrence'>
+    
+
+
+/**
+ * Reference to a field of type 'TaskRecurrence[]'
+ */
+export type ListEnumTaskRecurrenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskRecurrence[]'>
     
 
 
@@ -3060,6 +3162,7 @@ export type GlobalOmitConfig = {
   comment?: Prisma.CommentOmit
   attachment?: Prisma.AttachmentOmit
   notification?: Prisma.NotificationOmit
+  taskDependency?: Prisma.TaskDependencyOmit
 }
 
 /* Types for Logging */

@@ -142,3 +142,9 @@ export type Attachment = Prisma.AttachmentModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model TaskDependency
+ * "blockedTask can't really start until blockingTask is done." Both tasks
+ * are in the same project.
+ */
+export type TaskDependency = Prisma.TaskDependencyModel

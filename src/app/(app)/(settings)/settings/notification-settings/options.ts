@@ -20,6 +20,11 @@ export const NOTIFICATION_OPTIONS = [
         label: "Mentions",
         description: "Someone @mentions you in a comment.",
     },
+    {
+        key: "DueDates",
+        label: "Due dates",
+        description: "A day before your tasks are due, and when they're overdue. By email, one summary each morning.",
+    },
 ] as const;
 
 export type NotificationOptionKey = (typeof NOTIFICATION_OPTIONS)[number]["key"];
@@ -39,7 +44,9 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferenceValues = {
     inAppTaskAssignments: true,
     inAppComments: true,
     inAppMentions: true,
+    inAppDueDates: true,
     emailTaskAssignments: true,
     emailComments: true,
     emailMentions: true,
+    emailDueDates: true,
 };

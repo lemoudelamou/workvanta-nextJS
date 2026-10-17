@@ -77,6 +77,9 @@ jest.mock("@/lib/storage/cloudinary", () => ({
 }));
 jest.mock("@/lib/publisher/publisher", () => ({ publishRealtimeEvent: jest.fn() }));
 jest.mock("@/lib/realtime/task-events", () => ({ publishTaskChanged: jest.fn() }));
+jest.mock("@/lib/tasks/recurrence", () => ({ createNextOccurrence: jest.fn().mockResolvedValue(null) }));
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockCreateNextOccurrence = require("@/lib/tasks/recurrence").createNextOccurrence as jest.Mock;
 jest.mock("@/helpers/parseMentions", () => ({ parseMentions: jest.fn() }));
 jest.mock("@/lib/validations/tasks", () => ({
     createTaskSchema: { safeParse: jest.fn() },
@@ -367,6 +370,17 @@ describe("reorderTasksAction", () => {
         ).rejects.toThrow("Invalid task ordering.");
     });
 
+    it("brings in the next repeat when a card is dragged into Done", async () => {
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+        await reorderTasksAction(args());
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+
+        mockCreateNextOccurrence.mockClear();
+        await reorderTasksAction(args({ sourceStatus: "DONE", destinationStatus: "DONE", sourceTaskIds: ["t3", "t1"], destinationTaskIds: ["t3", "t1"] }));
+        expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
+    });
+
     it("revalidates the board after saving", async () => {
         await reorderTasksAction(args());
 
@@ -537,7 +551,8 @@ describe("updateTaskAction", () => {
             where: { id: "t1" },
             data: expect.objectContaining({
                 description: "D",
-                dueDate: new Date("2026-10-20T23:59:59"),
+                // The end of that day in UTC, the calendar due dates are shown in.
+                dueDate: new Date("2026-10-20T23:59:59Z"),
             }),
         });
     });
@@ -567,6 +582,22 @@ describe("updateTaskAction", () => {
             to: "HIGH",
         });
         expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "updated" });
+    });
+
+    it("brings in the next one when a repeating task is marked done", async () => {
+        ok(schema.updateTask, { title: "T", description: "", status: "DONE", priority: "MEDIUM", assigneeId: "", dueDate: "" });
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+
+        await expect(run()).rejects.toThrow();
+
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+    });
+
+    it("doesn't repeat when the status didn't change to done", async () => {
+        ok(schema.updateTask, { title: "T", description: "", status: "IN_PROGRESS", priority: "MEDIUM", assigneeId: "", dueDate: "" });
+        await expect(run()).rejects.toThrow();
+        expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
     });
 
     it("logs an assignment and notifies the new assignee with the new title", async () => {

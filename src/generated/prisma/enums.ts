@@ -64,6 +64,16 @@ export const TaskStatus = {
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
 
 
+export const TaskRecurrence = {
+  DAILY: 'DAILY',
+  WEEKDAYS: 'WEEKDAYS',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY'
+} as const
+
+export type TaskRecurrence = (typeof TaskRecurrence)[keyof typeof TaskRecurrence]
+
+
 export const TaskPriority = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',
@@ -79,7 +89,9 @@ export const NotificationType = {
   TASK_COMMENTED: 'TASK_COMMENTED',
   MENTION: 'MENTION',
   PROJECT_UPDATED: 'PROJECT_UPDATED',
-  INVITATION: 'INVITATION'
+  INVITATION: 'INVITATION',
+  TASK_DUE_SOON: 'TASK_DUE_SOON',
+  TASK_OVERDUE: 'TASK_OVERDUE'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

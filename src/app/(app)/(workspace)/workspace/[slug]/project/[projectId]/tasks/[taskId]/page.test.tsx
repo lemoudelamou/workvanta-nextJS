@@ -47,7 +47,7 @@ jest.mock("@/components/ui/AccessDenied", () => ({
 jest.mock("@/lib/auth/task_permission", () => ({ canEditTasks: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
     prisma: {
-        task: { findFirst: jest.fn() },
+        task: { findFirst: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
         workspaceMember: { findMany: jest.fn() },
         label: { findMany: jest.fn() },
     },
@@ -110,6 +110,14 @@ jest.mock("./components/label-picker", () => ({
             data-selected={initialSelected.join(",")}
             data-can-edit={String(canEdit)}
         />
+    ),
+}));
+jest.mock("./components/repeat-menu", () => ({
+    RepeatMenu: ({ value }: any) => <span data-testid="repeat">{value ?? "none"}</span>,
+}));
+jest.mock("./components/dependencies-section", () => ({
+    DependenciesSection: ({ blockedBy, blocking }: any) => (
+        <div data-testid="dependencies" data-blocked-by={blockedBy.length} data-blocking={blocking.length} />
     ),
 }));
 jest.mock("./components/subtasks-section", () => ({
@@ -189,6 +197,9 @@ function makeTask(overrides: Record<string, any> = {}) {
         project: { workspaceId: "w1", workspace: { name: "Acme Inc" } },
         subtasks: [],
         labels: [],
+        recurrence: null,
+        blockedBy: [],
+        blocking: [],
         comments: [],
         attachments: [],
         activities: [],

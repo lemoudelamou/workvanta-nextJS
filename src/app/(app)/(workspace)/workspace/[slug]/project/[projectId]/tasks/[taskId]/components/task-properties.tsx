@@ -114,7 +114,10 @@ export function TaskProperties({
     overdue,
     canEdit,
     updateTask,
+    extra,
 }: {
+    /** More pills at the end of the row (e.g. Repeat). */
+    extra?: React.ReactNode;
     values: TaskValues;
     people: Person[];
     /** The current assignee, even if they're no longer in the project audience. */
@@ -202,6 +205,7 @@ export function TaskProperties({
                 <li className={`${pill} ${priorityTint}`}>{priorityPill}</li>
                 <li className={`${pill} ${NEUTRAL_TINT}`}>{assigneePill}</li>
                 <li className={`${pill} ${dueTint}`}>{duePill}</li>
+                {extra && <li className="contents">{extra}</li>}
             </ul>
         );
     }
@@ -276,6 +280,8 @@ export function TaskProperties({
                         </label>
                     )}
                 />
+
+                {extra}
 
                 {isSaving && (
                     <span role="status" className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">

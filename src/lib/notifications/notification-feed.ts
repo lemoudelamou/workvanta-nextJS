@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { effectiveProjectRole, type ProjectRoleName, type WorkspaceRoleName } from "@/lib/auth/permissions";
 import { timeAgo } from "@/helpers/timeAgo";
+import { DUE_TYPES } from "@/lib/notifications/notification-types";
 
 /** What a notification row needs to say who did what, where. */
 export type NotificationView = {
@@ -40,6 +41,7 @@ type NotificationData = {
     commentedBy?: string;
     mentionedBy?: string;
     taskTitle?: string;
+    dueDate?: string;
 };
 
 const MENTION = /@\[([^\]]+)\]\([^)]+\)/g;
@@ -73,6 +75,22 @@ export function notificationVerb(type: string) {
         default:
             return "sent you a notification";
     }
+}
+
+/**
+ * "is due in 5 hours" / "is overdue", as it stood when the reminder was
+ * made, so the line reads the same next to its "2 hours ago".
+ */
+export function dueVerb(type: string, dueDate: string | undefined, createdAt: Date) {
+    if (type === "TASK_OVERDUE") return "is overdue";
+    const due = dueDate ? new Date(dueDate).getTime() : NaN;
+    if (Number.isNaN(due)) return "is due soon";
+    const minutes = Math.round((due - createdAt.getTime()) / 60_000);
+    if (minutes <= 0) return "is due now";
+    if (minutes < 60) return `is due in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `is due in ${hours} hour${hours === 1 ? "" : "s"}`;
+    return "is due tomorrow";
 }
 
 /** Comment text for a one-line preview: mentions as names, whitespace squashed. */
@@ -158,7 +176,7 @@ export async function buildNotificationViews(userId: string, notifications: RawN
             timeLabel: timeAgo(createdAt),
             group: dayGroup(createdAt, now),
             actor: actor ? { name: actor.name?.trim() || actor.email, email: actor.email, image: actor.image } : null,
-            verb: notificationVerb(type),
+            verb: DUE_TYPES.has(type) ? dueVerb(type, info.dueDate, createdAt) : notificationVerb(type),
             taskTitle: liveTask?.title ?? (project ? (info.taskTitle ?? null) : null),
             projectName: project?.name ?? null,
             projectId: project?.id ?? null,

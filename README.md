@@ -54,7 +54,7 @@ The app runs as three processes that share PostgreSQL and Redis:
 ```
 
 - **Next.js app.** Serves the UI and runs every server action. It writes to PostgreSQL, puts notification jobs on a BullMQ queue, and publishes realtime events to Redis.
-- **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails.
+- **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails. It also runs two repeating jobs: a sweep every 15 minutes that reminds assignees when a task is due within a day or has become overdue, and a morning digest email of each person's overdue, due-today and upcoming tasks.
 - **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers: new comments, task changes (the live board) and notifications. Project events are addressed to individual users who can open the project, never broadcast to a whole workspace. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
 
 ## Getting started
@@ -108,6 +108,10 @@ SOCKET_AUTH_SECRET=
 
 # Redis: BullMQ queue + realtime pub/sub
 REDIS_URL=redis://localhost:6379
+
+# Due date digest email: the hour (0-23) and time zone it goes out in (optional)
+DIGEST_HOUR=8
+DIGEST_TIMEZONE=UTC
 
 # Upstash Redis: rate limiting
 UPSTASH_REDIS_REST_URL=

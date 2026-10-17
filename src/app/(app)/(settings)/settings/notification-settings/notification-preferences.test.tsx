@@ -16,7 +16,7 @@ describe("NotificationPreferences", () => {
     it("shows a labelled switch per type and channel", () => {
         render(<NotificationPreferences initial={{ ...DEFAULT_NOTIFICATION_PREFERENCES, emailComments: false }} />);
 
-        expect(screen.getAllByRole("switch")).toHaveLength(6);
+        expect(screen.getAllByRole("switch")).toHaveLength(8);
         expect(screen.getByRole("switch", { name: "Mentions: in app notifications" })).toHaveAttribute("aria-checked", "true");
         expect(screen.getByRole("switch", { name: "Comments on my tasks: email notifications" })).toHaveAttribute("aria-checked", "false");
     });

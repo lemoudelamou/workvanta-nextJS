@@ -1,4 +1,4 @@
-import { buildNotificationViews, commentSnippet, notificationVerb } from "./notification-feed";
+import { buildNotificationViews, commentSnippet, dueVerb, notificationVerb } from "./notification-feed";
 import { prisma } from "@/lib/db/prisma";
 
 jest.mock("@/lib/db/prisma", () => ({
@@ -124,5 +124,33 @@ describe("helpers", () => {
     it("has a verb for each type", () => {
         expect(notificationVerb("TASK_COMMENTED")).toBe("commented on");
         expect(notificationVerb("WHATEVER")).toBe("sent you a notification");
+    });
+});
+
+describe("due date reminders", () => {
+    it("words the reminder as it stood when it was made", () => {
+        const at = new Date("2026-10-17T10:00:00Z");
+        expect(dueVerb("TASK_DUE_SOON", "2026-10-17T15:00:00Z", at)).toBe("is due in 5 hours");
+        expect(dueVerb("TASK_DUE_SOON", "2026-10-17T10:01:00Z", at)).toBe("is due in 1 minute");
+        expect(dueVerb("TASK_DUE_SOON", "2026-10-17T09:00:00Z", at)).toBe("is due now");
+        expect(dueVerb("TASK_DUE_SOON", "2026-10-18T09:50:00Z", at)).toBe("is due tomorrow");
+        expect(dueVerb("TASK_DUE_SOON", undefined, at)).toBe("is due soon");
+        expect(dueVerb("TASK_OVERDUE", "2026-10-16T09:00:00Z", at)).toBe("is overdue");
+    });
+
+    it("has no actor and keeps the task link", async () => {
+        db.user.findMany.mockResolvedValue([]);
+        const [view] = await buildNotificationViews("u1", [
+            notification("n9", "TASK_DUE_SOON", {
+                taskId: "t1",
+                projectId: "p1",
+                taskTitle: "Design pricing page",
+                dueDate: "2026-10-17T14:00:00Z",
+            }),
+        ]);
+        expect(view.actor).toBeNull();
+        expect(view.verb).toBe("is due in 2 hours");
+        expect(view.taskTitle).toBe("Design pricing page");
+        expect(view.href).toBe("/workspace/acme/project/p1/tasks/t1");
     });
 });

@@ -35,6 +35,8 @@ import {
     queueMentionNotification,
 } from "@/lib/queue/notification.queue";
 import { publishTaskChanged } from "@/lib/realtime/task-events";
+import { createNextOccurrence } from "@/lib/tasks/recurrence";
+import { endOfDay } from "@/lib/due-date";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -248,7 +250,7 @@ export async function reorderTasksAction({
 
     if (changes.length === 0) return;
 
-    await prisma.$transaction(async (tx) => {
+    const repeatId = await prisma.$transaction(async (tx) => {
         for (const [id, { status, position }] of changes) {
             await tx.task.update({ where: { id }, data: { status, position } });
         }
@@ -266,9 +268,15 @@ export async function reorderTasksAction({
                 },
             });
         }
+
+        // Finishing a repeating task brings the next one in.
+        return destinationStatus === "DONE" && sourceStatus !== "DONE"
+            ? createNextOccurrence(tx, task.id, userId)
+            : null;
     });
 
     await publishTaskChanged(projectId, { taskId, kind: "moved" });
+    if (repeatId) await publishTaskChanged(projectId, { taskId: repeatId, kind: "created" });
     revalidatePath(projectPath(slug, projectId));
 }
 
@@ -324,15 +332,16 @@ export async function updateTaskAction(
 
     let dueDate: Date | null = null;
     if (data.dueDate) {
-        dueDate = new Date(`${data.dueDate}T23:59:59`);
-        if (Number.isNaN(dueDate.getTime())) throw new Error("Invalid due date.");
+        // The end of that day in UTC, the calendar due dates are shown in.
+        dueDate = endOfDay(data.dueDate);
+        if (!dueDate) throw new Error("Invalid due date.");
     }
 
     const statusChanged = task.status !== data.status;
     const priorityChanged = task.priority !== data.priority;
     const assigneeChanged = task.assigneeId !== assigneeId;
 
-    await prisma.$transaction(async (tx) => {
+    const repeatId = await prisma.$transaction(async (tx) => {
         const position = statusChanged
             ? await nextPosition(tx, {
                 projectId,
@@ -374,6 +383,9 @@ export async function updateTaskAction(
         if (statusChanged) await log("TASK_STATUS_CHANGED", task.status, data.status);
         if (priorityChanged) await log("TASK_PRIORITY_CHANGED", task.priority, data.priority);
         if (assigneeChanged) await log("TASK_ASSIGNED", task.assigneeId, assigneeId);
+
+        // Finishing a repeating task brings the next one in.
+        return statusChanged && data.status === "DONE" ? createNextOccurrence(tx, task.id, userId) : null;
     });
 
     if (assigneeChanged && assigneeId && assigneeId !== userId) {
@@ -389,6 +401,7 @@ export async function updateTaskAction(
     }
 
     await publishTaskChanged(projectId, { taskId, kind: "updated" });
+    if (repeatId) await publishTaskChanged(projectId, { taskId: repeatId, kind: "created" });
     revalidatePath(projectPath(slug, projectId));
     revalidatePath(taskPath(slug, projectId, taskId));
     redirect(taskPath(slug, projectId, taskId));

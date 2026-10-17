@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { AtSign, Bell, Check, MessageSquare, UserRoundPlus } from "lucide-react";
+import { AlertTriangle, AtSign, Bell, CalendarClock, Check, MessageSquare, UserRoundPlus } from "lucide-react";
 
 import type { NotificationView } from "@/lib/notifications/notification-feed";
+import { DUE_TYPES } from "@/lib/notifications/notification-types";
 import { projectDot } from "@/lib/navigation/project-color";
 import { personColor } from "@/lib/ui/person-color";
 
@@ -12,6 +13,14 @@ const TYPE_BADGE: Record<string, { icon: typeof Bell; tone: string; label: strin
     MENTION: { icon: AtSign, tone: "bg-brand text-white dark:text-[#0f1115]", label: "Mention" },
     TASK_COMMENTED: { icon: MessageSquare, tone: "bg-sky-500 text-white", label: "Comment" },
     TASK_ASSIGNED: { icon: UserRoundPlus, tone: "bg-status-done text-white", label: "Assigned" },
+    TASK_DUE_SOON: { icon: CalendarClock, tone: "bg-amber-500 text-white", label: "Due soon" },
+    TASK_OVERDUE: { icon: AlertTriangle, tone: "bg-danger text-white", label: "Overdue" },
+};
+
+/** Reminders show their own icon, large, in place of a face. */
+const REMINDER_FACE: Record<string, string> = {
+    TASK_DUE_SOON: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    TASK_OVERDUE: "bg-danger/12 text-danger",
 };
 const DEFAULT_BADGE = { icon: Bell, tone: "bg-muted-foreground text-white", label: "Update" };
 
@@ -23,6 +32,16 @@ function initials(name: string) {
 function Face({ view, size }: { view: NotificationView; size: number }) {
     const badge = TYPE_BADGE[view.type] ?? DEFAULT_BADGE;
     const Icon = badge.icon;
+    if (REMINDER_FACE[view.type]) {
+        return (
+            <span
+                className={`flex shrink-0 items-center justify-center rounded-full ${REMINDER_FACE[view.type]}`}
+                style={{ width: size, height: size }}
+            >
+                <Icon className={size > 36 ? "size-5" : "size-4"} aria-hidden="true" />
+            </span>
+        );
+    }
     return (
         <span className="relative shrink-0" style={{ width: size, height: size }}>
             {view.actor ? (
@@ -54,6 +73,7 @@ function Face({ view, size }: { view: NotificationView; size: number }) {
 /** One sentence: "Daghar Mourad mentioned you in Design pricing page". */
 export function notificationSentence(view: NotificationView) {
     const who = view.actor?.name ?? "Someone";
+    if (DUE_TYPES.has(view.type)) return `${view.taskTitle ?? "A task"} ${view.verb}`;
     if (view.type === "TASK_ASSIGNED") {
         return view.taskTitle ? `${who} assigned you ${view.taskTitle}` : `${who} assigned you a task`;
     }
@@ -76,7 +96,12 @@ export function NotificationRow({
 }) {
     const who = view.actor?.name ?? "Someone";
     const unread = !view.read;
-    const text = (
+    const text = DUE_TYPES.has(view.type) ? (
+        <>
+            <span className="font-semibold text-foreground">{view.taskTitle ?? "A task"}</span>{" "}
+            <span className={view.type === "TASK_OVERDUE" ? "font-medium text-danger" : "text-muted-foreground"}>{view.verb}</span>
+        </>
+    ) : (
         <>
             <span className="font-semibold text-foreground">{who}</span>{" "}
             <span className="text-muted-foreground">{view.type === "TASK_ASSIGNED" ? "assigned you" : view.verb}</span>{" "}
