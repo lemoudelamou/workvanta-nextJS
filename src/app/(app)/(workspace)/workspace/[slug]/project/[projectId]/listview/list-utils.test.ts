@@ -60,7 +60,7 @@ describe("sortTasks", () => {
 });
 
 describe("filterTasks", () => {
-    const none = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL" };
+    const none = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL", blocked: "ALL" };
 
     it("matches title search case-insensitively", () => {
         expect(ids(filterTasks(tasks, { ...none, search: "APP" }))).toEqual(["b"]);
@@ -71,6 +71,16 @@ describe("filterTasks", () => {
         expect(ids(filterTasks(tasks, { ...none, priority: "HIGH" }))).toEqual(["c"]);
         expect(ids(filterTasks(tasks, { ...none, assignee: "ada@x.com" }))).toEqual(["b"]);
         expect(ids(filterTasks(tasks, { ...none, assignee: "UNASSIGNED" }))).toEqual(["c"]);
+    });
+
+    it("filters by blocked, ignoring blockers on done tasks", () => {
+        const deps = [
+            task("x", { openBlockers: 2 }),
+            task("y"),
+            task("z", { openBlockers: 1, status: "DONE" }),
+        ];
+        expect(ids(filterTasks(deps, { ...none, blocked: "BLOCKED" }))).toEqual(["x"]);
+        expect(ids(filterTasks(deps, { ...none, blocked: "NOT_BLOCKED" }))).toEqual(["y", "z"]);
     });
 
     it("filters by label", () => {

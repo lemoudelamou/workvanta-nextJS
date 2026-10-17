@@ -14,7 +14,7 @@ import {
     type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Filter, Plus, Search, Tag, UserRound, X } from "lucide-react";
+import { Filter, Lock, Plus, Search, Tag, UserRound, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { buttonStyles } from "@/app/style/button-style";
@@ -42,6 +42,7 @@ const EMPTY_FILTERS: Filters = {
     status: "ALL",
     assignee: "ALL",
     label: "ALL",
+    blocked: "ALL",
 };
 
 export function KanbanBoard({
@@ -125,7 +126,8 @@ export function KanbanBoard({
         filters.priority !== "ALL" ||
         filters.status !== "ALL" ||
         filters.assignee !== "ALL" ||
-        filters.label !== "ALL";
+        filters.label !== "ALL" ||
+        filters.blocked !== "ALL";
 
     const uniqueAssignees = useMemo(() => {
         const map = new Map<string, { email: string; name: string | null }>();
@@ -315,6 +317,7 @@ export function KanbanBoard({
         filters.status !== "ALL" ? filters.status : "",
         filters.assignee !== "ALL" ? filters.assignee : "",
         filters.label !== "ALL" ? filters.label : "",
+        filters.blocked !== "ALL" ? filters.blocked : "",
     ].filter(Boolean).length;
     // Search has its own box; this counts the filters behind the Filters button.
     const panelFilterCount = activeFilterCount - (filters.search ? 1 : 0);
@@ -442,6 +445,17 @@ export function KanbanBoard({
                                 ))}
                             </FilterSelect>
                         )}
+
+                        <FilterSelect
+                            icon={<Lock className="size-3.5 text-slate-400" />}
+                            ariaLabel="Filter by dependencies"
+                            value={filters.blocked}
+                            onChange={(value) => updateFilter("blocked", value)}
+                        >
+                            <option value="ALL">Blocked or not</option>
+                            <option value="BLOCKED">Blocked</option>
+                            <option value="NOT_BLOCKED">Not blocked</option>
+                        </FilterSelect>
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/[0.06]">
@@ -503,6 +517,13 @@ export function KanbanBoard({
                         <FilterChip
                             label={`Label: ${labels.find((l) => l.id === filters.label)?.name ?? "Removed label"}`}
                             onRemove={() => updateFilter("label", "ALL")}
+                        />
+                    )}
+
+                    {filters.blocked !== "ALL" && (
+                        <FilterChip
+                            label={filters.blocked === "BLOCKED" ? "Blocked" : "Not blocked"}
+                            onRemove={() => updateFilter("blocked", "ALL")}
                         />
                     )}
 
