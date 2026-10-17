@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AppShell, LAST_WORKSPACE_COOKIE } from "@/components/shell/AppShell";
+import { AppShell } from "@/components/shell/AppShell";
+import { LAST_WORKSPACE_COOKIE, SIDEBAR_COOKIE } from "@/lib/navigation/shell-cookies";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { getShellWorkspaces } from "@/lib/navigation/shell-data";
+import { getMyOpenTaskCount, getShellWorkspaces } from "@/lib/navigation/shell-data";
 import { RealtimeProvider } from "@/lib/publisher/realtime-provider";
 
 export default async function AppLayout({
@@ -20,8 +21,9 @@ export default async function AppLayout({
 
     const userId = session.user.id;
 
-    const [workspaces, unreadCount, notifications, cookieStore] = await Promise.all([
+    const [workspaces, myOpenTasks, unreadCount, notifications, cookieStore] = await Promise.all([
         getShellWorkspaces(userId),
+        getMyOpenTaskCount(userId),
         prisma.notification.count({
             where: { userId, readAt: null },
         }),
@@ -55,6 +57,8 @@ export default async function AppLayout({
                 workspaces={workspaces}
                 lastWorkspaceSlug={cookieStore.get(LAST_WORKSPACE_COOKIE)?.value ?? null}
                 unreadCount={unreadCount}
+                myOpenTasks={myOpenTasks}
+                initiallyCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}
                 notifications={notifications}
             >
                 {children}

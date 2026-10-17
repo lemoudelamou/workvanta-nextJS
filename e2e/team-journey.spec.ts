@@ -105,7 +105,7 @@ test("owner creates a workspace and a project", async () => {
     await page.getByRole("button", { name: "Create workspace" }).click();
 
     await page.waitForURL(/\/workspace\/[^/]+$/);
-    await expect(page.getByRole("heading", { name: workspaceName })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: workspaceName })).toBeVisible();
     workspaceUrl = page.url();
 
     await page.getByRole("link", { name: "Create project" }).first().click();
@@ -113,7 +113,7 @@ test("owner creates a workspace and a project", async () => {
     await page.getByRole("button", { name: "Create project" }).click();
 
     await page.waitForURL(/\/project\/[^/]+$/);
-    await expect(page.getByRole("heading", { name: projectName })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: projectName })).toBeVisible();
     projectUrl = page.url();
 
     // The sidebar picks up the new project without a reload.
@@ -203,7 +203,7 @@ test("teammate accepts the invitation and sees the work", async () => {
     await page.getByRole("button", { name: "Accept invitation" }).click();
 
     await page.waitForURL(/\/workspace\/[^/]+$/);
-    await expect(page.getByRole("heading", { name: workspaceName })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: workspaceName })).toBeVisible();
 
     await page.getByRole("link", { name: `Open project ${projectName}` }).click();
     await page.waitForURL(projectUrl.replace(/^https?:\/\/[^/]+/, "**"));
