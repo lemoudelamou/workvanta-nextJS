@@ -141,6 +141,7 @@ export const ProjectScalarFieldEnum = {
   normalizedName: 'normalizedName',
   description: 'description',
   visibility: 'visibility',
+  labelPresets: 'labelPresets',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

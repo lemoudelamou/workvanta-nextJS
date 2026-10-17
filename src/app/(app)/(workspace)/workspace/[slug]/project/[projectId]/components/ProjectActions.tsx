@@ -7,6 +7,7 @@ import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { EditDetailsDialog, type EditDetailsState } from "@/components/ui/EditDetailsDialog";
 import ConfirmationModal from "@/components/ui/Modal";
 import { ManageLabelsDialog, type ManagedLabel } from "./ManageLabelsDialog";
+import type { PresetLabel } from "@/lib/labels/label-colors";
 import { deleteProjectAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 
 /** Rename, members, visibility and delete, in the project header's "⋯" menu. */
@@ -25,7 +26,7 @@ export function ProjectActions({
     setVisibility?: (visibility: "WORKSPACE" | "PRIVATE") => Promise<void>;
     canDelete: boolean;
     /** Present for people who may manage the project's labels. */
-    labels?: { slug: string; list: ManagedLabel[] };
+    labels?: { slug: string; list: ManagedLabel[]; presets: { list: PresetLabel[]; customized: boolean } };
 }) {
     const [editing, setEditing] = useState(false);
     const [managingLabels, setManagingLabels] = useState(false);
@@ -94,6 +95,7 @@ export function ProjectActions({
                     slug={labels.slug}
                     projectId={project.id}
                     labels={labels.list}
+                    presets={labels.presets}
                 />
             )}
 

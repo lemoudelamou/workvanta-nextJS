@@ -11,6 +11,7 @@ import {
     PRESET_LABELS,
     sortLabels,
     type LabelColor,
+    type PresetLabel,
     type TaskLabelView,
 } from "@/lib/labels/label-colors";
 import { createLabelAction, setTaskLabelsAction } from "../../../label-actions";
@@ -32,6 +33,7 @@ export function LabelPicker({
     projectLabels,
     initialSelected,
     canEdit,
+    presets = PRESET_LABELS,
 }: {
     slug: string;
     projectId: string;
@@ -39,6 +41,8 @@ export function LabelPicker({
     projectLabels: TaskLabelView[];
     initialSelected: string[];
     canEdit: boolean;
+    /** The project's suggested labels. */
+    presets?: PresetLabel[];
 }) {
     const listId = useId();
     const rootRef = useRef<HTMLDivElement>(null);
@@ -72,13 +76,13 @@ export function LabelPicker({
     const matches = labels.filter((l) => l.name.toLowerCase().includes(trimmed.toLowerCase()));
     // Ready-made labels the project doesn't have yet.
     const inProject = new Set(labels.map((l) => normalizeLabelName(l.name)));
-    const presets = PRESET_LABELS.filter(
+    const suggested = presets.filter(
         (p) => !inProject.has(normalizeLabelName(p.name)) && p.name.toLowerCase().includes(trimmed.toLowerCase()),
     );
-    const exact = [...labels, ...PRESET_LABELS].some((l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed));
+    const exact = [...labels, ...presets].some((l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed));
     const options: Option[] = [
         ...matches.map((label) => ({ kind: "label" as const, label })),
-        ...presets.map((p) => ({ kind: "preset" as const, ...p })),
+        ...suggested.map((p) => ({ kind: "preset" as const, ...p })),
         ...(trimmed && !exact && trimmed.length <= LABEL_NAME_MAX ? [{ kind: "create" as const, name: trimmed }] : []),
     ];
 
@@ -210,7 +214,7 @@ export function LabelPicker({
                     <ul id={listId} role="listbox" aria-label="Labels" aria-multiselectable="true" className="max-h-64 overflow-y-auto p-1">
                         {options.length === 0 && (
                             <li className="px-2.5 py-2 text-[13px] text-muted-foreground">
-                                {labels.length || presets.length ? "No labels match." : "Type a name to create a label."}
+                                {labels.length || suggested.length ? "No labels match." : "Type a name to create a label."}
                             </li>
                         )}
                         {options.map((option, index) =>
