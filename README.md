@@ -1,6 +1,6 @@
 # Workvanta
 
-Workvanta is a team workspace and project management app. Teams create workspaces, invite people with a role, organize work into projects, and track tasks on a Kanban board, with comments, mentions, attachments and real-time notifications.
+Workvanta is a team workspace and project management app. Teams create workspaces, invite people with a role, organize work into projects, and track tasks on a live Kanban board or list, with comments, mentions, attachments and real-time notifications.
 
 > 🚧 Under active development.
 
@@ -10,6 +10,7 @@ Workvanta is a team workspace and project management app. Teams create workspace
 - **Projects.** Each project is either shared with the whole workspace or private to the people on it. Members are added with a project role of Admin, Editor or Viewer.
 - **Kanban board.** Drag-and-drop tasks across To do, In progress, In review and Done. Tasks have a priority, assignee, due date and subtasks.
 - **Collaboration.** Comments with `@mentions`, file attachments up to 10 MB, and an activity history on every task. Attachments are stored privately and only open for people who can see the project.
+- **Live board.** When a teammate creates, moves, edits or deletes a task, open boards, lists and task pages update within a second, without a reload. Updates go only to people who can open that project.
 - **Notifications.** In-app and email notifications for assignments, comments and mentions, delivered in real time over WebSockets.
 - **Accounts and security.** Sign in with email and password or with Google or GitHub. Also included: email verification, password reset, two-factor authentication (TOTP with backup codes), a session list with remote sign-out, and rate limiting.
 - **Settings.** Profile, linked accounts, theme, language, and account deletion.
@@ -54,7 +55,7 @@ The app runs as three processes that share PostgreSQL and Redis:
 
 - **Next.js app.** Serves the UI and runs every server action. It writes to PostgreSQL, puts notification jobs on a BullMQ queue, and publishes realtime events to Redis.
 - **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails.
-- **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
+- **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers: new comments, task changes (the live board) and notifications. Project events are addressed to individual users who can open the project, never broadcast to a whole workspace. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
 
 ## Getting started
 

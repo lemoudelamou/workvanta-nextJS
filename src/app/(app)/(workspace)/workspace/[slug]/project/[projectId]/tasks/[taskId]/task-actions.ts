@@ -34,6 +34,7 @@ import {
     queueTaskCommentedNotification,
     queueMentionNotification,
 } from "@/lib/queue/notification.queue";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -146,7 +147,7 @@ export async function createSimpleTaskAction(
 
     if (!project) throw new Error("Project not found.");
 
-    await prisma.$transaction(async (tx) => {
+    const createdId = await prisma.$transaction(async (tx) => {
         const task = await tx.task.create({
             data: {
                 title: parsed.data.title,
@@ -168,8 +169,11 @@ export async function createSimpleTaskAction(
                 taskId: task.id,
             },
         });
+
+        return task.id;
     });
 
+    await publishTaskChanged(project.id, { taskId: createdId, kind: "created" });
     redirect(projectPath(slug, project.id));
 }
 
@@ -264,6 +268,7 @@ export async function reorderTasksAction({
         }
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "moved" });
     revalidatePath(projectPath(slug, projectId));
 }
 
@@ -383,6 +388,7 @@ export async function updateTaskAction(
         });
     }
 
+    await publishTaskChanged(projectId, { taskId, kind: "updated" });
     revalidatePath(projectPath(slug, projectId));
     revalidatePath(taskPath(slug, projectId, taskId));
     redirect(taskPath(slug, projectId, taskId));
@@ -417,6 +423,7 @@ export async function deleteTaskAction(
         });
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "deleted" });
     redirect(projectPath(slug, projectId));
 }
 
@@ -615,6 +622,7 @@ export async function deleteCommentAction(
         });
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "comments" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -654,6 +662,7 @@ export async function updateCommentAction(
         });
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "comments" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -687,6 +696,7 @@ export async function createSubtaskAction(
         },
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "subtasks" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -708,6 +718,7 @@ export async function toggleSubtaskAction(
         data: { completed: !subtask.completed },
     });
 
+    await publishTaskChanged(projectId, { taskId, kind: "subtasks" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -726,6 +737,7 @@ export async function deleteSubtaskAction(
 
     await prisma.subtask.delete({ where: { id: subtask.id } });
 
+    await publishTaskChanged(projectId, { taskId, kind: "subtasks" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -829,6 +841,7 @@ export async function uploadAttachmentAction(
         throw error;
     }
 
+    await publishTaskChanged(projectId, { taskId, kind: "attachments" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }
 
@@ -888,5 +901,6 @@ export async function deleteAttachmentAction(
         console.error("Failed to delete Cloudinary file:", publicId, error);
     }
 
+    await publishTaskChanged(projectId, { taskId, kind: "attachments" });
     revalidatePath(taskPath(slug, projectId, taskId));
 }

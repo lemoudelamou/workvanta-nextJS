@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { E2E_PORT, e2eEnv } from "./e2e/env";
+import { E2E_PORT, E2E_SOCKET_PORT, e2eEnv } from "./e2e/env";
 
 /**
  * End-to-end tests. Needs PostgreSQL (with migrations applied) and Redis;
@@ -31,15 +31,27 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
     },
 
-    webServer: {
-        command: useDev
-            ? `npx next dev -p ${E2E_PORT}`
-            : `npx next build && npx next start -p ${E2E_PORT}`,
-        url: `http://localhost:${E2E_PORT}/signin`,
-        timeout: 240_000,
-        reuseExistingServer: !isCI,
-        env: useDev ? { ...e2eEnv, NODE_ENV: "development" } : e2eEnv,
-        stdout: "pipe",
-        stderr: "pipe",
-    },
+    webServer: [
+        {
+            command: useDev
+                ? `npx next dev -p ${E2E_PORT}`
+                : `npx next build && npx next start -p ${E2E_PORT}`,
+            url: `http://localhost:${E2E_PORT}/signin`,
+            timeout: 240_000,
+            reuseExistingServer: !isCI,
+            env: useDev ? { ...e2eEnv, NODE_ENV: "development" } : e2eEnv,
+            stdout: "pipe",
+            stderr: "pipe",
+        },
+        {
+            // Realtime (live board, comments, notifications).
+            command: "npx tsx src/lib/services/socket/server.ts",
+            url: `http://localhost:${E2E_SOCKET_PORT}/health`,
+            timeout: 60_000,
+            reuseExistingServer: !isCI,
+            env: { ...e2eEnv, SOCKET_PORT: String(E2E_SOCKET_PORT) },
+            stdout: "pipe",
+            stderr: "pipe",
+        },
+    ],
 });

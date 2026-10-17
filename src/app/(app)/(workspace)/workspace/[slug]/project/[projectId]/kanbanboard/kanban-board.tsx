@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -30,6 +30,7 @@ import { FilterChip } from "./filter-chip";
 import { FilterSelect } from "./filter-select";
 import { TaskCard } from "./task-card";
 import type { BoardTask, Columns, Filters } from "./kanban-types";
+import { beginInteraction, endInteraction } from "@/lib/realtime/interaction-lock";
 
 export type { BoardTask } from "./kanban-types";
 
@@ -150,6 +151,14 @@ export function KanbanBoard({
         setDialog((current) => ({ ...current, open: false }));
     }
 
+    // Leaving the page mid-drag must not keep live refreshes on hold.
+    useEffect(
+        () => () => {
+            if (dragStart.current) endInteraction();
+        },
+        [],
+    );
+
     function handleDragStart({ active }: DragStartEvent) {
         const id = String(active.id);
         const status = findColumn(columns, id);
@@ -157,6 +166,8 @@ export function KanbanBoard({
         if (!status) return;
 
         dragStart.current = { status, snapshot: columns };
+        // Hold live refreshes until the card is dropped.
+        beginInteraction();
 
         setActiveId(id);
         setError(null);
@@ -198,6 +209,7 @@ export function KanbanBoard({
     function handleDragEnd({ active, over }: DragEndEvent) {
         const start = dragStart.current;
 
+        if (start) endInteraction();
         dragStart.current = null;
         setActiveId(null);
 
@@ -261,6 +273,7 @@ export function KanbanBoard({
     function handleDragCancel() {
         if (dragStart.current) {
             setColumns(dragStart.current.snapshot);
+            endInteraction();
         }
 
         dragStart.current = null;
