@@ -49,6 +49,14 @@ describe("LabelPicker", () => {
         expect(setTaskLabelsAction).toHaveBeenCalledWith("acme", "p1", "t1", ["l2"]);
     });
 
+    it("suggests the project's own list when it has one", () => {
+        render(<LabelPicker {...props} presets={[{ name: "Backend", color: "teal" }]} />);
+        fireEvent.click(screen.getByRole("button", { name: "Add labels" }));
+
+        expect(screen.getByRole("option", { name: "Backend" })).toBeInTheDocument();
+        expect(screen.queryByRole("option", { name: "Feature" })).not.toBeInTheDocument();
+    });
+
     it("still offers to create a custom label", () => {
         openMenu();
         fireEvent.change(screen.getByRole("combobox"), { target: { value: "Backend" } });

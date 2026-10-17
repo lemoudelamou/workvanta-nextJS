@@ -53,6 +53,7 @@ export type ProjectCountAggregateOutputType = {
   normalizedName: number
   description: number
   visibility: number
+  labelPresets: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -88,6 +89,7 @@ export type ProjectCountAggregateInputType = {
   normalizedName?: true
   description?: true
   visibility?: true
+  labelPresets?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -172,6 +174,7 @@ export type ProjectGroupByOutputType = {
   normalizedName: string
   description: string | null
   visibility: $Enums.ProjectVisibility
+  labelPresets: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: ProjectCountAggregateOutputType | null
@@ -204,6 +207,7 @@ export type ProjectWhereInput = {
   normalizedName?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
   visibility?: Prisma.EnumProjectVisibilityFilter<"Project"> | $Enums.ProjectVisibility
+  labelPresets?: Prisma.JsonNullableFilter<"Project">
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
@@ -220,6 +224,7 @@ export type ProjectOrderByWithRelationInput = {
   normalizedName?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
+  labelPresets?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
@@ -240,6 +245,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   normalizedName?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
   visibility?: Prisma.EnumProjectVisibilityFilter<"Project"> | $Enums.ProjectVisibility
+  labelPresets?: Prisma.JsonNullableFilter<"Project">
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
@@ -256,6 +262,7 @@ export type ProjectOrderByWithAggregationInput = {
   normalizedName?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
+  labelPresets?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ProjectCountOrderByAggregateInput
@@ -273,6 +280,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
   normalizedName?: Prisma.StringWithAggregatesFilter<"Project"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   visibility?: Prisma.EnumProjectVisibilityWithAggregatesFilter<"Project"> | $Enums.ProjectVisibility
+  labelPresets?: Prisma.JsonNullableWithAggregatesFilter<"Project">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
 }
@@ -283,6 +291,7 @@ export type ProjectCreateInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutProjectsInput
@@ -299,6 +308,7 @@ export type ProjectUncheckedCreateInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
@@ -313,6 +323,7 @@ export type ProjectUpdateInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -329,6 +340,7 @@ export type ProjectUncheckedUpdateInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
@@ -344,6 +356,7 @@ export type ProjectCreateManyInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -354,6 +367,7 @@ export type ProjectUpdateManyMutationInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -365,6 +379,7 @@ export type ProjectUncheckedUpdateManyInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -391,6 +406,7 @@ export type ProjectCountOrderByAggregateInput = {
   normalizedName?: Prisma.SortOrder
   description?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
+  labelPresets?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -537,6 +553,7 @@ export type ProjectCreateWithoutWorkspaceInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
@@ -551,6 +568,7 @@ export type ProjectUncheckedCreateWithoutWorkspaceInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
@@ -595,6 +613,7 @@ export type ProjectScalarWhereInput = {
   normalizedName?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
   visibility?: Prisma.EnumProjectVisibilityFilter<"Project"> | $Enums.ProjectVisibility
+  labelPresets?: Prisma.JsonNullableFilter<"Project">
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
 }
@@ -605,6 +624,7 @@ export type ProjectCreateWithoutMembersInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutProjectsInput
@@ -620,6 +640,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
@@ -649,6 +670,7 @@ export type ProjectUpdateWithoutMembersInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -664,6 +686,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
@@ -677,6 +700,7 @@ export type ProjectCreateWithoutTasksInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutProjectsInput
@@ -692,6 +716,7 @@ export type ProjectUncheckedCreateWithoutTasksInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
@@ -721,6 +746,7 @@ export type ProjectUpdateWithoutTasksInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -736,6 +762,7 @@ export type ProjectUncheckedUpdateWithoutTasksInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
@@ -749,6 +776,7 @@ export type ProjectCreateWithoutInvitationsInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutProjectsInput
@@ -764,6 +792,7 @@ export type ProjectUncheckedCreateWithoutInvitationsInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
@@ -793,6 +822,7 @@ export type ProjectUpdateWithoutInvitationsInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -808,6 +838,7 @@ export type ProjectUncheckedUpdateWithoutInvitationsInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
@@ -821,6 +852,7 @@ export type ProjectCreateWithoutLabelsInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutProjectsInput
@@ -836,6 +868,7 @@ export type ProjectUncheckedCreateWithoutLabelsInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
@@ -865,6 +898,7 @@ export type ProjectUpdateWithoutLabelsInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -880,6 +914,7 @@ export type ProjectUncheckedUpdateWithoutLabelsInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
@@ -893,6 +928,7 @@ export type ProjectCreateManyWorkspaceInput = {
   normalizedName: string
   description?: string | null
   visibility?: $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -903,6 +939,7 @@ export type ProjectUpdateWithoutWorkspaceInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
@@ -917,6 +954,7 @@ export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
@@ -931,6 +969,7 @@ export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
   normalizedName?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.EnumProjectVisibilityFieldUpdateOperationsInput | $Enums.ProjectVisibility
+  labelPresets?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1000,6 +1039,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   normalizedName?: boolean
   description?: boolean
   visibility?: boolean
+  labelPresets?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -1017,6 +1057,7 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   normalizedName?: boolean
   description?: boolean
   visibility?: boolean
+  labelPresets?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -1029,6 +1070,7 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   normalizedName?: boolean
   description?: boolean
   visibility?: boolean
+  labelPresets?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -1041,11 +1083,12 @@ export type ProjectSelectScalar = {
   normalizedName?: boolean
   description?: boolean
   visibility?: boolean
+  labelPresets?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "normalizedName" | "description" | "visibility" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "normalizedName" | "description" | "visibility" | "labelPresets" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   tasks?: boolean | Prisma.Project$tasksArgs<ExtArgs>
@@ -1077,6 +1120,11 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     normalizedName: string
     description: string | null
     visibility: $Enums.ProjectVisibility
+    /**
+     * The suggested labels in the label menu, as [{ name, color }].
+     * NULL until an admin edits them: the app's default list applies.
+     */
+    labelPresets: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["project"]>
@@ -1513,6 +1561,7 @@ export interface ProjectFieldRefs {
   readonly normalizedName: Prisma.FieldRef<"Project", 'String'>
   readonly description: Prisma.FieldRef<"Project", 'String'>
   readonly visibility: Prisma.FieldRef<"Project", 'ProjectVisibility'>
+  readonly labelPresets: Prisma.FieldRef<"Project", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Project", 'DateTime'>
 }

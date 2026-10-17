@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireProjectPermission } from "@/lib/auth/members";
 import { requireTaskEditor } from "@/lib/auth/task_permission";
@@ -12,7 +13,10 @@ import {
     LABEL_NAME_MAX,
     nextLabelColor,
     normalizeLabelName,
+    parsePresets,
     presetLabel,
+    projectPresets,
+    type PresetLabel,
     type TaskLabelView,
 } from "@/lib/labels/label-colors";
 
@@ -64,14 +68,19 @@ export async function createLabelAction(
         });
         if (existing) return { label: existing };
 
-        const used = await prisma.label.findMany({ where: { projectId: access.project.id }, select: { color: true } });
+        const [used, project] = await Promise.all([
+            prisma.label.findMany({ where: { projectId: access.project.id }, select: { color: true } }),
+            prisma.project.findUnique({ where: { id: access.project.id }, select: { labelPresets: true } }),
+        ]);
         const label = await prisma.label.create({
             data: {
                 projectId: access.project.id,
                 name: cleaned.name,
                 normalizedName,
-                // A ready-made label keeps its usual colour.
-                color: presetLabel(cleaned.name)?.color ?? nextLabelColor(used.map((l) => l.color)),
+                // A ready-made label keeps the colour it's suggested with.
+                color:
+                    presetLabel(cleaned.name, projectPresets(project?.labelPresets))?.color ??
+                    nextLabelColor(used.map((l) => l.color)),
             },
             select: { id: true, name: true, color: true },
         });
@@ -170,5 +179,38 @@ export async function deleteLabelAction(slug: string, projectId: string, labelId
         await publishTaskChanged(access.project.id, { kind: "updated" });
         refresh(slug, projectId);
         return {};
+    });
+}
+
+/**
+ * Replaces the project's suggested labels, or with `null` goes back to the
+ * app's defaults: project admins only. Labels already made stay as they are.
+ */
+export async function setLabelPresetsAction(
+    slug: string,
+    projectId: string,
+    presets: PresetLabel[] | null,
+): Promise<Result<{ presets: PresetLabel[] }>> {
+    return attempt<{ presets: PresetLabel[] }>(async () => {
+        const access = await requireProjectPermission(
+            slug,
+            projectId,
+            "project.update",
+            "Only project admins can change the suggested labels.",
+        );
+
+        let stored: PresetLabel[] | null = null;
+        if (presets !== null) {
+            const parsed = parsePresets(presets);
+            if ("error" in parsed) return { error: parsed.error };
+            stored = parsed.presets;
+        }
+
+        await prisma.project.update({
+            where: { id: access.project.id },
+            data: { labelPresets: stored ?? Prisma.DbNull },
+        });
+        refresh(slug, projectId);
+        return { presets: projectPresets(stored) };
     });
 }

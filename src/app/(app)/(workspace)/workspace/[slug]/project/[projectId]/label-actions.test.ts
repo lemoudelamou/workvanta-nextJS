@@ -1,6 +1,7 @@
 import {
     createLabelAction,
     deleteLabelAction,
+    setLabelPresetsAction,
     setTaskLabelsAction,
     updateLabelAction,
 } from "./label-actions";
@@ -25,6 +26,7 @@ jest.mock("@/lib/db/prisma", () => ({
             deleteMany: jest.fn(),
         },
         task: { findFirst: jest.fn() },
+        project: { findUnique: jest.fn(), update: jest.fn() },
         taskLabel: { deleteMany: jest.fn((x) => ({ op: "delete", ...x })), createMany: jest.fn((x) => ({ op: "create", ...x })) },
         $transaction: jest.fn(),
     },
@@ -42,6 +44,7 @@ beforeEach(() => {
     db.label.findUnique.mockResolvedValue(null);
     db.label.findFirst.mockResolvedValue(null);
     db.task.findFirst.mockResolvedValue({ id: "t1" });
+    db.project.findUnique.mockResolvedValue({ labelPresets: null });
     jest.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -70,6 +73,17 @@ describe("createLabelAction", () => {
 
         expect(db.label.create).toHaveBeenCalledWith(
             expect.objectContaining({ data: expect.objectContaining({ normalizedName: "feature", color: "blue" }) }),
+        );
+    });
+
+    it("uses the colour from the project's own suggestions", async () => {
+        db.project.findUnique.mockResolvedValue({ labelPresets: [{ name: "Backend", color: "teal" }] });
+        db.label.create.mockResolvedValue({ id: "l3", name: "Backend", color: "teal" });
+
+        await createLabelAction("acme", "p1", "backend");
+
+        expect(db.label.create).toHaveBeenCalledWith(
+            expect.objectContaining({ data: expect.objectContaining({ color: "teal" }) }),
         );
     });
 
@@ -167,5 +181,45 @@ describe("updateLabelAction and deleteLabelAction (project admins)", () => {
 
         db.label.deleteMany.mockResolvedValue({ count: 0 });
         expect(await deleteLabelAction("acme", "p1", "nope")).toEqual({ error: "That label no longer exists." });
+    });
+});
+
+describe("setLabelPresetsAction (project admins)", () => {
+    it("needs the project.update permission", async () => {
+        admin.mockRejectedValue(new ForbiddenError("Only project admins can change the suggested labels."));
+        expect(await setLabelPresetsAction("acme", "p1", [])).toEqual({
+            error: "Only project admins can change the suggested labels.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("saves a tidied list", async () => {
+        const result = await setLabelPresetsAction("acme", "p1", [{ name: "  Back   end ", color: "teal" }]);
+
+        expect(db.project.update).toHaveBeenCalledWith({
+            where: { id: "p1" },
+            data: { labelPresets: [{ name: "Back end", color: "teal" }] },
+        });
+        expect(result).toEqual({ presets: [{ name: "Back end", color: "teal" }] });
+    });
+
+    it("refuses duplicates and unknown colours", async () => {
+        expect(
+            await setLabelPresetsAction("acme", "p1", [
+                { name: "Bug", color: "red" },
+                { name: "bug", color: "blue" },
+            ]),
+        ).toEqual({ error: "“bug” is in the list twice." });
+        expect(await setLabelPresetsAction("acme", "p1", [{ name: "X", color: "neon" as never }])).toEqual({
+            error: "Pick one of the colours.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("goes back to the defaults with null", async () => {
+        const result = await setLabelPresetsAction("acme", "p1", null);
+
+        expect(db.project.update.mock.calls[0][0].data.labelPresets).not.toBeNull();
+        expect(result).toEqual({ presets: expect.arrayContaining([{ name: "Bug", color: "red" }]) });
     });
 });
