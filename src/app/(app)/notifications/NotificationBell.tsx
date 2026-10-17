@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Bell, CheckCheck } from "lucide-react";
 
 import {
@@ -11,7 +10,6 @@ import {
 } from "@/app/(app)/notifications/notifications-actions";
 import type { NotificationView } from "@/lib/notifications/notification-feed";
 import { NotificationRow } from "./notification-row";
-import { getSocket } from "@/lib/socket/client";
 
 export type BellNotification = NotificationView;
 
@@ -26,7 +24,6 @@ export function NotificationBell({
                                      unreadCount: initialUnreadCount,
                                      notifications: initialNotifications = NO_NOTIFICATIONS,
                                  }: NotificationBellProps) {
-    const router = useRouter();
 
     const [open, setOpen] = useState(false);
     const [items, setItems] = useState<BellNotification[]>(initialNotifications);
@@ -51,32 +48,6 @@ export function NotificationBell({
         setItems(initialNotifications);
         setUnread(initialUnreadCount);
     }
-
-    useEffect(() => {
-        let mounted = true;
-        let socket: Awaited<ReturnType<typeof getSocket>> | null = null;
-
-        function handleNotificationCreated() {
-            if (mounted) router.refresh();
-        }
-
-        async function connect() {
-            try {
-                socket = await getSocket();
-                if (!mounted) return;
-                socket.on("notification-created", handleNotificationCreated);
-            } catch (error) {
-                console.error("Failed to connect notification socket:", error);
-            }
-        }
-
-        void connect();
-
-        return () => {
-            mounted = false;
-            socket?.off("notification-created", handleNotificationCreated);
-        };
-    }, [router]);
 
     useEffect(() => {
         if (!open) return;
