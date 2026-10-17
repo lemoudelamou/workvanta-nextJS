@@ -57,7 +57,7 @@ export function SubtasksSection({ subtasks, slug, projectId, taskId, canEdit = t
     return (
         <section aria-labelledby="subtasks-heading">
             <div className="flex items-center gap-2.5">
-                <h2 id="subtasks-heading" className="text-[15px] font-semibold text-foreground">
+                <h2 id="subtasks-heading" className="text-sm font-semibold text-foreground">
                     Subtasks
                 </h2>
                 {total > 0 && (
@@ -75,7 +75,7 @@ export function SubtasksSection({ subtasks, slug, projectId, taskId, canEdit = t
                 )}
             </div>
 
-            <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
+            <div className="mt-3 overflow-hidden rounded-xl border border-border">
                 {total > 0 && (
                     <ul className="divide-y divide-border">
                         {subtasks.map((subtask) => (

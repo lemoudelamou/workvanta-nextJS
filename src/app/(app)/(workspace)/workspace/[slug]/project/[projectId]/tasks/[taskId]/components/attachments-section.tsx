@@ -40,7 +40,7 @@ export function AttachmentsSection({
 
     return (
         <section aria-labelledby="attachments-heading">
-            <h2 id="attachments-heading" className="flex items-baseline gap-2 text-[15px] font-semibold text-foreground">
+            <h2 id="attachments-heading" className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
                 Attachments
                 {count > 0 && (
                     <span className="text-[13px] font-normal text-muted-foreground">
@@ -49,14 +49,14 @@ export function AttachmentsSection({
                 )}
             </h2>
 
-            <ul className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {attachments.map((attachment) => {
                     const kind = fileKind(attachment.mimeType, attachment.filename);
                     const Icon = kind.icon;
                     return (
                         <li
                             key={attachment.id}
-                            className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 pr-10 shadow-[0_1px_2px_rgba(23,26,33,0.04)] transition-colors hover:border-foreground/20"
+                            className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 pr-10 transition-colors hover:border-foreground/20"
                         >
                             <span aria-hidden="true" className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${kind.tint}`}>
                                 <Icon className="size-5" />

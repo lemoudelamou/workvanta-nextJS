@@ -89,11 +89,22 @@ describe("the activity stream", () => {
         expect(screen.queryByRole("link")).not.toBeInTheDocument();
     });
 
-    it("renders @mentions as names", () => {
+    it("shows a mention as the person's name in bold, never the stored markup", () => {
         renderFeed({
             items: [{ ...(comment("c1") as any), content: "Thanks @[Ada Lovelace](ada@x.com)!" }],
         });
-        expect(screen.getByText("@Ada Lovelace")).toBeInTheDocument();
+        const name = screen.getByText("Ada Lovelace", { selector: "strong" });
+        expect(name.closest("p")).toHaveTextContent("Thanks Ada Lovelace!");
+        expect(screen.queryByText(/@\[/)).not.toBeInTheDocument();
+    });
+
+    it("puts your own messages on the right and groups a run from the same person", () => {
+        renderFeed({
+            items: [comment("c1", ada, 1), comment("c2", ada, 2), comment("c3", me, 3)],
+        });
+        // One header for Ada's two messages in a row.
+        expect(screen.getAllByText("Ada Lovelace")).toHaveLength(1);
+        expect(screen.getByText("Comment c3").closest("div[class*='flex-row-reverse']")).not.toBeNull();
     });
 });
 
@@ -161,18 +172,24 @@ describe("deleting a comment", () => {
 });
 
 describe("editing a comment", () => {
-    it("saves the edited text", async () => {
+    it("opens the comment with mentions as names and saves it back as markup", async () => {
         const updateComment = jest.fn().mockResolvedValue(undefined);
-        renderFeed({ updateComment });
+        renderFeed({
+            items: [{ ...(comment("c1") as any), content: "Hi @[Ada Lovelace](ada@x.com)" }],
+            updateComment,
+        });
 
         fireEvent.click(screen.getByRole("button", { name: "Edit comment" }));
-        fireEvent.change(screen.getByLabelText("Edit comment"), { target: { value: "  Updated  " } });
+        const box = screen.getByRole("textbox", { name: "Edit comment" });
+        expect(box).toHaveTextContent("Hi Ada Lovelace");
+
+        box.append(document.createTextNode(" thanks"));
+        fireEvent.input(box);
         await act(async () => {
             fireEvent.click(screen.getByRole("button", { name: "Save" }));
         });
 
-        expect(updateComment).toHaveBeenCalledWith("c1", expect.any(FormData));
-        expect((updateComment.mock.calls[0][1] as FormData).get("content")).toBe("Updated");
+        expect((updateComment.mock.calls[0][1] as FormData).get("content")).toBe("Hi @[Ada Lovelace](ada@x.com) thanks");
     });
 });
 

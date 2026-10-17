@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition, type ReactNode } from "react";
-import { CalendarDays, ChevronDown, Loader2, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { CalendarDays, ChevronDown, Loader2, UserRound } from "lucide-react";
 
 import { personColor } from "@/lib/ui/person-color";
+import { PropertyMenu } from "./property-menu";
 import {
     errorMessage,
     getInitials,
@@ -20,12 +21,45 @@ import {
 
 type Person = { id: string; name: string | null; email: string; image: string | null };
 
-const DATE = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" });
+const DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 /** The due date is stored as the end of that day; show the calendar day. */
-function formatDay(value: string) {
-    return DATE.format(new Date(`${value}T12:00:00Z`));
+export function formatDay(value: string) {
+    return DAY.format(new Date(`${value}T12:00:00Z`));
 }
+
+function isoDay(date: Date) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 10);
+}
+
+function addDays(days: number) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return isoDay(date);
+}
+
+// Soft tints so each property reads at a glance; same hues as the board.
+const STATUS_TINT: Record<string, string> = {
+    TODO: "bg-foreground/[0.05] ring-foreground/10",
+    IN_PROGRESS: "bg-status-progress/10 ring-status-progress/25",
+    IN_REVIEW: "bg-status-review/12 ring-status-review/30",
+    DONE: "bg-status-done/10 ring-status-done/25",
+};
+
+const PRIORITY_TINT: Record<string, string> = {
+    URGENT: "bg-danger/10 ring-danger/25",
+    HIGH: "bg-orange-500/10 ring-orange-500/25",
+    MEDIUM: "bg-amber-500/10 ring-amber-500/25",
+    LOW: "bg-sky-500/10 ring-sky-500/25",
+};
+
+const NEUTRAL_TINT = "bg-foreground/[0.04] ring-foreground/10";
+
+const pill =
+    "inline-flex h-8 max-w-full items-center gap-2 rounded-full px-3 text-[13px] font-medium text-foreground ring-1 ring-inset";
+const interactive =
+    "group outline-none transition-[filter,box-shadow] hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-brand dark:hover:brightness-125";
 
 export function StatusDot({ status }: { status: string }) {
     return <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${statusMeta(status).dot}`} />;
@@ -51,7 +85,7 @@ export function PersonAvatar({ person, size = 20 }: { person: Person; size?: num
     return (
         <span
             className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold ${personColor(person.email)}`}
-            style={{ width: size, height: size, fontSize: size * 0.42 }}
+            style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
         >
             {person.image ? (
                 <Image src={person.image} alt="" fill className="object-cover" sizes={`${size}px`} />
@@ -62,59 +96,17 @@ export function PersonAvatar({ person, size = 20 }: { person: Person; size?: num
     );
 }
 
-function Row({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
-    return (
-        <div className="grid min-h-10 grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
-            {htmlFor ? (
-                <label htmlFor={htmlFor} className="text-[13px] text-muted-foreground">
-                    {label}
-                </label>
-            ) : (
-                <span className="text-[13px] text-muted-foreground">{label}</span>
-            )}
-            <div className="min-w-0">{children}</div>
-        </div>
-    );
-}
+const Caret = () => (
+    <ChevronDown
+        className="-mr-1 size-3.5 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100"
+        aria-hidden="true"
+    />
+);
 
-/** A native select dressed as a quiet button, with an icon in front. */
-function PropertySelect({
-    id,
-    value,
-    onChange,
-    disabled,
-    leading,
-    tone,
-    children,
-}: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-    leading: ReactNode;
-    tone?: string;
-    children: ReactNode;
-}) {
-    return (
-        <div className="group relative flex items-center">
-            <span className="pointer-events-none absolute left-2 flex items-center">{leading}</span>
-            <select
-                id={id}
-                value={value}
-                disabled={disabled}
-                onChange={(event) => onChange(event.target.value)}
-                className={`h-8 w-full min-w-0 cursor-pointer appearance-none truncate rounded-md bg-transparent pl-8 pr-7 text-sm font-medium outline-none transition-colors hover:bg-foreground/[0.05] focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait dark:[color-scheme:dark] ${tone ?? "text-foreground"}`}
-            >
-                {children}
-            </select>
-            <ChevronDown
-                className="pointer-events-none absolute right-2 size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                aria-hidden="true"
-            />
-        </div>
-    );
-}
-
+/**
+ * Status, priority, assignee and due date as pills under the title. For
+ * editors each opens a small menu and saves straight away.
+ */
 export function TaskProperties({
     values,
     people,
@@ -122,7 +114,6 @@ export function TaskProperties({
     overdue,
     canEdit,
     updateTask,
-    footer,
 }: {
     values: TaskValues;
     people: Person[];
@@ -131,8 +122,6 @@ export function TaskProperties({
     overdue: boolean;
     canEdit: boolean;
     updateTask: UpdateTask;
-    /** Read-only rows under the editable ones (created by, created…). */
-    footer?: ReactNode;
 }) {
     const [current, setCurrent] = useState(values);
     const [error, setError] = useState<string | null>(null);
@@ -155,179 +144,153 @@ export function TaskProperties({
         });
     }
 
-    const assigned = people.find((p) => p.id === current.assigneeId) ?? (assignee?.id === current.assigneeId ? assignee : null);
+    const everyone = assignee && !people.some((p) => p.id === assignee.id) ? [assignee, ...people] : people;
+    const assigned =
+        assignee?.id === current.assigneeId ? assignee : (everyone.find((p) => p.id === current.assigneeId) ?? null);
     const status = statusMeta(current.status);
     const priority = priorityMeta(current.priority);
+    // Overdue is worked out on the server; drop it as soon as the date changes.
+    const late = overdue && current.dueDate === values.dueDate && current.status !== "DONE";
+
+    const statusPill = (
+        <>
+            <StatusDot status={current.status} />
+            <span className="truncate">{status.label}</span>
+        </>
+    );
+    const priorityPill = (
+        <>
+            <PriorityBars priority={current.priority} />
+            <span className="truncate">{priority.label}</span>
+        </>
+    );
+    const assigneePill = assigned ? (
+        <>
+            <span className="-ml-1.5">
+                <PersonAvatar person={assigned} size={22} />
+            </span>
+            <span className="truncate">{assigned.name ?? assigned.email}</span>
+        </>
+    ) : (
+        <>
+            <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">Unassigned</span>
+        </>
+    );
+    const duePill = (
+        <>
+            <CalendarDays className={`size-4 ${late ? "text-danger" : "text-muted-foreground"}`} aria-hidden="true" />
+            {current.dueDate ? (
+                <span className={late ? "text-danger" : undefined}>
+                    {formatDay(current.dueDate)}
+                    {late ? " (overdue)" : ""}
+                </span>
+            ) : (
+                <span className="text-muted-foreground">No due date</span>
+            )}
+        </>
+    );
+
+    const statusTint = STATUS_TINT[current.status] ?? NEUTRAL_TINT;
+    const priorityTint = PRIORITY_TINT[current.priority] ?? NEUTRAL_TINT;
+    const dueTint = late ? "bg-danger/10 ring-danger/25" : NEUTRAL_TINT;
+
+    if (!canEdit) {
+        return (
+            <ul aria-label="Task properties" className="flex flex-wrap items-center gap-2">
+                <li className={`${pill} ${statusTint}`}>{statusPill}</li>
+                <li className={`${pill} ${priorityTint}`}>{priorityPill}</li>
+                <li className={`${pill} ${NEUTRAL_TINT}`}>{assigneePill}</li>
+                <li className={`${pill} ${dueTint}`}>{duePill}</li>
+            </ul>
+        );
+    }
+
+    const dayOptions = [
+        { value: addDays(0), label: "Today" },
+        { value: addDays(1), label: "Tomorrow" },
+        { value: addDays(7), label: "In a week" },
+        ...(current.dueDate ? [{ value: "", label: "Remove due date" }] : []),
+    ].map((o) => ({ ...o, hint: o.value ? formatDay(o.value).replace(/, \d{4}$/, "") : undefined }));
 
     return (
-        <div>
-            <div className="flex items-center justify-between px-4 pb-1 pt-3.5">
-                <h2 className="text-[13px] font-semibold text-foreground">Properties</h2>
+        <div aria-label="Task properties" role="group">
+            <div className="flex flex-wrap items-center gap-2">
+                <PropertyMenu
+                    label="Status"
+                    value={current.status}
+                    onSelect={(v) => change("status", v)}
+                    triggerClassName={`${pill} ${interactive} ${statusTint}`}
+                    trigger={<>{statusPill}<Caret /></>}
+                    options={STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label, icon: <StatusDot status={o.value} /> }))}
+                />
+                <PropertyMenu
+                    label="Priority"
+                    value={current.priority}
+                    onSelect={(v) => change("priority", v)}
+                    triggerClassName={`${pill} ${interactive} ${priorityTint}`}
+                    trigger={<>{priorityPill}<Caret /></>}
+                    options={PRIORITY_OPTIONS.map((o) => ({ value: o.value, label: o.label, icon: <PriorityBars priority={o.value} /> }))}
+                />
+                <PropertyMenu
+                    label="Assignee"
+                    value={current.assigneeId}
+                    onSelect={(v) => change("assigneeId", v)}
+                    searchable={everyone.length > 6}
+                    triggerClassName={`${pill} ${interactive} ${NEUTRAL_TINT}`}
+                    trigger={<>{assigneePill}<Caret /></>}
+                    options={[
+                        {
+                            value: "",
+                            label: "Unassigned",
+                            icon: <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />,
+                        },
+                        ...everyone.map((person) => ({
+                            value: person.id,
+                            label: person.name ?? person.email,
+                            icon: <PersonAvatar person={person} />,
+                        })),
+                    ]}
+                />
+                <PropertyMenu
+                    label="Due date"
+                    value={current.dueDate}
+                    onSelect={(v) => change("dueDate", v)}
+                    triggerClassName={`${pill} ${interactive} ${dueTint}`}
+                    trigger={<>{duePill}<Caret /></>}
+                    options={dayOptions}
+                    footer={(close) => (
+                        <label className="flex items-center justify-between gap-3 border-t border-border px-3.5 py-2.5 text-[13px] text-muted-foreground">
+                            Pick a date
+                            <input
+                                type="date"
+                                aria-label="Due date"
+                                value={current.dueDate}
+                                onChange={(event) => {
+                                    if (!event.target.value) return;
+                                    change("dueDate", event.target.value);
+                                    close();
+                                }}
+                                className="h-8 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-brand dark:[color-scheme:dark]"
+                            />
+                        </label>
+                    )}
+                />
+
                 {isSaving && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
+                    <span role="status" className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
                         <Loader2 className="size-3 motion-safe:animate-spin" aria-hidden="true" />
                         Saving
                     </span>
                 )}
             </div>
 
-            <div className="grid px-4 pb-2 sm:grid-cols-2 sm:gap-x-8 xl:grid-cols-1">
-                {canEdit ? (
-                    <>
-                        <Row label="Status" htmlFor="task-status">
-                            <PropertySelect
-                                id="task-status"
-                                value={current.status}
-                                onChange={(v) => change("status", v)}
-                                leading={<StatusDot status={current.status} />}
-                            >
-                                {STATUS_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </PropertySelect>
-                        </Row>
-                        <Row label="Priority" htmlFor="task-priority">
-                            <PropertySelect
-                                id="task-priority"
-                                value={current.priority}
-                                onChange={(v) => change("priority", v)}
-                                leading={<PriorityBars priority={current.priority} />}
-                            >
-                                {PRIORITY_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </PropertySelect>
-                        </Row>
-                        <Row label="Assignee" htmlFor="task-assignee">
-                            <PropertySelect
-                                id="task-assignee"
-                                value={current.assigneeId}
-                                onChange={(v) => change("assigneeId", v)}
-                                tone={assigned ? "text-foreground" : "text-muted-foreground"}
-                                leading={
-                                    assigned ? (
-                                        <PersonAvatar person={assigned} />
-                                    ) : (
-                                        <span className="size-5 rounded-full border border-dashed border-muted-foreground/60" />
-                                    )
-                                }
-                            >
-                                <option value="">Unassigned</option>
-                                {assignee && !people.some((p) => p.id === assignee.id) && (
-                                    <option value={assignee.id}>{assignee.name ?? assignee.email}</option>
-                                )}
-                                {people.map((person) => (
-                                    <option key={person.id} value={person.id}>
-                                        {person.name ?? person.email}
-                                    </option>
-                                ))}
-                            </PropertySelect>
-                        </Row>
-                        <Row label="Due date" htmlFor="task-due">
-                            <div className="group relative flex h-8 items-center rounded-md transition-colors focus-within:ring-2 focus-within:ring-brand hover:bg-foreground/[0.05]">
-                                <CalendarDays
-                                    className={`pointer-events-none absolute left-2 size-4 ${overdue ? "text-danger" : "text-muted-foreground"}`}
-                                    aria-hidden="true"
-                                />
-                                <span
-                                    aria-hidden="true"
-                                    className={`pointer-events-none truncate pl-8 pr-7 text-sm font-medium ${
-                                        overdue ? "text-danger" : current.dueDate ? "text-foreground" : "text-muted-foreground"
-                                    }`}
-                                >
-                                    {current.dueDate ? formatDay(current.dueDate) : "No due date"}
-                                </span>
-                                {/* The real control sits invisibly on top, so a click anywhere opens the picker. */}
-                                <input
-                                    id="task-due"
-                                    type="date"
-                                    value={current.dueDate}
-                                    onChange={(event) => change("dueDate", event.target.value)}
-                                    onClick={(event) => {
-                                        try {
-                                            event.currentTarget.showPicker?.();
-                                        } catch {
-                                            // Not allowed in this browser; the native control still works.
-                                        }
-                                    }}
-                                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                                />
-                                {current.dueDate && (
-                                    <button
-                                        type="button"
-                                        onClick={() => change("dueDate", "")}
-                                        aria-label="Clear due date"
-                                        title="Clear due date"
-                                        className="absolute right-1 z-10 flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-foreground/10 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100"
-                                    >
-                                        <X className="size-3.5" aria-hidden="true" />
-                                    </button>
-                                )}
-                            </div>
-                        </Row>
-                    </>
-                ) : (
-                    <>
-                        <Row label="Status">
-                            <span className="flex items-center gap-2.5 px-2 text-sm font-medium text-foreground">
-                                <StatusDot status={current.status} />
-                                {status.label}
-                            </span>
-                        </Row>
-                        <Row label="Priority">
-                            <span className="flex items-center gap-2.5 px-2 text-sm font-medium text-foreground">
-                                <PriorityBars priority={current.priority} />
-                                {priority.label}
-                            </span>
-                        </Row>
-                        <Row label="Assignee">
-                            {assignee ? (
-                                <span className="flex min-w-0 items-center gap-2 px-2 text-sm font-medium text-foreground">
-                                    <PersonAvatar person={assignee} />
-                                    <span className="truncate">{assignee.name ?? assignee.email}</span>
-                                </span>
-                            ) : (
-                                <span className="px-2 text-sm text-muted-foreground">Unassigned</span>
-                            )}
-                        </Row>
-                        <Row label="Due date">
-                            {current.dueDate ? (
-                                <span className={`px-2 text-sm font-medium ${overdue ? "text-danger" : "text-foreground"}`}>
-                                    {formatDay(current.dueDate)}
-                                    {overdue ? " (overdue)" : ""}
-                                </span>
-                            ) : (
-                                <span className="px-2 text-sm text-muted-foreground">No due date</span>
-                            )}
-                        </Row>
-                    </>
-                )}
-                {canEdit && overdue && (
-                    <p className="-mt-1 mb-1 pl-[96px] text-xs font-medium text-danger sm:col-start-2 xl:col-start-1">Overdue</p>
-                )}
-            </div>
-
             {error && (
-                <p role="alert" className="mx-4 mb-3 rounded-md bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+                <p role="alert" className="mt-2 text-sm font-medium text-danger">
                     {error}
                 </p>
             )}
-
-            {footer && <dl className="grid border-t border-border px-4 py-2 sm:grid-cols-2 sm:gap-x-8 xl:grid-cols-1">{footer}</dl>}
         </div>
     );
 }
 
-/** Plain label/value row for the read-only part of the panel. */
-export function PropertyRow({ label, children }: { label: string; children: ReactNode }) {
-    return (
-        <div className="grid min-h-9 grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
-            <dt className="text-[13px] text-muted-foreground">{label}</dt>
-            <dd className="min-w-0 truncate px-2 text-sm text-foreground">{children}</dd>
-        </div>
-    );
-}

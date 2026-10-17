@@ -291,7 +291,7 @@ describe("TaskPage – header", () => {
         await renderPage();
 
         expect(screen.getByRole("heading", { level: 1, name: "Ship it" })).toBeInTheDocument();
-        const properties = within(screen.getByRole("complementary", { name: "Task properties" }));
+        const properties = within(screen.getByRole("list", { name: "Task properties" }));
         expect(properties.getByText("In progress")).toBeInTheDocument();
         expect(properties.getByText("High")).toBeInTheDocument();
     });
@@ -351,7 +351,7 @@ describe("TaskPage – header", () => {
 
 describe("TaskPage – meta cells", () => {
     it("shows the assignee name with initials when there is no image", async () => {
-        db.task.findFirst.mockResolvedValue(makeTask({ assignee: ada }));
+        db.task.findFirst.mockResolvedValue(makeTask({ assignee: ada, assigneeId: "u2" }));
 
         const { container } = await renderPage();
 
@@ -361,7 +361,7 @@ describe("TaskPage – meta cells", () => {
     });
 
     it("falls back to the email and email initials when the assignee has no name", async () => {
-        db.task.findFirst.mockResolvedValue(makeTask({ assignee: bob }));
+        db.task.findFirst.mockResolvedValue(makeTask({ assignee: bob, assigneeId: "u3" }));
 
         await renderPage();
 
@@ -371,7 +371,7 @@ describe("TaskPage – meta cells", () => {
 
     it("uses the first two letters for single-word names", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ assignee: { ...ada, name: "Grace" } }),
+            makeTask({ assignee: { ...ada, name: "Grace" }, assigneeId: "u2" }),
         );
 
         await renderPage();
@@ -381,7 +381,7 @@ describe("TaskPage – meta cells", () => {
 
     it("renders the avatar image when the assignee has one", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ assignee: { ...ada, image: "https://cdn.x/ada.png" } }),
+            makeTask({ assignee: { ...ada, image: "https://cdn.x/ada.png" }, assigneeId: "u2" }),
         );
 
         const { container } = await renderPage();
@@ -412,7 +412,7 @@ describe("TaskPage – meta cells", () => {
     it("formats the created date", async () => {
         await renderPage();
 
-        expect(screen.getByText("Sep 1, 2026")).toBeInTheDocument();
+        expect(screen.getByText(/Created by/)).toHaveTextContent("Created by Ada Lovelace on Sep 1, 2026");
     });
 
     it("shows the due date without an overdue marker when in the future", async () => {
@@ -595,35 +595,40 @@ describe("TaskPage – child sections", () => {
 });
 
 describe("TaskPage – properties and delete", () => {
+    const pick = async (pill: RegExp, option: string | RegExp) => {
+        fireEvent.click(screen.getByRole("button", { name: pill }));
+        await act(async () => {
+            fireEvent.click(screen.getByRole("option", { name: option }));
+        });
+    };
+
     it("shows read-only values and no controls to people who can't edit", async () => {
         await renderPage();
 
-        expect(screen.queryByLabelText("Status")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Status:/ })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Ship it" })).not.toBeInTheDocument();
         expect(screen.queryByTestId("delete-task")).not.toBeInTheDocument();
     });
 
-    it("prefills the property controls with the task values", async () => {
+    it("shows each property as a pill with its current value", async () => {
         mockCanEditTasks.mockReturnValue(true);
         db.task.findFirst.mockResolvedValue(makeTask({ assigneeId: "u2", assignee: ada }));
 
         await renderPage();
 
-        expect(screen.getByLabelText("Status")).toHaveValue("IN_PROGRESS");
-        expect(screen.getByLabelText("Priority")).toHaveValue("HIGH");
-        expect(screen.getByLabelText("Assignee")).toHaveValue("u2");
-        expect(screen.getByLabelText("Due date")).toHaveValue("2026-10-20");
+        expect(screen.getByRole("button", { name: "Status: In progress" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Priority: High" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Assignee: Ada Lovelace" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Due date:/ })).toHaveTextContent("Oct 20, 2026");
     });
 
-    it("saves a property as soon as it changes, re-sending the other values", async () => {
+    it("saves a property as soon as it's picked, re-sending the other values", async () => {
         mockCanEditTasks.mockReturnValue(true);
         const update = updateTaskAction as unknown as jest.Mock;
         update.mockResolvedValue(undefined);
 
         await renderPage();
-        await act(async () => {
-            fireEvent.change(screen.getByLabelText("Status"), { target: { value: "DONE" } });
-        });
+        await pick(/^Status:/, "Done");
 
         expect(update).toHaveBeenCalledWith("acme", "p1", "t1", expect.any(FormData));
         const sent = Object.fromEntries((update.mock.calls[0][3] as FormData).entries());
@@ -635,48 +640,61 @@ describe("TaskPage – properties and delete", () => {
             assigneeId: "",
             dueDate: "2026-10-20",
         });
+        expect(screen.getByRole("button", { name: "Status: Done" })).toBeInTheDocument();
     });
 
-    it("offers every status and priority as an option", async () => {
+    it("puts the old value back and explains when saving fails", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        (updateTaskAction as unknown as jest.Mock).mockRejectedValue(
+            new Error("The selected assignee doesn't have access to this project."),
+        );
+
+        await renderPage();
+        await pick(/^Assignee:/, /bob@x\.com/);
+
+        expect(screen.getByRole("alert")).toHaveTextContent("doesn't have access");
+        expect(screen.getByRole("button", { name: "Assignee: Unassigned" })).toBeInTheDocument();
+    });
+
+    it("offers every status and priority", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
 
-        const status = within(screen.getByLabelText("Status"));
-        expect(status.getAllByRole("option").map((o) => o.textContent)).toEqual([
+        fireEvent.click(screen.getByRole("button", { name: /^Status:/ }));
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
             "To do",
             "In progress",
             "In review",
             "Done",
         ]);
+        fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
 
-        const priority = within(screen.getByLabelText("Priority"));
-        expect(priority.getAllByRole("option").map((o) => o.textContent)).toEqual([
-            "Urgent",
-            "High",
-            "Medium",
-            "Low",
-        ]);
+        fireEvent.click(screen.getByRole("button", { name: /^Priority:/ }));
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Urgent", "High", "Medium", "Low"]);
     });
 
-    it("lists Unassigned plus project members as assignee options", async () => {
+    it("lists Unassigned plus the people who can open the project", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
+        fireEvent.click(screen.getByRole("button", { name: /^Assignee:/ }));
 
-        const options = within(screen.getByLabelText("Assignee")).getAllByRole("option");
-        expect(options.map((o) => o.textContent)).toEqual(["Unassigned", "Ada Lovelace", "bob@x.com"]);
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+            "Unassigned",
+            "AL" + "Ada Lovelace",
+            "BO" + "bob@x.com",
+        ]);
     });
 
-    it("defaults the assignee to Unassigned and due date to empty when unset", async () => {
+    it("shows Unassigned and No due date when unset", async () => {
         mockCanEditTasks.mockReturnValue(true);
         db.task.findFirst.mockResolvedValue(makeTask({ assigneeId: null, dueDate: null }));
 
         await renderPage();
 
-        expect(screen.getByLabelText("Assignee")).toHaveValue("");
-        expect(screen.getByLabelText("Due date")).toHaveValue("");
-        expect(screen.getByText("No due date")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Assignee: Unassigned" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Due date:/ })).toHaveTextContent("No due date");
     });
 
     it("binds the delete action for editors", async () => {

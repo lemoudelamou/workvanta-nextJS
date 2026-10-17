@@ -12,7 +12,8 @@ import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
 import { canEditTasks } from "@/lib/auth/task_permission";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { PageBody } from "@/components/ui/PageBody";
-import { projectHex } from "@/lib/navigation/project-color";
+import Link from "next/link";
+import { projectDot, projectHex } from "@/lib/navigation/project-color";
 
 import { CommentForm } from "./components/comment-form";
 import { ActivityFeed, type FeedItem } from "./components/activity-feed";
@@ -21,7 +22,8 @@ import { AttachmentsSection } from "./components/attachments-section";
 import { SubtasksSection } from "./components/subtasks-section";
 import { DeleteTaskConfirmation } from "./components/delete-task-button";
 import { TaskHeader } from "./components/task-header";
-import { PropertyRow, TaskProperties } from "./components/task-properties";
+import { TaskProperties } from "./components/task-properties";
+import { CopyLinkButton } from "./components/copy-link-button";
 import type { TaskValues } from "./components/task-meta";
 import {
     createCommentAction,
@@ -156,10 +158,10 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
     const truncated =
         task._count.comments > task.comments.length || task._count.activities > task.activities.length;
 
-    const currentUser = people.find((person) => person.id === userId) ?? null;
+    const creatorName = task.creator ? (task.creator.name ?? task.creator.email) : "Unknown";
 
     return (
-        <PageBody glow={projectHex(projectId)}>
+        <PageBody glow={projectHex(projectId)} className="max-w-[1440px] lg:py-6">
             <Breadcrumb
                 items={[
                     { label: task.project.workspace.name, href: `/workspace/${slug}`, truncate: true },
@@ -172,73 +174,70 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 ]}
             />
 
-            {/* Phones: header, properties, the work, then delete. Wide screens: properties in a
-                sticky column (the aside is display:contents below xl so its parts can be ordered). */}
-            <div className="mt-6 grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px] xl:grid-rows-[auto_1fr] xl:gap-x-12">
-                <header className="min-w-0 xl:col-start-1 xl:row-start-1">
-                    <TaskHeader key={`h-${version}`} values={values} canEdit={canEdit} updateTask={updateTask} />
-                </header>
-
-                <aside
-                    aria-label="Task properties"
-                    className="contents xl:sticky xl:top-6 xl:z-10 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:block xl:min-w-0 xl:self-start"
-                >
-                    <div className="rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
-                        <TaskProperties
-                            key={`p-${version}`}
-                            values={values}
-                            people={people}
-                            assignee={task.assignee}
-                            overdue={overdue}
-                            canEdit={canEdit}
-                            updateTask={updateTask}
-                            footer={
-                                <>
-                                    <PropertyRow label="Created by">
-                                        {task.creator ? (task.creator.name ?? task.creator.email) : "Unknown"}
-                                    </PropertyRow>
-                                    <PropertyRow label="Created">{DATE.format(task.createdAt)}</PropertyRow>
-                                </>
-                            }
-                        />
+            {/* The task on a sheet; the conversation beside it on wide screens, below on phones. */}
+            <div className="mt-4 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-6">
+                <article className="min-w-0 rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04),0_8px_24px_-16px_rgba(23,26,33,0.12)]">
+                    <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-8">
+                        <Link
+                            href={`/workspace/${slug}/project/${projectId}`}
+                            className="flex min-w-0 items-center gap-2 rounded-full py-1 pr-2 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
+                        >
+                            <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-[3px] ${projectDot(projectId)}`} />
+                            <span className="truncate">{access.project.name}</span>
+                        </Link>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                            <CopyLinkButton />
+                            {canEdit && <DeleteTaskConfirmation action={deleteTask} />}
+                        </div>
                     </div>
 
-                    {canEdit && (
-                        <div className="order-last -mt-4 xl:order-none xl:mt-3 xl:px-2">
-                            <DeleteTaskConfirmation action={deleteTask} />
+                    <div className="space-y-8 px-4 pb-8 pt-6 sm:px-8 sm:pt-8">
+                        <div className="space-y-4">
+                            <TaskHeader key={`h-${version}`} values={values} canEdit={canEdit} updateTask={updateTask} />
+                            <TaskProperties
+                                key={`p-${version}`}
+                                values={values}
+                                people={people}
+                                assignee={task.assignee}
+                                overdue={overdue}
+                                canEdit={canEdit}
+                                updateTask={updateTask}
+                            />
                         </div>
-                    )}
-                </aside>
 
-                <div className="min-w-0 space-y-10 xl:col-start-1 xl:row-start-2">
-                    <SubtasksSection
-                        taskId={task.id}
-                        subtasks={task.subtasks}
-                        slug={slug}
-                        projectId={projectId}
-                        canEdit={canEdit}
-                    />
+                        <SubtasksSection
+                            taskId={task.id}
+                            subtasks={task.subtasks}
+                            slug={slug}
+                            projectId={projectId}
+                            canEdit={canEdit}
+                        />
 
-                    <AttachmentsSection
-                        attachments={task.attachments}
-                        canEdit={canEdit}
-                        upload={uploadAttachment}
-                        remove={deleteAttachment}
-                    />
+                        <AttachmentsSection
+                            attachments={task.attachments}
+                            canEdit={canEdit}
+                            upload={uploadAttachment}
+                            remove={deleteAttachment}
+                        />
 
-                    <ActivityFeed
-                        items={feed}
-                        commentCount={task._count.comments}
-                        composer={<CommentForm action={createComment} members={people} />}
-                        currentUser={currentUser}
-                        currentUserId={userId}
-                        members={people}
-                        deleteComment={deleteComment}
-                        updateComment={updateComment}
-                        canModerate={canModerate}
-                        showEarlierHref={truncated ? `${taskHref}?comments=all&activity=all` : null}
-                    />
-                </div>
+                        <p className="border-t border-border pt-4 text-xs text-muted-foreground">
+                            Created by <span className="font-medium text-foreground">{creatorName}</span> on{" "}
+                            {DATE.format(task.createdAt)}
+                        </p>
+                    </div>
+                </article>
+
+                <ActivityFeed
+                    items={feed}
+                    commentCount={task._count.comments}
+                    composer={<CommentForm action={createComment} members={people} />}
+                    currentUserId={userId}
+                    members={people}
+                    deleteComment={deleteComment}
+                    updateComment={updateComment}
+                    canModerate={canModerate}
+                    showEarlierHref={truncated ? `${taskHref}?comments=all&activity=all` : null}
+                />
             </div>
         </PageBody>
     );
