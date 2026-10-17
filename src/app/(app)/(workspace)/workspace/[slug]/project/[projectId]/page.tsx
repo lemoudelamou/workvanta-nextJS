@@ -19,6 +19,7 @@ import {
 } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { KanbanBoard, type BoardTask } from "./kanbanboard/kanban-board";
 import { ProjectListView } from "./listview/project-list-view";
+import { sortLabels } from "@/lib/labels/label-colors";
 import { PageBody } from "@/components/ui/PageBody";
 import { ProjectMark } from "@/components/ui/ProjectMark";
 import { projectHex } from "@/lib/navigation/project-color";
@@ -99,7 +100,7 @@ export default async function ProjectPage({
         project.id,
     );
 
-    const [tasks, assignableMembers] = await Promise.all([
+    const [tasks, assignableMembers, projectLabels] = await Promise.all([
         prisma.task.findMany({
             where: { projectId: project.id },
             orderBy: [{ position: "asc" }, { createdAt: "asc" }],
@@ -111,11 +112,19 @@ export default async function ProjectPage({
                 dueDate: true,
                 assignee: { select: { name: true, email: true, image: true } },
                 subtasks: { select: { completed: true } },
+                labels: { select: { label: { select: { id: true, name: true, color: true } } } },
             },
         }),
         // Only people who can open this project can be assigned to it.
         canEdit ? listProjectAudience(project) : Promise.resolve([]),
+        prisma.label.findMany({
+            where: { projectId: project.id },
+            orderBy: { name: "asc" },
+            select: { id: true, name: true, color: true, _count: { select: { tasks: true } } },
+        }),
     ]);
+
+    const labelOptions = projectLabels.map(({ id, name, color }) => ({ id, name, color }));
 
     const members = assignableMembers.map(({ id, name, email }) => ({ id, name, email }));
     const audience = assignableMembers.map(({ id, name, email, image }) => ({ id, name, email, image: image ?? null }));
@@ -133,6 +142,7 @@ export default async function ProjectPage({
         assignee: t.assignee,
         subtaskTotal: t.subtasks.length,
         subtaskDone: t.subtasks.filter((s) => s.completed).length,
+        labels: sortLabels(t.labels.map((l) => l.label)),
     }));
 
     const doneTasks = tasks.filter((t) => t.status === "DONE").length;
@@ -238,6 +248,19 @@ export default async function ProjectPage({
                         }
                         setVisibility={canChangeVisibility ? updateProjectVisibility : undefined}
                         canDelete={canDeleteProject}
+                        labels={
+                            canChangeVisibility
+                                ? {
+                                      slug: project.workspace.slug,
+                                      list: projectLabels.map((l) => ({
+                                          id: l.id,
+                                          name: l.name,
+                                          color: l.color,
+                                          taskCount: l._count.tasks,
+                                      })),
+                                  }
+                                : undefined
+                        }
                     />
                 </div>
             </header>
@@ -265,6 +288,7 @@ export default async function ProjectPage({
                         members={members}
                         canEdit={canEdit}
                         leading={viewSwitch}
+                        labels={labelOptions}
                     />
                 ) : (
                     <KanbanBoard
@@ -274,6 +298,7 @@ export default async function ProjectPage({
                         members={members}
                         canEdit={canEdit}
                         leading={viewSwitch}
+                        labels={labelOptions}
                     />
                 )}
             </section>

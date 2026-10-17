@@ -49,6 +49,7 @@ jest.mock("@/lib/db/prisma", () => ({
     prisma: {
         task: { findFirst: jest.fn() },
         workspaceMember: { findMany: jest.fn() },
+        label: { findMany: jest.fn() },
     },
 }));
 
@@ -98,6 +99,17 @@ jest.mock("./components/activity-feed", () => ({
             <button data-testid="delete-comment" onClick={() => deleteComment("c1")} />
             <button data-testid="update-comment" onClick={() => updateComment("c1")} />
         </div>
+    ),
+}));
+jest.mock("./components/label-picker", () => ({
+    LabelPicker: ({ taskId, projectLabels, initialSelected, canEdit }: any) => (
+        <div
+            data-testid="labels"
+            data-task={taskId}
+            data-options={projectLabels.map((l: any) => l.name).join(",")}
+            data-selected={initialSelected.join(",")}
+            data-can-edit={String(canEdit)}
+        />
     ),
 }));
 jest.mock("./components/subtasks-section", () => ({
@@ -176,6 +188,7 @@ function makeTask(overrides: Record<string, any> = {}) {
         creator: ada,
         project: { workspaceId: "w1", workspace: { name: "Acme Inc" } },
         subtasks: [],
+        labels: [],
         comments: [],
         attachments: [],
         activities: [],
@@ -223,6 +236,7 @@ beforeEach(() => {
     mockCanEditTasks.mockReturnValue(false);
     db.task.findFirst.mockResolvedValue(makeTask());
     mockListProjectAudience.mockResolvedValue([ada, bob]);
+    (prisma as any).label.findMany.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -704,6 +718,28 @@ describe("TaskPage – properties and delete", () => {
         fireEvent.click(screen.getByTestId("delete-task"));
 
         expect(actions.deleteTask).toHaveBeenCalledWith("acme", "p1", "t1");
+    });
+});
+
+describe("TaskPage – labels", () => {
+    it("passes the project's labels and the task's own to the picker", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        (prisma as any).label.findMany.mockResolvedValue([
+            { id: "l1", name: "Bug", color: "red" },
+            { id: "l2", name: "Design", color: "violet" },
+        ]);
+        db.task.findFirst.mockResolvedValue(makeTask({ labels: [{ labelId: "l2" }] }));
+
+        await renderPage();
+
+        const picker = screen.getByTestId("labels");
+        expect(picker).toHaveAttribute("data-task", "t1");
+        expect(picker).toHaveAttribute("data-options", "Bug,Design");
+        expect(picker).toHaveAttribute("data-selected", "l2");
+        expect(picker).toHaveAttribute("data-can-edit", "true");
+        expect((prisma as any).label.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { projectId: "p1" } }),
+        );
     });
 });
 

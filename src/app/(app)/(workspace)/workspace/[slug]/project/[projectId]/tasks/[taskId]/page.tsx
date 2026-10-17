@@ -23,6 +23,7 @@ import { SubtasksSection } from "./components/subtasks-section";
 import { DeleteTaskConfirmation } from "./components/delete-task-button";
 import { TaskHeader } from "./components/task-header";
 import { TaskProperties } from "./components/task-properties";
+import { LabelPicker } from "./components/label-picker";
 import { CopyLinkButton } from "./components/copy-link-button";
 import type { TaskValues } from "./components/task-meta";
 import {
@@ -107,6 +108,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 include: { author: { select: USER_SELECT } },
             },
             attachments: { orderBy: { createdAt: "desc" } },
+            labels: { select: { labelId: true } },
             activities: {
                 orderBy: { createdAt: "desc" },
                 ...(showAllActivity ? {} : { take: ACTIVITY_PAGE_SIZE }),
@@ -120,7 +122,14 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
 
     // Assignee and @mention suggestions only include people who can open
     // this project.
-    const people = await listProjectAudience(access.project);
+    const [people, projectLabels] = await Promise.all([
+        listProjectAudience(access.project),
+        prisma.label.findMany({
+            where: { projectId: access.project.id },
+            orderBy: { name: "asc" },
+            select: { id: true, name: true, color: true },
+        }),
+    ]);
 
     const canEdit = canEditTasks(access);
     const canModerate = canProject(access.effectiveRole, "comment.moderate");
@@ -202,6 +211,14 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                                 overdue={overdue}
                                 canEdit={canEdit}
                                 updateTask={updateTask}
+                            />
+                            <LabelPicker
+                                slug={slug}
+                                projectId={projectId}
+                                taskId={task.id}
+                                projectLabels={projectLabels}
+                                initialSelected={task.labels.map((l) => l.labelId)}
+                                canEdit={canEdit}
                             />
                         </div>
 

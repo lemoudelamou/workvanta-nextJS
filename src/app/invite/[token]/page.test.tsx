@@ -44,6 +44,7 @@ function invitation(overrides: Record<string, unknown> = {}) {
         expiresAt: new Date("2026-10-23T12:00:00Z"),
         workspace: { id: "w1", name: "Northwind Studio", _count: { members: 5 } },
         project: null,
+        invitedBy: null,
         ...overrides,
     };
 }
@@ -92,6 +93,20 @@ describe("InvitePage", () => {
             "href",
             "/signin?callbackUrl=%2Finvite%2Fabc&email=sam%40x.com",
         );
+    });
+
+    it("says who sent the invitation, with their face", async () => {
+        db.invitation.findUnique.mockResolvedValue(
+            invitation({ invitedBy: { name: "Maya Chen", email: "maya@x.com", image: null } }),
+        );
+        await renderPage();
+        expect(screen.getByText("Maya Chen").closest("p")).toHaveTextContent("Maya Chen invited you to join");
+        expect(screen.getByText("MC")).toBeInTheDocument();
+    });
+
+    it("falls back to a neutral line when the sender is unknown", async () => {
+        await renderPage();
+        expect(screen.getByText("You're invited to join")).toBeInTheDocument();
     });
 
     it("sends people who already have an account to sign in", async () => {

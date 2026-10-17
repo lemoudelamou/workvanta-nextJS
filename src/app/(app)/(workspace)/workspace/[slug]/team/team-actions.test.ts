@@ -112,6 +112,7 @@ const INITIAL: InviteTeamState = { success: false };
 function makeMembership(overrides: Record<string, unknown> = {}) {
     return {
         id: "m-me",
+        userId: "u-me",
         role: "OWNER",
         workspace: { id: "w1", name: "Acme Inc" },
         user: { name: "Grace Hopper", email: "grace@x.com" },
@@ -334,6 +335,7 @@ describe("inviteTeamAction – creating the invitation", () => {
                 workspaceId: "w1",
                 role: "GUEST",
                 expiresAt: new Date(NOW.getTime() + 7 * 24 * 60 * 60 * 1000),
+                invitedById: "u-me",
             },
         });
     });

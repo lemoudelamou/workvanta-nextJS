@@ -69,6 +69,8 @@ export const ModelName = {
   UserPreference: 'UserPreference',
   NotificationPreference: 'NotificationPreference',
   Invitation: 'Invitation',
+  Label: 'Label',
+  TaskLabel: 'TaskLabel',
   Activity: 'Activity',
   Subtask: 'Subtask',
   Comment: 'Comment',
@@ -330,10 +332,32 @@ export const InvitationScalarFieldEnum = {
   projectRole: 'projectRole',
   expiresAt: 'expiresAt',
   acceptedAt: 'acceptedAt',
+  invitedById: 'invitedById',
   createdAt: 'createdAt'
 } as const
 
 export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+
+export const LabelScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  name: 'name',
+  normalizedName: 'normalizedName',
+  color: 'color',
+  createdAt: 'createdAt'
+} as const
+
+export type LabelScalarFieldEnum = (typeof LabelScalarFieldEnum)[keyof typeof LabelScalarFieldEnum]
+
+
+export const TaskLabelScalarFieldEnum = {
+  taskId: 'taskId',
+  labelId: 'labelId',
+  createdAt: 'createdAt'
+} as const
+
+export type TaskLabelScalarFieldEnum = (typeof TaskLabelScalarFieldEnum)[keyof typeof TaskLabelScalarFieldEnum]
 
 
 export const ActivityScalarFieldEnum = {

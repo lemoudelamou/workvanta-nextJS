@@ -39,6 +39,7 @@ jest.mock("@/lib/db/prisma", () => ({
         projectMember: { count: jest.fn() },
         task: { findMany: jest.fn() },
         workspaceMember: { findMany: jest.fn() },
+        label: { findMany: jest.fn().mockResolvedValue([]) },
     },
 }));
 
@@ -144,6 +145,7 @@ function makeTask(overrides: Record<string, unknown> = {}) {
         dueDate: null,
         assignee: null,
         subtasks: [],
+        labels: [],
         ...overrides,
     };
 }
@@ -157,6 +159,7 @@ async function renderPage(query: { view?: string } = {}) {
 }
 
 beforeEach(() => {
+    (prisma as any).label.findMany.mockResolvedValue([]);
     // Only fake Date; leave timers/microtasks alone so awaits keep working
     jest.useFakeTimers({
         now: NOW,
@@ -337,8 +340,25 @@ describe("ProjectPage – board tasks", () => {
                 assignee,
                 subtaskTotal: 3,
                 subtaskDone: 2,
+                labels: [],
             },
         ]);
+    });
+
+    it("gives the board each task's labels, sorted, and the project's labels for filtering", async () => {
+        const bug = { id: "l1", name: "Bug", color: "red" };
+        const api = { id: "l2", name: "api", color: "blue" };
+        db.task.findMany.mockResolvedValue([makeTask({ labels: [{ label: bug }, { label: api }] })]);
+        (prisma as any).label.findMany.mockResolvedValue([
+            { ...api, _count: { tasks: 1 } },
+            { ...bug, _count: { tasks: 1 } },
+        ]);
+
+        await renderPage();
+
+        expect(mockBoardProps.tasks[0].labels).toEqual([api, bug]);
+        expect(mockBoardProps.labels).toEqual([api, bug]);
+        expect((prisma as any).label.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { projectId: "p1" } }));
     });
 
     it("has a null due label and is not overdue without a due date", async () => {

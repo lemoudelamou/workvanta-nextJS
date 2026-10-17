@@ -200,6 +200,7 @@ export async function inviteToProjectAction(
                 projectId,
                 projectRole: roleValue,
                 expiresAt,
+                invitedById: access.userId,
             },
         });
     } catch (error) {

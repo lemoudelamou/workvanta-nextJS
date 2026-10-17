@@ -28,6 +28,7 @@ function task(id: string, overrides: Partial<BoardTask> = {}): BoardTask {
         assignee: null,
         subtaskTotal: 0,
         subtaskDone: 0,
+        labels: [],
         ...overrides,
     };
 }
