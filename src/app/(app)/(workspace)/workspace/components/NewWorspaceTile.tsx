@@ -5,23 +5,14 @@ export function NewWorkspaceTile() {
     return (
         <Link
             href="/workspace/new"
-            className="
-                group flex min-h-[220px] h-full flex-col items-center justify-center gap-3
-                rounded-xl border border-dashed border-border bg-transparent p-5
-                text-center outline-none transition-colors
-                hover:border-foreground/30 hover:bg-muted/50
-                focus-visible:ring-2 focus-visible:ring-ring
-                focus-visible:ring-offset-2 focus-visible:ring-offset-background
-            "
+            className="group flex h-full min-h-[118px] items-center justify-center gap-3 rounded-xl border border-dashed border-foreground/20 p-4 text-left outline-none transition-colors hover:border-brand hover:bg-brand-soft/40 focus-visible:ring-2 focus-visible:ring-brand dark:hover:bg-brand/10"
         >
-            <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
-                <Plus className="size-5" aria-hidden="true" />
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-brand group-hover:text-white dark:group-hover:text-[#0f1115]">
+                <Plus className="size-4" aria-hidden="true" />
             </span>
-            <span className="text-sm font-semibold text-foreground">
-                New workspace
-            </span>
-            <span className="max-w-[16rem] text-xs text-muted-foreground">
-                Give another team its own space for projects and people.
+            <span>
+                <span className="block text-sm font-semibold text-foreground">New workspace</span>
+                <span className="block text-xs text-muted-foreground">A separate space for another team</span>
             </span>
         </Link>
     );

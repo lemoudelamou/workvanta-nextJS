@@ -1,42 +1,31 @@
-import {
-    ArrowLeft,
-    FolderKanban,
-    Plus,
-    ShieldCheck,
-    User,
-    UsersRound,
-} from "lucide-react";
+import { FolderKanban, Plus, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { DeleteWorkspaceButton } from "@/app/(app)/(workspace)/workspace/delete-workspace-button";
 import { PageBody } from "@/components/ui/PageBody";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AvatarStack } from "@/components/ui/AvatarStack";
+import { RoleBadge } from "@/components/ui/RoleBadge";
 import { buttonStyles } from "@/app/style/button-style";
-import  { Kpi } from "@/app/style/Kpi";
-import { NewProjectTile} from "@/app/(app)/(workspace)/workspace/[slug]/components/NewProjectTile";
-import { ProjectCard } from "@/app/(app)/(workspace)/workspace/[slug]/components/ProjectCard";
+import { NewProjectTile } from "@/app/(app)/(workspace)/workspace/[slug]/components/NewProjectTile";
+import { ProjectsBrowser } from "@/app/(app)/(workspace)/workspace/[slug]/components/ProjectsBrowser";
+import { WorkspaceActions } from "@/app/(app)/(workspace)/workspace/[slug]/components/WorkspaceActions";
+import { ActivityPanel, MyTasksPanel } from "@/app/(app)/(workspace)/workspace/[slug]/components/WorkspaceSidebar";
+import { timeAgo } from "@/app/(app)/(workspace)/workspace/components/helpers";
+import { WorkspaceBadge } from "@/app/(app)/(workspace)/workspace/components/WorkspaceCard";
 import { ProjectItem } from "@/types/project-item";
+import { projectHex } from "@/lib/navigation/project-color";
 import {
     canWorkspace,
     effectiveProjectRole,
     visibleProjectsWhere,
     WORKSPACE_ROLE_DESCRIPTIONS,
 } from "@/lib/auth/permissions";
-import { EditDetailsForm } from "@/components/ui/EditDetailsForm";
 import { updateWorkspaceDetailsAction } from "@/app/(app)/(workspace)/workspace/workspace-actions";
-import { LeaveWorkspaceButton } from "@/app/(app)/(workspace)/workspace/[slug]/components/LeaveWorkspaceButton";
 
-
-
-
-const KPI_STRIP =
-    "grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border";
-
-
+const USER = { id: true, name: true, email: true, image: true } as const;
 
 export default async function WorkspacePage({
                                                 params,
@@ -59,6 +48,11 @@ export default async function WorkspacePage({
                     name: true,
                     description: true,
                     _count: { select: { members: true } },
+                    members: {
+                        orderBy: { createdAt: "asc" },
+                        take: 5,
+                        select: { user: { select: USER } },
+                    },
                 },
             },
         },
@@ -98,7 +92,8 @@ export default async function WorkspacePage({
     // Progress and people for each card: one grouped count, one distinct
     // lookup, both limited to projects this user can open.
     const projectIds = projects.map((project) => project.id);
-    const [statusCounts, assigned] = projectIds.length
+    const now = new Date();
+    const [statusCounts, assigned, overdueCounts, myTasks, events] = projectIds.length
         ? await Promise.all([
               prisma.task.groupBy({
                   by: ["projectId", "status"],
@@ -114,139 +109,142 @@ export default async function WorkspacePage({
                       assignee: { select: { id: true, name: true, email: true, image: true } },
                   },
               }),
+              prisma.task.groupBy({
+                  by: ["projectId"],
+                  where: { projectId: { in: projectIds }, status: { not: "DONE" }, dueDate: { lt: now } },
+                  _count: { _all: true },
+              }),
+              prisma.task.findMany({
+                  where: { projectId: { in: projectIds }, assigneeId: userId, status: { not: "DONE" } },
+                  orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
+                  take: 6,
+                  select: {
+                      id: true,
+                      title: true,
+                      status: true,
+                      dueDate: true,
+                      project: { select: { id: true, name: true } },
+                  },
+              }),
+              // Only changes to tasks in projects this person can open.
+              prisma.activity.findMany({
+                  where: { workspaceId: workspace.id, task: { projectId: { in: projectIds } } },
+                  orderBy: { createdAt: "desc" },
+                  take: 8,
+                  select: {
+                      id: true,
+                      action: true,
+                      metadata: true,
+                      createdAt: true,
+                      user: { select: USER },
+                      task: { select: { id: true, title: true, projectId: true } },
+                  },
+              }),
           ])
-        : [[], []];
+        : [[], [], [], [], []];
 
     for (const project of projects) {
         project.counts = { TODO: 0, IN_PROGRESS: 0, IN_REVIEW: 0, DONE: 0 };
         project.people = [];
+        project.overdue = 0;
+        project.updatedLabel = timeAgo(project.updatedAt);
     }
     const byId = new Map(projects.map((project) => [project.id, project]));
     for (const row of statusCounts) {
         const counts = byId.get(row.projectId)?.counts;
         if (counts && row.status in counts) counts[row.status as keyof typeof counts] = row._count._all;
     }
+    for (const row of overdueCounts) {
+        const project = byId.get(row.projectId);
+        if (project) project.overdue = row._count._all;
+    }
     for (const row of assigned) {
         const people = byId.get(row.projectId)?.people;
         if (people && row.assignee && people.length < 4) people.push(row.assignee);
     }
 
-    const isGuest = role === "GUEST";
-    const accessibleCount = projects.length;
-
     const canCreateProject = canWorkspace(role, "projects.create");
-    const canLeave = canWorkspace(role, "workspace.leave");
-    const canDelete = canWorkspace(role, "workspace.delete");
-    const canEditDetails = canWorkspace(role, "workspace.update");
+    const canInvite = canWorkspace(role, "members.invite");
     const newProjectHref = `/workspace/${workspace.slug}/project/new`;
-    const roleLabel = role[0] + role.slice(1).toLowerCase();
+    const teamHref = `/workspace/${workspace.slug}/team`;
+    const members = workspace.members.map((m) => m.user);
 
     return (
-        <div className="text-foreground">
-            <PageBody>
-                <Link
-                    href="/workspace"
-                    className="group mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    <ArrowLeft
-                        className="size-4 transition-transform group-hover:-translate-x-0.5"
-                        aria-hidden="true"
-                    />
-                    All workspaces
-                </Link>
-
-                <PageHeader
-                    eyebrow="Workspace"
-                    title={workspace.name}
-                    description={
-                        workspace.description ||
-                        "Your team's shared place for projects and progress."
-                    }
-                    actions={
+        <PageBody glow={projectHex(workspace.id)}>
+            <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-4">
+                    <WorkspaceBadge id={workspace.id} name={workspace.name} size="lg" />
+                    <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                                href={`/workspace/${workspace.slug}/team`}
-                                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                                <User className="size-4" aria-hidden="true" />
-                                Team
-                            </Link>
-
-                            {canCreateProject && (
-                                <Link href={newProjectHref} className={buttonStyles()}>
-                                    <Plus className="size-4" aria-hidden="true" />
-                                    Create project
-                                </Link>
-                            )}
+                            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
+                                {workspace.name}
+                            </h1>
+                            <RoleBadge role={role} className="mt-1" />
                         </div>
-                    }
-                />
-
-                <section
-                    aria-label="Workspace summary"
-                    className={`mt-8 ${KPI_STRIP}`}
-                >
-                    <Kpi
-                        tone="blue"
-                        icon={<FolderKanban />}
-                        label="Projects"
-                        value={accessibleCount}
-                        helper={isGuest ? "Shared with you" : "You can open"}
-                    />
-                    <Kpi
-                        tone="violet"
-                        icon={<UsersRound />}
-                        label="Members"
-                        value={workspace._count.members}
-                        helper="People in this workspace"
-                    />
-                    <Kpi
-                        tone="amber"
-                        icon={<ShieldCheck />}
-                        label="Your role"
-                        value={roleLabel}
-                        helper={WORKSPACE_ROLE_DESCRIPTIONS[role]}
-                    />
-                </section>
-
-                <section aria-labelledby="projects" className="mt-12">
-                    <div className="mb-5">
-                        <div className="flex items-center gap-2.5">
-                            <h2
-                                id="projects"
-                                className="text-lg font-semibold tracking-tight text-foreground"
-                            >
-                                Projects
-                            </h2>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-                                {projects.length}
-                            </span>
-                        </div>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Plan and track the work that moves your team forward.
+                        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                            {workspace.description || WORKSPACE_ROLE_DESCRIPTIONS[role]}
                         </p>
                     </div>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Link
+                        href={teamHref}
+                        className="mr-1 hidden items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-[13px] sm:flex font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
+                        aria-label={`${workspace._count.members} members. Open team`}
+                    >
+                        <AvatarStack people={members} max={4} total={workspace._count.members} size="md" label="" />
+                        <span className="hidden md:inline">{workspace._count.members} members</span>
+                    </Link>
+                    {canInvite && (
+                        <Link href={teamHref} className={buttonStyles({ variant: "secondary" })}>
+                            <UserPlus className="size-4" aria-hidden="true" />
+                            <span className="sr-only sm:not-sr-only">Invite</span>
+                        </Link>
+                    )}
+                    {canCreateProject && (
+                        <Link href={newProjectHref} className={`${buttonStyles()} whitespace-nowrap`}>
+                            <Plus className="size-4" aria-hidden="true" />
+                            New project
+                        </Link>
+                    )}
+                    <WorkspaceActions
+                        workspace={{
+                            id: workspace.id,
+                            slug: workspace.slug,
+                            name: workspace.name,
+                            description: workspace.description,
+                        }}
+                        updateDetails={
+                            canWorkspace(role, "workspace.update")
+                                ? updateWorkspaceDetailsAction.bind(null, workspace.slug)
+                                : undefined
+                        }
+                        canEdit={canWorkspace(role, "workspace.update")}
+                        canLeave={canWorkspace(role, "workspace.leave")}
+                        canDelete={canWorkspace(role, "workspace.delete")}
+                    />
+                </div>
+            </header>
+
+            <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <section aria-labelledby="projects">
+                    <h2 id="projects" className="mb-3 flex items-baseline gap-2 text-base font-semibold text-foreground">
+                        Projects
+                        <span className="text-sm font-normal text-muted-foreground">{projects.length}</span>
+                    </h2>
 
                     {projects.length ? (
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {projects.map((project) => (
-                                <ProjectCard
-                                    key={project.id}
-                                    project={project}
-                                    workspaceSlug={workspace.slug}
-                                />
-                            ))}
-                            {canCreateProject && <NewProjectTile href={newProjectHref} />}
-                        </div>
+                        <ProjectsBrowser
+                            projects={projects}
+                            workspaceSlug={workspace.slug}
+                            trailing={canCreateProject ? <NewProjectTile href={newProjectHref} /> : undefined}
+                        />
                     ) : (
                         <EmptyState
                             className="rounded-xl border border-dashed border-border"
                             icon={<FolderKanban />}
-                            title={
-                                canCreateProject
-                                    ? "Create your first project"
-                                    : "No projects yet"
-                            }
+                            title={canCreateProject ? "Create your first project" : "No projects yet"}
                             description={
                                 canCreateProject
                                     ? "Projects organize the work your team needs to deliver."
@@ -264,68 +262,11 @@ export default async function WorkspacePage({
                     )}
                 </section>
 
-                {canEditDetails && (
-                    <EditDetailsForm
-                        action={updateWorkspaceDetailsAction.bind(null, workspace.slug)}
-                        title="Workspace details"
-                        description="Rename this workspace or change its description."
-                        nameLabel="Workspace name"
-                        defaultName={workspace.name}
-                        defaultDescription={workspace.description}
-                        nameMaxLength={80}
-                        descriptionMaxLength={280}
-                    />
-                )}
-
-                {canLeave && (
-                    <section
-                        aria-labelledby="leave-workspace"
-                        className="mt-14 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                        <div>
-                            <h2
-                                id="leave-workspace"
-                                className="text-sm font-semibold text-foreground"
-                            >
-                                Leave this workspace
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                You&apos;ll lose access to its projects and be unassigned
-                                from your tasks. You can rejoin only with a new invitation.
-                            </p>
-                        </div>
-
-                        <LeaveWorkspaceButton slug={workspace.slug} workspaceName={workspace.name} />
-                    </section>
-                )}
-
-                {canDelete && (
-                    <section
-                        aria-labelledby="danger-zone"
-                        className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div>
-                                <h2
-                                    id="danger-zone"
-                                    className="text-sm font-semibold text-foreground"
-                                >
-                                    Delete this workspace
-                                </h2>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    This permanently removes the workspace and can&apos;t
-                                    be undone.
-                                </p>
-                            </div>
-                        </div>
-
-                        <DeleteWorkspaceButton
-                            workspaceId={workspace.id}
-                            workspaceName={workspace.name}
-                        />
-                    </section>
-                )}
-            </PageBody>
-        </div>
+                <aside aria-label="Your work and recent activity" className="space-y-4 xl:sticky xl:top-6">
+                    <MyTasksPanel tasks={myTasks} slug={workspace.slug} now={now} />
+                    <ActivityPanel events={events} slug={workspace.slug} />
+                </aside>
+            </div>
+        </PageBody>
     );
 }

@@ -11,6 +11,7 @@ import { TASK_COLUMNS, type TaskStatus } from "@/lib/task-status";
 import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
 
+import { Avatar } from "../kanbanboard/avatar";
 import { FilterSelect } from "../kanbanboard/filter-select";
 import { COLUMN_DOTS } from "../kanbanboard/board-utils";
 import { getPriorityLabel } from "../kanbanboard/kanban-helpers";
@@ -46,12 +47,15 @@ export function ProjectListView({
     tasks,
     members,
     canEdit,
+    leading,
 }: {
     slug: string;
     projectId: string;
     tasks: BoardTask[];
     members: TaskFormMember[];
     canEdit: boolean;
+    /** Shown at the start of the toolbar, e.g. the Board/List switch. */
+    leading?: React.ReactNode;
 }) {
     // Local copy so status changes show instantly; reset when the server
     // sends new data (after a refresh), using the render-time sync pattern.
@@ -154,6 +158,29 @@ export function ProjectListView({
 
     return (
         <div>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+                {/* Its own slot: it comes from the server page, next to static siblings. */}
+                <div className="contents">{leading}</div>
+                <span className="hidden text-[13px] tabular-nums text-muted-foreground sm:inline">
+                    {hasFilters ? `${visible.length} of ${rows.length}` : rows.length} {rows.length === 1 ? "task" : "tasks"}
+                </span>
+                {!canEdit && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        View only
+                    </span>
+                )}
+                {canEdit && (
+                    <button
+                        type="button"
+                        onClick={() => setDialogOpen(true)}
+                        className={`${buttonStyles()} ml-auto whitespace-nowrap`}
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        <span className="sr-only sm:not-sr-only">New task</span>
+                    </button>
+                )}
+            </div>
+
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
                     <div className="relative col-span-2 lg:col-span-1">
@@ -219,16 +246,6 @@ export function ProjectListView({
                             className={buttonStyles({ variant: "secondary" })}
                         >
                             Clear filters
-                        </button>
-                    )}
-                    {canEdit && (
-                        <button
-                            type="button"
-                            onClick={() => setDialogOpen(true)}
-                            className={buttonStyles()}
-                        >
-                            <Plus className="size-4" aria-hidden="true" />
-                            New task
                         </button>
                     )}
                 </div>
@@ -346,8 +363,20 @@ export function ProjectListView({
                                         </span>
                                     </td>
 
-                                    <td className="truncate px-4 py-3 text-xs text-muted-foreground">
-                                        {task.assignee ? (task.assignee.name ?? task.assignee.email) : "Unassigned"}
+                                    <td className="px-4 py-3 text-xs">
+                                        {task.assignee ? (
+                                            <span className="flex min-w-0 items-center gap-2 text-foreground">
+                                                <span aria-hidden="true" className="flex shrink-0 [&>*]:size-6 [&>*]:text-[9px]">
+                                                    <Avatar assignee={task.assignee} />
+                                                </span>
+                                                <span className="truncate">{task.assignee.name ?? task.assignee.email}</span>
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-2 text-muted-foreground">
+                                                <span aria-hidden="true" className="size-6 shrink-0 rounded-full border border-dashed border-muted-foreground/50" />
+                                                Unassigned
+                                            </span>
+                                        )}
                                     </td>
 
                                     <td

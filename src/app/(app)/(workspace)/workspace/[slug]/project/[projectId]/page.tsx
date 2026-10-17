@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-    LayoutGrid,
-    List,
-    User,
-} from "lucide-react";
+import { Globe2, LayoutGrid, List, Lock, UsersRound } from "lucide-react";
 
 import { getSession } from "@/lib/auth/session";
 import {
@@ -15,9 +11,8 @@ import {
 import { projectCapabilities } from "@/lib/auth/permissions";
 import { canEditTasks } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
-import { DeleteProjectButton } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/DeleteProjectButton";
-import { ToggleVisibilityButton } from "@/components/ui/ToggleVisibilityButton";
-import { EditDetailsForm } from "@/components/ui/EditDetailsForm";
+import { AvatarStack } from "@/components/ui/AvatarStack";
+import { ProjectActions } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/ProjectActions";
 import {
     setProjectVisibilityAction,
     updateProjectDetailsAction,
@@ -27,11 +22,9 @@ import { ProjectListView } from "./listview/project-list-view";
 import { PageBody } from "@/components/ui/PageBody";
 import { ProjectMark } from "@/components/ui/ProjectMark";
 import { projectHex } from "@/lib/navigation/project-color";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
 import { StatusRail } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/StatusRail";
-import { buttonStyles } from "@/app/style/button-style";
 
 
 
@@ -106,8 +99,7 @@ export default async function ProjectPage({
         project.id,
     );
 
-    const [memberCount, tasks, assignableMembers] = await Promise.all([
-        prisma.projectMember.count({ where: { projectId: project.id } }),
+    const [tasks, assignableMembers] = await Promise.all([
         prisma.task.findMany({
             where: { projectId: project.id },
             orderBy: [{ position: "asc" }, { createdAt: "asc" }],
@@ -126,6 +118,7 @@ export default async function ProjectPage({
     ]);
 
     const members = assignableMembers.map(({ id, name, email }) => ({ id, name, email }));
+    const audience = assignableMembers.map(({ id, name, email, image }) => ({ id, name, email, image: image ?? null }));
 
     const now = new Date();
 
@@ -144,6 +137,37 @@ export default async function ProjectPage({
 
     const doneTasks = tasks.filter((t) => t.status === "DONE").length;
     const overdueTasks = boardTasks.filter((t) => t.overdue).length;
+    const weekAhead = new Date(now.getTime() + 7 * 86_400_000);
+    const openTasks = tasks.filter((t) => t.status !== "DONE");
+    const dueSoon = openTasks.filter((t) => t.dueDate && t.dueDate >= now && t.dueDate <= weekAhead).length;
+    const unassigned = openTasks.filter((t) => !t.assignee).length;
+
+    const projectHref = `/workspace/${project.workspace.slug}/project/${project.id}`;
+    const membersHref = `${projectHref}/members`;
+    const isPrivate = project.visibility === "PRIVATE";
+
+    const viewTab = (key: "board" | "list") =>
+        `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
+            view === key
+                ? "bg-card text-foreground shadow-[0_1px_2px_rgba(23,26,33,0.1)] dark:bg-white/10"
+                : "text-muted-foreground hover:text-foreground"
+        }`;
+    const viewSwitch = (
+        <nav aria-label="Task views" className="flex rounded-lg bg-foreground/[0.05] p-0.5">
+            <Link href={projectHref} aria-current={view === "board" ? "page" : undefined} className={viewTab("board")}>
+                <LayoutGrid className="size-4" aria-hidden="true" />
+                Board
+            </Link>
+            <Link
+                href={`${projectHref}?view=list`}
+                aria-current={view === "list" ? "page" : undefined}
+                className={viewTab("list")}
+            >
+                <List className="size-4" aria-hidden="true" />
+                List
+            </Link>
+        </nav>
+    );
 
     return (
         <PageBody glow={projectHex(project.id)}>
@@ -154,35 +178,71 @@ export default async function ProjectPage({
                 ]}
             />
 
-            <PageHeader
-                eyebrow="Project"
-                icon={<ProjectMark projectId={project.id} size="lg" />}
-                title={project.name}
-                description={
-                    project.description ||
-                    "Track tasks from to-do to done and keep everyone on the same page."
-                }
-                actions={
-                    <div className="flex flex-wrap items-center gap-2">
-                        {canChangeVisibility && (
-                            <ToggleVisibilityButton
-                                visibility={project.visibility}
-                                onToggle={updateProjectVisibility}
-                            />
-                        )}
-
-                        <Link
-                            href={`/workspace/${project.workspace.slug}/project/${project.id}/members`}
-                            className={buttonStyles({ variant: "secondary" })}
-                        >
-                            <User className="size-4" aria-hidden="true" />
-                            Members
-                        </Link>
+            <header className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3.5">
+                    <ProjectMark projectId={project.id} size="lg" />
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
+                                {project.name}
+                            </h1>
+                            <span
+                                className="mt-1 inline-flex items-center gap-1 rounded-full bg-foreground/[0.05] px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                title={
+                                    isPrivate
+                                        ? "Only people added to this project can see it."
+                                        : "Everyone in the workspace can see this project."
+                                }
+                            >
+                                {isPrivate ? (
+                                    <Lock className="size-3" aria-hidden="true" />
+                                ) : (
+                                    <Globe2 className="size-3" aria-hidden="true" />
+                                )}
+                                {isPrivate ? "Private" : "Workspace"}
+                            </span>
+                        </div>
+                        <p data-testid="description" className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                            {project.description ||
+                                "Track tasks from to-do to done and keep everyone on the same page."}
+                        </p>
                     </div>
-                }
-            />
+                </div>
 
-            <div className="mt-6">
+                <div className="flex shrink-0 items-center gap-2">
+                    <Link
+                        href={membersHref}
+                        className={`flex h-9 items-center gap-2 rounded-full text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand ${
+                            audience.length ? "py-1 pl-1 pr-3" : "px-3"
+                        }`}
+                    >
+                        {audience.length > 0 ? (
+                            <AvatarStack people={audience} max={4} size="md" />
+                        ) : (
+                            <UsersRound className="size-4" aria-hidden="true" />
+                        )}
+                        Members
+                    </Link>
+                    <ProjectActions
+                        project={{
+                            id: project.id,
+                            name: project.name,
+                            description: project.description,
+                            visibility: project.visibility,
+                        }}
+                        membersHref={membersHref}
+                        updateDetails={
+                            canChangeVisibility
+                                ? updateProjectDetailsAction.bind(null, project.workspace.slug, project.id)
+                                : undefined
+                        }
+                        setVisibility={canChangeVisibility ? updateProjectVisibility : undefined}
+                        canDelete={canDeleteProject}
+                    />
+                </div>
+            </header>
+
+            <div className="mt-5">
                 <StatusRail
                     counts={{
                         TODO: tasks.filter((t) => t.status === "TODO").length,
@@ -191,104 +251,32 @@ export default async function ProjectPage({
                         DONE: doneTasks,
                     }}
                     overdue={overdueTasks}
-                    members={memberCount}
+                    dueSoon={dueSoon}
+                    unassigned={unassigned}
                 />
             </div>
 
-            <nav aria-label="Task views" className="mt-8 border-b border-border">
-                <div className="-mb-px flex gap-5">
-                    {(
-                        [
-                            { key: "board", label: "Board", icon: <LayoutGrid className="size-4" aria-hidden="true" /> },
-                            { key: "list", label: "List", icon: <List className="size-4" aria-hidden="true" /> },
-                        ] as const
-                    ).map((option) => (
-                        <Link
-                            key={option.key}
-                            href={
-                                option.key === "list"
-                                    ? `/workspace/${project.workspace.slug}/project/${project.id}?view=list`
-                                    : `/workspace/${project.workspace.slug}/project/${project.id}`
-                            }
-                            aria-current={view === option.key ? "page" : undefined}
-                            className={`inline-flex h-10 items-center gap-1.5 border-b-2 text-sm font-medium transition-colors ${
-                                view === option.key
-                                    ? "border-brand text-foreground"
-                                    : "border-transparent text-muted-foreground hover:text-foreground"
-                            }`}
-                        >
-                            {option.icon}
-                            {option.label}
-                        </Link>
-                    ))}
-                </div>
-            </nav>
-
-            {view === "list" ? (
-                <section aria-label="Task list" className="mt-6">
+            <section aria-label={view === "list" ? "Task list" : "Task board"} className="mt-6">
+                {view === "list" ? (
                     <ProjectListView
                         slug={project.workspace.slug}
                         projectId={project.id}
                         tasks={boardTasks}
                         members={members}
                         canEdit={canEdit}
+                        leading={viewSwitch}
                     />
-                </section>
-            ) : (
-                <section aria-label="Task board" className="mt-6">
+                ) : (
                     <KanbanBoard
                         slug={project.workspace.slug}
                         projectId={project.id}
                         tasks={boardTasks}
                         members={members}
                         canEdit={canEdit}
+                        leading={viewSwitch}
                     />
-                </section>
-            )}
-
-            {canChangeVisibility && (
-                <EditDetailsForm
-                    action={updateProjectDetailsAction.bind(
-                        null,
-                        project.workspace.slug,
-                        project.id,
-                    )}
-                    title="Project details"
-                    description="Rename this project or change its description."
-                    nameLabel="Project name"
-                    defaultName={project.name}
-                    defaultDescription={project.description}
-                    nameMaxLength={100}
-                    descriptionMaxLength={500}
-                />
-            )}
-
-            {canDeleteProject && (
-                <section
-                    aria-labelledby="danger-zone"
-                    className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <div className="flex items-start gap-3">
-                        <div>
-                            <h2
-                                id="danger-zone"
-                                className="text-sm font-semibold text-foreground"
-                            >
-                                Delete this project
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                This permanently removes the project and its tasks. It
-                                can&apos;t be undone.
-                            </p>
-                        </div>
-                    </div>
-
-                    <DeleteProjectButton
-                        projectId={project.id}
-                        projectName={project.name}
-                    />
-                </section>
-            )}
+                )}
+            </section>
         </PageBody>
     );
 }

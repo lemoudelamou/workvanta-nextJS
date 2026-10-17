@@ -196,29 +196,22 @@ describe("WorkspaceIndexPage – no memberships", () => {
     });
 });
 
-describe("WorkspaceIndexPage – KPIs", () => {
-    it("counts owned and shared workspaces and sums projects across all of them", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMembership("a", "OWNER", 3),
-            makeMembership("b", "ADMIN", 2),
-            makeMembership("c", "MEMBER", 0),
-            makeMembership("d", "GUEST", 5),
-            makeMembership("e", "OWNER", 1),
-        ]);
+describe("WorkspaceIndexPage – summary", () => {
+    it("has no stat strip, just the sections", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([makeMembership("a", "OWNER", 3)]);
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Owned by you-value")).toHaveTextContent("2");
-        expect(screen.getByTestId("kpi-Shared with you-value")).toHaveTextContent("3");
-        expect(screen.getByTestId("kpi-Projects-value")).toHaveTextContent("11");
+        expect(screen.queryByLabelText("Summary")).not.toBeInTheDocument();
+        expect(screen.getByTestId("section-my-workspaces")).toBeInTheDocument();
     });
 
-    it("shows zero projects when workspaces have none", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([makeMembership("a", "OWNER", 0)]);
-
+    it("asks for the first few members of each workspace for the cards", async () => {
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Projects-value")).toHaveTextContent("0");
+        expect(db.workspaceMember.findMany.mock.calls[0][0].select.workspace.select.members).toMatchObject({
+            take: 4,
+        });
     });
 });
 
@@ -237,16 +230,16 @@ describe("WorkspaceIndexPage – sections", () => {
         const owned = screen.getByTestId("section-my-workspaces");
         expect(owned).toHaveAttribute("data-count", "2");
         expect(owned).toHaveAttribute("data-ids", "b,d");
-        expect(owned).toHaveAttribute("data-class", "mt-12");
+        expect(owned).toHaveAttribute("data-class", "mt-8");
 
         const shared = screen.getByTestId("section-shared-workspaces");
         expect(shared).toHaveAttribute("data-count", "3");
         expect(shared).toHaveAttribute("data-ids", "a,c,e");
-        expect(shared).toHaveAttribute("data-class", "mt-12");
+        expect(shared).toHaveAttribute("data-class", "mt-10");
     });
 
     it("renders titles and descriptions for both sections", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([makeMembership("a", "OWNER")]);
+        db.workspaceMember.findMany.mockResolvedValue([makeMembership("a", "OWNER"), makeMembership("b", "MEMBER")]);
 
         await renderPage();
 
@@ -292,15 +285,12 @@ describe("WorkspaceIndexPage – sections", () => {
         );
     });
 
-    it("shows the shared empty state, without an action, when the user only owns workspaces", async () => {
+    it("leaves out the shared section until someone invites you", async () => {
         db.workspaceMember.findMany.mockResolvedValue([makeMembership("a", "OWNER")]);
 
         await renderPage();
 
-        const shared = screen.getByTestId("section-shared-workspaces");
-        expect(shared).toHaveAttribute("data-count", "0");
-        expect(shared).toHaveTextContent("Nothing shared with you yet");
-        expect(within(shared).queryByRole("link")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("section-shared-workspaces")).not.toBeInTheDocument();
         expect(screen.getByTestId("section-my-workspaces")).not.toHaveTextContent(
             "You don't own a workspace yet",
         );
