@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, Search, X } from "lucide-react";
 
 import type { ShellWorkspace } from "@/lib/navigation/shell-data";
 import { NotificationBell, type BellNotification } from "@/app/(app)/notifications/NotificationBell";
 import { SidebarContent } from "./SidebarContent";
 import { CommandPalette } from "./CommandPalette";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { workspaceInitials } from "./WorkspaceSwitcher";
 import type { ShellUser } from "./UserMenu";
 
 import { LAST_WORKSPACE_COOKIE, SIDEBAR_COOKIE } from "@/lib/navigation/shell-cookies";
+import { goToHref, isTypingTarget, SHOW_SHORTCUTS_EVENT } from "@/lib/shortcuts";
 
 /** The workspace the URL is in, if any ("/workspace/new" is not one). */
 export function slugFromPath(pathname: string) {
@@ -63,6 +65,9 @@ export function AppShell({
     const pathSlug = slugFromPath(pathname);
     const [collapsed, setCollapsed] = useState(initiallyCollapsed);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const router = useRouter();
+    const workspaceBase = current ? `/workspace/${current.slug}` : null;
 
     function toggleCollapsed() {
         setCollapsed((value) => {
@@ -72,18 +77,58 @@ export function AppShell({
         });
     }
 
-    // Ctrl+K / ⌘K opens quick search from anywhere.
+    // Keyboard shortcuts (listed in lib/shortcuts and the "?" panel).
+    // Ctrl+K / ⌘K works anywhere; the rest pause while typing or in a dialog.
     useEffect(() => {
+        let waitingForGoTo = false;
+        let goToTimer: ReturnType<typeof setTimeout> | undefined;
+
         function onKeyDown(event: KeyboardEvent) {
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
                 event.preventDefault();
                 drawerRef.current?.close();
                 setSearchOpen(true);
+                return;
+            }
+            if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (isTypingTarget(event.target)) return;
+            if (document.querySelector("dialog[open], [role='dialog'], [role='alertdialog'], [role='menu']")) return;
+
+            if (waitingForGoTo) {
+                waitingForGoTo = false;
+                clearTimeout(goToTimer);
+                const href = goToHref(event.key, workspaceBase);
+                if (href) {
+                    event.preventDefault();
+                    router.push(href);
+                }
+                return;
+            }
+
+            if (event.key === "g" || event.key === "G") {
+                waitingForGoTo = true;
+                goToTimer = setTimeout(() => (waitingForGoTo = false), 1500);
+            } else if (event.key === "?") {
+                event.preventDefault();
+                setShortcutsOpen(true);
+            } else if (event.key === "[") {
+                event.preventDefault();
+                toggleCollapsed();
             }
         }
+
+        function onShowShortcuts() {
+            setShortcutsOpen(true);
+        }
+
         window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
+        window.addEventListener(SHOW_SHORTCUTS_EVENT, onShowShortcuts);
+        return () => {
+            clearTimeout(goToTimer);
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener(SHOW_SHORTCUTS_EVENT, onShowShortcuts);
+        };
+    }, [router, workspaceBase]);
 
     // Remember the workspace so Home and My tasks keep showing its projects.
     useEffect(() => {
@@ -180,6 +225,8 @@ export function AppShell({
                     {sidebar(false, true)}
                 </div>
             </dialog>
+
+            {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
 
             {/* The page sits on a raised panel beside the sidebar. */}
             <CommandPalette

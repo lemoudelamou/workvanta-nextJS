@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/marketing/SiteHeader";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { PROJECT_ROLE_DESCRIPTIONS, WORKSPACE_ROLE_DESCRIPTIONS } from "@/lib/auth/permissions";
 import { PRESET_LABELS } from "@/lib/labels/label-colors";
+import { SHORTCUTS } from "@/lib/shortcuts";
 
 export const metadata: Metadata = {
     title: "Guide · Workvanta",
@@ -33,6 +34,10 @@ function Tip({ children }: { children: ReactNode }) {
 /** A button or menu name, as it appears on screen. */
 function UI({ children }: { children: ReactNode }) {
     return <strong className="font-semibold text-foreground">{children}</strong>;
+}
+
+function Kbd({ children }: { children: ReactNode }) {
+    return <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-sans text-xs text-foreground">{children}</kbd>;
 }
 
 function Question({ q, children }: { q: string; children: ReactNode }) {
@@ -303,6 +308,35 @@ const sections = (signedIn: boolean): Section[] => [
         ),
     },
     {
+        id: "shortcuts",
+        title: "Keyboard shortcuts",
+        body: (
+            <>
+                <p>
+                    Move around without the mouse. Press <Kbd>?</Kbd> anywhere in the app to see this list, or open it from
+                    the menu under your name. Shortcuts pause while you&apos;re typing in a field.
+                </p>
+                <table className="w-full text-sm">
+                    <tbody className="divide-y divide-border">
+                        {SHORTCUTS.map((shortcut) => (
+                            <tr key={shortcut.label}>
+                                <td className="py-2 pr-4">{shortcut.label}</td>
+                                <td className="whitespace-nowrap py-2 text-right text-xs text-muted-foreground">
+                                    {shortcut.keys.map((key, index) => (
+                                        <span key={key}>
+                                            {index > 0 && <span className="mx-1">{shortcut.sequence ? "then" : "+"}</span>}
+                                            <Kbd>{key === "Mod" ? "Ctrl / ⌘" : key}</Kbd>
+                                        </span>
+                                    ))}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </>
+        ),
+    },
+    {
         id: "notifications",
         title: "Notifications and reminders",
         body: (
@@ -323,6 +357,10 @@ const sections = (signedIn: boolean): Section[] => [
         id: "account",
         title: "Your account and security",
         body: (
+            <>
+            <p>
+                Open <UI>Settings</UI> from the menu under your name, at the bottom of the sidebar. It has these sections:
+            </p>
             <ul className="list-disc space-y-1 pl-5">
                 <li>
                     <UI>Profile</UI>: your name and picture.
@@ -342,6 +380,7 @@ const sections = (signedIn: boolean): Section[] => [
                     <Link href="/privacy#retention">privacy policy</Link> for exactly what happens.
                 </li>
             </ul>
+            </>
         ),
     },
     {

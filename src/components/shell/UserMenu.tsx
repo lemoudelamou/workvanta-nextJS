@@ -3,7 +3,9 @@
 import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronsUpDown, LogOut, Settings } from "lucide-react";
+import { BookOpen, ChevronsUpDown, Keyboard, LogOut, Settings } from "lucide-react";
+
+import { SHOW_SHORTCUTS_EVENT } from "@/lib/shortcuts";
 
 import { logout } from "@/app/(auth)/signin/actions";
 import { useDismiss } from "./use-dismiss";
@@ -94,6 +96,20 @@ export function UserMenu({
                         <BookOpen className="size-3.5 text-muted-foreground" aria-hidden="true" />
                         Help &amp; guide
                     </Link>
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                            setOpen(false);
+                            onNavigate?.();
+                            window.dispatchEvent(new Event(SHOW_SHORTCUTS_EVENT));
+                        }}
+                        className={`${itemClass} text-foreground hover:bg-muted focus-visible:bg-muted`}
+                    >
+                        <Keyboard className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                        <span className="flex-1">Keyboard shortcuts</span>
+                        <kbd className="rounded border border-border px-1 text-[10px] text-muted-foreground">?</kbd>
+                    </button>
                     <form
                         action={async () => {
                             // The theme preference belongs to the account; don't

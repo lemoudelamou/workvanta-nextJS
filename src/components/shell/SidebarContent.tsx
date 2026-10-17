@@ -7,12 +7,12 @@ import {
     CircleCheckBig,
     FolderKanban,
     House,
+    LayoutGrid,
     Lock,
     PanelLeftClose,
     PanelLeftOpen,
     Plus,
     Search,
-    Settings,
     UsersRound,
 } from "lucide-react";
 
@@ -227,6 +227,13 @@ export function SidebarContent({
                         countTone="brand"
                         srExtra={`${unreadCount} unread`}
                     />
+                    <NavItem
+                        href="/workspace"
+                        icon={<LayoutGrid className="size-[18px]" />}
+                        label="All workspaces"
+                        active={is("/workspace")}
+                        collapsed={collapsed}
+                    />
                 </Section>
 
                 {current && base ? (
@@ -322,13 +329,7 @@ export function SidebarContent({
             </nav>
 
             <div className={`space-y-1 border-t border-border/70 py-2.5 ${collapsed ? "px-2" : "px-3"}`}>
-                <NavItem
-                    href="/settings"
-                    icon={<Settings className="size-[18px]" />}
-                    label="Settings"
-                    active={under("/settings")}
-                    collapsed={collapsed}
-                />
+                {/* Settings lives in the account menu below. */}
                 <UserMenu user={user} compact={collapsed} />
                 {onToggleCollapsed && (
                     <button
