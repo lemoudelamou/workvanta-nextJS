@@ -79,7 +79,9 @@ export const NotificationType = {
   TASK_COMMENTED: 'TASK_COMMENTED',
   MENTION: 'MENTION',
   PROJECT_UPDATED: 'PROJECT_UPDATED',
-  INVITATION: 'INVITATION'
+  INVITATION: 'INVITATION',
+  TASK_DUE_SOON: 'TASK_DUE_SOON',
+  TASK_OVERDUE: 'TASK_OVERDUE'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

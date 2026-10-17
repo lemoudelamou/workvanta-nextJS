@@ -57,6 +57,8 @@ enum NotificationType {
   MENTION
   PROJECT_UPDATED
   INVITATION
+  TASK_DUE_SOON
+  TASK_OVERDUE
 }
 
 model User {
@@ -364,6 +366,11 @@ model NotificationPreference {
   inAppComments        Boolean @default(true)
   inAppMentions        Boolean @default(true)
   inAppInvitations     Boolean @default(true)
+
+  /// Reminders before a task is due and when it becomes overdue.
+  inAppDueDates Boolean @default(true)
+  /// The morning summary email of overdue and upcoming tasks.
+  emailDueDates Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

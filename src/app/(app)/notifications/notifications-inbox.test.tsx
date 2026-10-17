@@ -92,6 +92,21 @@ describe("NotificationsInbox", () => {
         expect(markNotificationReadAction).toHaveBeenCalledWith("n2");
     });
 
+    it("writes reminders with the task as the subject", () => {
+        render(
+            <NotificationsInbox
+                initial={[
+                    view("r1", { type: "TASK_DUE_SOON", actor: null, verb: "is due in 5 hours", taskTitle: "Ship v2" }),
+                    view("r2", { type: "TASK_OVERDUE", actor: null, verb: "is overdue", taskTitle: "Fix login" }),
+                ]}
+            />,
+        );
+
+        expect(screen.getByRole("link", { name: /^Ship v2 is due in 5 hours/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /^Fix login is overdue/ })).toBeInTheDocument();
+        expect(screen.queryByText("Someone")).not.toBeInTheDocument();
+    });
+
     it("shows an empty state", () => {
         render(<NotificationsInbox initial={[]} />);
         expect(screen.getByText("Nothing here yet")).toBeInTheDocument();

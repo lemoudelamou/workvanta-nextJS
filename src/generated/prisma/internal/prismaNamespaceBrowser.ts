@@ -315,6 +315,8 @@ export const NotificationPreferenceScalarFieldEnum = {
   inAppComments: 'inAppComments',
   inAppMentions: 'inAppMentions',
   inAppInvitations: 'inAppInvitations',
+  inAppDueDates: 'inAppDueDates',
+  emailDueDates: 'emailDueDates',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

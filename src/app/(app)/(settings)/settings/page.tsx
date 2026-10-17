@@ -146,9 +146,11 @@ export default async function SettingsPage({
                 inAppTaskAssignments: true,
                 inAppComments: true,
                 inAppMentions: true,
+                inAppDueDates: true,
                 emailTaskAssignments: true,
                 emailComments: true,
                 emailMentions: true,
+                emailDueDates: true,
             },
         }),
     ]);
