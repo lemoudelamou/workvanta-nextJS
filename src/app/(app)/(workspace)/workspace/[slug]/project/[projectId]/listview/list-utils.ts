@@ -24,6 +24,11 @@ export const DEFAULT_SORT: { key: SortKey; direction: SortDirection } = {
     direction: "asc",
 };
 
+/** Waiting on tasks that aren't done yet (a done task isn't held up any more). */
+export function isBlocked(task: BoardTask) {
+    return (task.openBlockers ?? 0) > 0 && task.status !== "DONE";
+}
+
 /** Same matching rules as the board's filters. */
 export function filterTasks(tasks: BoardTask[], filters: Filters) {
     const search = filters.search.trim().toLowerCase();
@@ -33,6 +38,8 @@ export function filterTasks(tasks: BoardTask[], filters: Filters) {
         if (filters.priority !== "ALL" && task.priority !== filters.priority) return false;
         if (filters.status !== "ALL" && task.status !== filters.status) return false;
         if (filters.label && filters.label !== "ALL" && !task.labels.some((l) => l.id === filters.label)) return false;
+        if (filters.blocked === "BLOCKED" && !isBlocked(task)) return false;
+        if (filters.blocked === "NOT_BLOCKED" && isBlocked(task)) return false;
 
         if (filters.assignee === "UNASSIGNED") return !task.assignee;
         if (filters.assignee !== "ALL") return task.assignee?.email === filters.assignee;
