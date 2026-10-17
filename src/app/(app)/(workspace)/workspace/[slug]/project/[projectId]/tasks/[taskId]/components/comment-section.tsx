@@ -9,6 +9,7 @@ import {
     Trash2,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { hairline, glass, starlightEdge, iconTile, smallPrimaryButton, smallGhostButton, bubbleClass, editFieldClass } from "@/app/style/ui-tokens";
 
@@ -39,6 +40,9 @@ type CommentsSectionProps = {
     updateComment: UpdateComment;
     /** Project admins can remove anyone's comment. */
     canModerate?: boolean;
+    /** Total comments on the task; more than shown adds a "show earlier" link. */
+    totalCount?: number;
+    showAllHref?: string;
 };
 
 const MAX_LENGTH = 5000;
@@ -414,7 +418,12 @@ export function CommentsSection({
                                     deleteComment,
                                     updateComment,
                                     canModerate = false,
+                                    totalCount,
+                                    showAllHref,
                                 }: CommentsSectionProps) {
+    const total = totalCount ?? comments.length;
+    const hiddenCount = Math.max(0, total - comments.length);
+
     return (
         // overflow-visible on purpose: the mention dropdown extends below the composer
         <section
@@ -436,7 +445,7 @@ export function CommentsSection({
                                 <span
                                     className={`${hairline} inline-flex min-w-6 items-center justify-center rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 dark:bg-white/[0.04] dark:text-slate-300`}
                                 >
-                  {comments.length}
+                  {total}
                 </span>
                             </div>
 
@@ -463,6 +472,17 @@ export function CommentsSection({
             </div>
 
             <div className="relative divide-y divide-slate-200/70 dark:divide-white/[0.06]">
+                {hiddenCount > 0 && showAllHref && (
+                    <div className="px-5 py-3 text-center sm:px-6">
+                        <Link
+                            href={showAllHref}
+                            scroll={false}
+                            className="text-sm font-medium text-slate-600 hover:text-slate-950 hover:underline dark:text-slate-300 dark:hover:text-white"
+                        >
+                            Show {hiddenCount} earlier {hiddenCount === 1 ? "comment" : "comments"}
+                        </Link>
+                    </div>
+                )}
                 {comments.length === 0 ? (
                     <div className="px-5 py-12 text-center sm:px-6">
                         <div className={`${iconTile} mx-auto size-14 rounded-2xl border-dashed`}>

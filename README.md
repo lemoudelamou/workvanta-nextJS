@@ -171,6 +171,7 @@ npm run socket   # realtime server → http://localhost:3001
 | `npm test` | Run the Jest test suite |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with a coverage report |
+| `npm run test:e2e` | Run the Playwright end-to-end journey (see below) |
 
 ## Roles and permissions
 
@@ -237,7 +238,24 @@ src/
 npm test
 ```
 
-GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the tests, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error.
+### End-to-end tests
+
+`e2e/team-journey.spec.ts` runs the core journey in a real browser against a real database: sign up, create a workspace and project, add a task, drag it to In progress, invite a teammate by email, and have them sign up, accept and see the work. Emails are caught by a small SMTP server inside the test run, so no mail provider is needed.
+
+You need PostgreSQL (with migrations applied) and Redis running locally:
+
+```bash
+npx playwright install chromium          # once
+E2E_DATABASE_URL=postgresql://user:pass@localhost:5432/workvanta_e2e \
+E2E_REDIS_URL=redis://localhost:6379 \
+npm run test:e2e                         # builds and starts the app on port 3100
+```
+
+Use a separate database: the test creates real users and workspaces. Set `E2E_DEV=1` to run against `next dev` instead of a production build (faster while iterating).
+
+### Continuous integration
+
+GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the unit tests, runs the end-to-end journey, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error.
 
 Tests sit next to the code they cover, as `*.test.ts(x)` files. Pages and server actions are tested with mocked Prisma and auth. The permission rules have their own unit tests in `src/lib/auth/permissions.test.ts`.
 

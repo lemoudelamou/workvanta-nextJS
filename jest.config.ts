@@ -16,6 +16,8 @@ const config: Config = {
     testPathIgnorePatterns: [
         "<rootDir>/.next/",
         "<rootDir>/node_modules/",
+        // Playwright end-to-end tests run separately (npm run test:e2e).
+        "<rootDir>/e2e/",
     ],
 };
 

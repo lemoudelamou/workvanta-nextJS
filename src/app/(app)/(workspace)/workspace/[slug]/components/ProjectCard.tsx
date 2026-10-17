@@ -45,6 +45,9 @@ export function ProjectCard({
     return (
         <Link
             href={`/workspace/${workspaceSlug}/project/${project.id}`}
+            // The card body is an <article>, which browsers don't use for the
+            // link's accessible name, so name the link explicitly.
+            aria-label={`Open project ${project.name}`}
             className="
                 group block h-full rounded-2xl outline-none
                 focus-visible:ring-2 focus-visible:ring-ring
