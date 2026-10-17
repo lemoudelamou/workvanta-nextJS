@@ -97,25 +97,29 @@ export default function UpdateProfile({
     }
 
     return (
-        <div className="relative p-5 sm:p-6">
-            <div className="flex items-start gap-4">
+        <div className="relative">
+            <div
+                aria-hidden="true"
+                className="h-20 bg-[radial-gradient(120%_140%_at_0%_0%,color-mix(in_srgb,var(--brand)_22%,transparent),transparent_60%),radial-gradient(90%_120%_at_100%_0%,color-mix(in_srgb,#1e9e6a_14%,transparent),transparent_60%)] sm:h-24"
+            />
+            <div className="-mt-8 flex items-end gap-4 px-5 pb-5 sm:-mt-9 sm:px-6">
                 {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={image}
                         alt=""
-                        className="size-14 shrink-0 rounded-full object-cover ring-1 ring-border"
+                        className="size-16 shrink-0 rounded-full object-cover ring-4 ring-card sm:size-[72px]"
                     />
                 ) : (
-                    <div className={`flex size-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold ${personColor(email)}`}>
+                    <div className={`flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-semibold ring-4 ring-card sm:size-[72px] ${personColor(email)}`}>
                         {initials}
                     </div>
                 )}
 
                 <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-foreground">
+                            <p className="truncate text-lg font-semibold tracking-[-0.01em] text-foreground">
                                 {currentName || "Add your name"}
                             </p>
 

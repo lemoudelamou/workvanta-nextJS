@@ -162,17 +162,19 @@ export default async function SettingsPage({
 
     return (
         <PageBody>
-            <PageHeader
-                title="Settings"
-                description="Your profile, how you sign in, and what Workvanta tells you about."
-            />
+            <div className="mx-auto max-w-5xl">
+                <PageHeader
+                    title="Settings"
+                    description="Your profile, how you sign in, and what Workvanta tells you about."
+                />
+            </div>
 
-            <div className="mt-6 lg:mt-8 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10">
+            <div className="mx-auto mt-6 max-w-5xl lg:mt-8 lg:grid lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-12">
                 <aside className="sticky top-14 z-10 -mx-4 bg-canvas/90 px-4 py-2 backdrop-blur lg:top-8 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
                     <SettingsNav items={SECTIONS} />
                 </aside>
 
-                <div className="mt-4 max-w-3xl space-y-12 lg:mt-0">
+                <div className="mt-4 space-y-12 lg:mt-0">
                     <SettingsSection
                         id="profile"
                         title="Profile"
@@ -218,14 +220,12 @@ export default async function SettingsPage({
                             title="Sign-in methods"
                             description="Use a password, GitHub or Google. Keep at least one."
                         >
-                            <div className="p-5 sm:p-6">
-                                <ConnectAccount
-                                    accounts={accounts.map((account) => ({
-                                        provider: account.provider === "github" ? "github" : "google",
-                                    }))}
-                                    hasPassword={Boolean(user?.passwordHash)}
-                                />
-                            </div>
+                            <ConnectAccount
+                                accounts={accounts.map((account) => ({
+                                    provider: account.provider === "github" ? "github" : "google",
+                                }))}
+                                hasPassword={Boolean(user?.passwordHash)}
+                            />
                         </SettingsCard>
 
                         <SettingsCard>
@@ -260,7 +260,7 @@ export default async function SettingsPage({
                         title="Preferences"
                         description="How Workvanta looks on this account."
                     >
-                        <SettingsCard>
+                        <SettingsCard title="Theme" description="Pick a look, or follow your device's light and dark setting.">
                             <ThemeSelection initialTheme={initialTheme} />
                         </SettingsCard>
                     </SettingsSection>

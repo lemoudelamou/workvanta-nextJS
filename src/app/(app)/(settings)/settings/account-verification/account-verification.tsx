@@ -12,6 +12,7 @@ import {
     resendEmailVerification,
     type EmailVerificationState,
 } from "@/app/(app)/(settings)/settings/account-verification/actions";
+import { buttonStyles } from "@/app/style/button-style";
 
 const initialVerificationState: EmailVerificationState = {
     success: false,
@@ -69,64 +70,31 @@ export default function AccountVerification({
     }
 
     return (
-        <div className="p-5 sm:p-7">
-            <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/[0.06]">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex min-w-0 items-start gap-4">
-                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-100 text-amber-600 dark:border-amber-500/20 dark:bg-amber-500/[0.1] dark:text-amber-300">
-                            <Mail
-                                className="size-5"
-                                aria-hidden="true"
-                            />
-                        </div>
-
-                        <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
-                                    Email verification required
-                                </p>
-
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/70 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/[0.08] dark:text-amber-300">
-                                    <span className="size-1.5 rounded-full bg-amber-500" />
-                                    Not verified
-                                </span>
-                            </div>
-
-                            <p className="mt-1 break-all text-sm font-medium text-slate-700 dark:text-slate-300">
-                                {email}
-                            </p>
-
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-amber-800/70 dark:text-amber-200/70">
-                                We sent a link to confirm this address is
-                                yours. Can&apos;t find it? Send a new one.
-                            </p>
-                        </div>
-                    </div>
-
-                    <form
-                        action={resendVerification}
-                        className="shrink-0"
-                    >
-                        <button
-                            type="submit"
-                            disabled={isResendingVerification}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/[0.1] dark:bg-white/[0.05] dark:text-slate-200 dark:hover:border-white/[0.16] dark:hover:bg-white/[0.08] sm:w-auto"
-                        >
-                            <RefreshCw
-                                className={`size-4 ${
-                                    isResendingVerification
-                                        ? "animate-spin"
-                                        : ""
-                                }`}
-                                aria-hidden="true"
-                            />
-
-                            {isResendingVerification
-                                ? "Sending..."
-                                : "Resend verification email"}
-                        </button>
-                    </form>
+        <div className="bg-amber-500/[0.06] px-5 py-3.5 sm:px-6 dark:bg-amber-400/[0.05]">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                    <Mail className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+                    <p className="text-sm text-foreground">
+                        <span className="font-medium">Confirm your email address.</span>{" "}
+                        <span className="text-muted-foreground">
+                            We sent a link to <span className="break-all">{email}</span>.
+                        </span>
+                    </p>
                 </div>
+
+                <form action={resendVerification} className="shrink-0 pl-7 sm:pl-0">
+                    <button
+                        type="submit"
+                        disabled={isResendingVerification}
+                        className={buttonStyles({ variant: "secondary", size: "sm" })}
+                    >
+                        <RefreshCw
+                            className={`size-3.5 ${isResendingVerification ? "animate-spin" : ""}`}
+                            aria-hidden="true"
+                        />
+                        {isResendingVerification ? "Sending…" : "Resend link"}
+                    </button>
+                </form>
             </div>
 
             {verificationState.message && (
@@ -136,15 +104,11 @@ export default function AccountVerification({
                             ? "status"
                             : "alert"
                     }
-                    className={`mt-4 flex items-start gap-3 rounded-xl border p-4 ${
-                        verificationState.success
-                            ? "border-emerald-200/80 bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-emerald-500/[0.06]"
-                            : "border-danger/30 bg-danger/[0.06]"
-                    }`}
+                    className="mt-2 flex items-start gap-2 pl-7"
                 >
                     {verificationState.success ? (
                         <CheckCircle2
-                            className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-300"
+                            className="mt-0.5 size-4 shrink-0 text-status-done"
                             aria-hidden="true"
                         />
                     ) : (
@@ -157,8 +121,8 @@ export default function AccountVerification({
                     <p
                         className={`text-sm leading-6 ${
                             verificationState.success
-                                ? "text-emerald-800/80 dark:text-emerald-200/80"
-                                : "text-danger/80"
+                                ? "text-status-done"
+                                : "text-danger"
                         }`}
                     >
                         {verificationState.message}

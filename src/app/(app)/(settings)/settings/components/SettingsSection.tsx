@@ -13,7 +13,7 @@ export function SettingsSection({
     children: ReactNode;
 }) {
     return (
-        <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24 lg:scroll-mt-8">
+        <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-32 lg:scroll-mt-8">
             <h2 id={`${id}-title`} className="text-lg font-semibold tracking-[-0.01em] text-foreground">
                 {title}
             </h2>

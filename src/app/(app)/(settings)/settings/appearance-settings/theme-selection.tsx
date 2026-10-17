@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 
 import { updateUserPreferences } from "@/app/(app)/(settings)/settings/appearance-settings/actions";
 
@@ -119,49 +119,33 @@ export default function ThemeSelection({
 
     return (
         <div className="p-5 sm:p-6">
-            <section>
-                <div className="mb-4">
-                    <p className="text-sm font-semibold text-foreground">
-                        Theme
-                    </p>
-
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Choose your preferred color scheme.
-                    </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <ThemeOption
-                        theme="light"
-                        selectedTheme={theme}
-                        icon={<Sun className="size-4" />}
-                        title="Light"
-                        description="Bright and clean"
-                        isDisabled={isSavingTheme}
-                        onSelect={handleThemeChange}
-                    />
-
-                    <ThemeOption
-                        theme="dark"
-                        selectedTheme={theme}
-                        icon={<Moon className="size-4" />}
-                        title="Dark"
-                        description="Easy on the eyes"
-                        isDisabled={isSavingTheme}
-                        onSelect={handleThemeChange}
-                    />
-
-                    <ThemeOption
-                        theme="system"
-                        selectedTheme={theme}
-                        icon={<Monitor className="size-4" />}
-                        title="System"
-                        description="Follow your device"
-                        isDisabled={isSavingTheme}
-                        onSelect={handleThemeChange}
-                    />
-                </div>
-            </section>
+            <div
+                role="radiogroup"
+                aria-label="Theme"
+                className="grid grid-cols-3 gap-3 sm:gap-4"
+            >
+                <ThemeOption
+                    theme="light"
+                    selectedTheme={theme}
+                    title="Light"
+                    isDisabled={isSavingTheme}
+                    onSelect={handleThemeChange}
+                />
+                <ThemeOption
+                    theme="dark"
+                    selectedTheme={theme}
+                    title="Dark"
+                    isDisabled={isSavingTheme}
+                    onSelect={handleThemeChange}
+                />
+                <ThemeOption
+                    theme="system"
+                    selectedTheme={theme}
+                    title="Match device"
+                    isDisabled={isSavingTheme}
+                    onSelect={handleThemeChange}
+                />
+            </div>
         </div>
     );
 }
@@ -179,12 +163,44 @@ function getThemePreference(theme: Theme) {
     }
 }
 
+// Colors for the miniature previews, fixed so each card always shows its
+// own theme regardless of the current one.
+const PREVIEW = {
+    light: { bg: "#eceef2", panel: "#f5f6f8", card: "#ffffff", line: "#d9dde4", ink: "#171a21" },
+    dark: { bg: "#0a0b0e", panel: "#0f1115", card: "#181b21", line: "#2a2f39", ink: "#eceef2" },
+} as const;
+
+/** A tiny sketch of the app: sidebar, a heading, and two cards. */
+function MiniApp({ mode }: { mode: "light" | "dark" }) {
+    const c = PREVIEW[mode];
+    return (
+        <div className="flex h-full w-full" style={{ background: c.bg }}>
+            <div className="flex w-[26%] flex-col gap-1.5 p-2">
+                <span className="h-2 w-3/4 rounded-sm" style={{ background: c.ink, opacity: 0.85 }} />
+                <span className="mt-1 h-1.5 w-full rounded-sm" style={{ background: c.line }} />
+                <span className="h-1.5 w-4/5 rounded-sm" style={{ background: c.line }} />
+                <span className="h-1.5 w-full rounded-sm bg-[#4b3fd9]" />
+            </div>
+            <div className="my-1.5 mr-1.5 flex flex-1 flex-col gap-1.5 rounded-md p-2" style={{ background: c.panel }}>
+                <span className="h-2 w-1/2 rounded-sm" style={{ background: c.ink, opacity: 0.85 }} />
+                <div className="mt-0.5 grid flex-1 grid-cols-2 gap-1.5">
+                    {[0, 1].map((i) => (
+                        <div key={i} className="flex flex-col gap-1 rounded p-1.5" style={{ background: c.card, boxShadow: `0 0 0 1px ${c.line}` }}>
+                            <span className="h-1 w-4/5 rounded-sm" style={{ background: c.line }} />
+                            <span className="h-1 w-3/5 rounded-sm" style={{ background: c.line }} />
+                            <span className={`mt-auto h-1 w-1/3 rounded-sm ${i ? "bg-[#1e9e6a]" : "bg-[#d18a12]"}`} />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 interface ThemeOptionProps {
     theme: Theme;
     selectedTheme: Theme;
-    icon: ReactNode;
     title: string;
-    description: string;
     isDisabled?: boolean;
     onSelect: (theme: Theme) => void;
 }
@@ -192,9 +208,7 @@ interface ThemeOptionProps {
 function ThemeOption({
     theme,
     selectedTheme,
-    icon,
     title,
-    description,
     isDisabled = false,
     onSelect,
 }: ThemeOptionProps) {
@@ -203,38 +217,40 @@ function ThemeOption({
     return (
         <button
             type="button"
+            role="radio"
+            aria-checked={isSelected}
             disabled={isDisabled}
             onClick={() => onSelect(theme)}
-            className={`relative rounded-xl border p-4 text-left transition ${
-                isSelected
-                    ? "border-slate-900 bg-slate-50 dark:border-white dark:bg-white/[0.08]"
-                    : "border-slate-200/80 bg-white/60 hover:border-slate-300 hover:bg-white dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/[0.16] dark:hover:bg-white/[0.05]"
-            } ${
-                isDisabled
-                    ? "cursor-wait opacity-70"
-                    : "cursor-pointer"
-            }`}
+            className={`group text-left outline-none ${isDisabled ? "cursor-wait" : "cursor-pointer"}`}
         >
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300">
-                    {icon}
-                </div>
-
+            <span
+                className={`relative block aspect-[16/10] overflow-hidden rounded-lg transition-shadow duration-150 group-focus-visible:ring-2 group-focus-visible:ring-brand group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-card ${
+                    isSelected
+                        ? "shadow-[0_0_0_2px_var(--brand)]"
+                        : "shadow-[0_0_0_1px_var(--border)] group-hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--foreground)_30%,transparent)]"
+                }`}
+            >
+                {theme === "system" ? (
+                    <span className="absolute inset-0 flex">
+                        <span className="relative w-1/2 overflow-hidden">
+                            <span className="absolute inset-y-0 left-0 w-[200%]"><MiniApp mode="light" /></span>
+                        </span>
+                        <span className="relative w-1/2 overflow-hidden">
+                            <span className="absolute inset-y-0 right-0 w-[200%]"><MiniApp mode="dark" /></span>
+                        </span>
+                    </span>
+                ) : (
+                    <MiniApp mode={theme} />
+                )}
                 {isSelected && (
-                    <span className="flex size-5 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-950">
-                        <Check className="size-3" />
+                    <span className="absolute bottom-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-brand text-white shadow dark:text-[#0f1115]">
+                        <Check className="size-3" aria-hidden="true" />
                     </span>
                 )}
-            </div>
-
-            <p className="mt-4 text-sm font-semibold text-foreground">
+            </span>
+            <span className={`mt-2 block text-sm ${isSelected ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                 {title}
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {description}
-            </p>
+            </span>
         </button>
     );
 }
-
