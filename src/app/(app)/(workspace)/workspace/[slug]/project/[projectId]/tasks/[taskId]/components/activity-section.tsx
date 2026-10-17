@@ -11,7 +11,6 @@ import {
     User,
     type LucideIcon,
 } from "lucide-react";
-import { hairline, glass, starlightEdge, iconTile, dangerTile } from "@/app/style/ui-tokens";
 
 type Activity = {
     id: string;
@@ -121,84 +120,65 @@ export function ActivitySection({
     const hiddenCount = Math.max(0, totalCount - activities.length);
 
     return (
-        <section
-            className={`${glass} ${hairline} ${starlightEdge} relative overflow-hidden rounded-xl`}
-        >
-            <div className="relative flex items-center justify-between gap-4 border-b border-slate-200/70 px-5 py-4 sm:px-6 dark:border-white/[0.06]">
-                <div className="min-w-0">
-                    <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                        Activity
-                    </h2>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                        History of changes made to this task.
-                    </p>
-                </div>
-
-                <span className={`${iconTile} size-9 rounded-xl`}>
-          <History className="size-4" />
-        </span>
+        <section className="relative overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
+            <div className="flex items-center gap-2 px-4 py-3 sm:px-5">
+                <History className="size-4 text-muted-foreground" aria-hidden="true" />
+                <h2 className="text-sm font-semibold text-foreground">Activity</h2>
             </div>
 
             {activities.length === 0 ? (
-                <div className="px-6 py-10 text-center">
-          <span className={`${iconTile} mx-auto size-11 rounded-xl border-dashed`}>
-            <History className="size-5" />
-          </span>
-
-                    <p className="mt-4 text-sm font-medium text-foreground">
-                        No activity yet.
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Changes to this task will appear here.
-                    </p>
-                </div>
+                <p className="border-t border-border px-4 py-4 text-sm text-muted-foreground sm:px-5">
+                    No activity yet. Changes to this task will appear here.
+                </p>
             ) : (
-                <div className="relative">
+                <ol className="border-t border-border px-4 py-3 sm:px-5">
                     {activities.map((activity, index) => {
-                        const { icon: Icon, danger } =
-                        ACTIVITY_STYLES[activity.action] ?? { icon: ActivityGlyph };
+                        const { icon: Icon, danger } = ACTIVITY_STYLES[activity.action] ?? { icon: ActivityGlyph };
+                        const last = index === activities.length - 1;
 
                         return (
-                            <div
-                                key={activity.id}
-                                className="relative flex gap-4 px-5 py-5 transition-colors hover:bg-slate-500/[0.04] sm:px-6"
-                            >
-                                {index < activities.length - 1 && (
-                                    <div className="absolute -bottom-4 left-[2.375rem] top-[3.75rem] w-px -translate-x-1/2 bg-slate-200 sm:left-[2.625rem] dark:bg-white/[0.08]" />
+                            <li key={activity.id} className="relative flex gap-3 pb-3 last:pb-0">
+                                {!last && (
+                                    <span
+                                        aria-hidden="true"
+                                        className="absolute bottom-0 left-3 top-7 w-px -translate-x-1/2 bg-border"
+                                    />
                                 )}
-
-                                <div
-                                    className={`${danger ? dangerTile : iconTile} relative z-10 size-9 rounded-xl`}
+                                <span
+                                    aria-hidden="true"
+                                    className={`relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border ${
+                                        danger
+                                            ? "border-danger/25 bg-danger/10 text-danger"
+                                            : "border-border bg-card text-muted-foreground"
+                                    }`}
                                 >
-                                    <Icon className="size-4" />
-                                </div>
+                                    <Icon className="size-3" />
+                                </span>
 
-                                <div className="min-w-0 flex-1 pt-0.5">
-                                    <p className="text-sm leading-5">
-                    <span className="font-semibold text-foreground">
-                      {getUserName(activity.user)}
-                    </span>{" "}
-                                        <span className="text-muted-foreground">
-                      {getActivityText(activity)}
-                    </span>
+                                <div className="flex min-w-0 flex-1 flex-col gap-x-3 pt-0.5 sm:flex-row sm:items-baseline sm:justify-between">
+                                    <p className="min-w-0 text-sm leading-5">
+                                        <span className="font-medium text-foreground">{getUserName(activity.user)}</span>{" "}
+                                        <span className="text-muted-foreground">{getActivityText(activity)}</span>
                                     </p>
-
-                                    <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-500">
+                                    <time
+                                        dateTime={new Date(activity.createdAt).toISOString()}
+                                        className="shrink-0 text-xs text-muted-foreground"
+                                    >
                                         {dateFormatter.format(new Date(activity.createdAt))}
-                                    </p>
+                                    </time>
                                 </div>
-                            </div>
+                            </li>
                         );
                     })}
-                </div>
+                </ol>
             )}
 
             {hiddenCount > 0 && showAllHref && (
-                <div className="border-t border-slate-200/70 px-5 py-3 text-center sm:px-6 dark:border-white/[0.06]">
+                <div className="border-t border-border px-4 py-2.5 text-center sm:px-5">
                     <Link
                         href={showAllHref}
                         scroll={false}
-                        className="text-sm font-medium text-slate-600 hover:text-slate-950 hover:underline dark:text-slate-300 dark:hover:text-white"
+                        className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
                     >
                         Show {hiddenCount} older {hiddenCount === 1 ? "change" : "changes"}
                     </Link>

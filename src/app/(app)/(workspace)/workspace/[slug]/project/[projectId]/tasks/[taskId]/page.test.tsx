@@ -33,10 +33,9 @@ jest.mock("next/image", () => ({
     default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
 jest.mock("lucide-react", () => ({
-    MessageSquare: () => null,
-    Paperclip: () => null,
+    ChevronDown: () => null,
+    FileText: () => null,
     Pencil: () => null,
-    TriangleAlert: () => null,
 }));
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));

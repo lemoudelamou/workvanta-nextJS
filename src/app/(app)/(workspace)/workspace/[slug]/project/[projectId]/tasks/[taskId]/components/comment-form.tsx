@@ -2,7 +2,7 @@
 
 import { AtSign, Send, User } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
-import { hairline, commentButton, iconTile} from "@/app/style/ui-tokens";
+import { commentButton, iconTile } from "@/app/style/ui-tokens";
 import { personColor } from "@/lib/ui/person-color";
 
 type Member = {
@@ -153,19 +153,12 @@ export function CommentForm({ action, members }: CommentFormProps) {
             name="content"
             value={content}
             onChange={handleChange}
-            rows={4}
-            placeholder="Write a comment..."
+            rows={3}
+            placeholder="Write a comment. Type @ to mention someone."
             required
             maxLength={MAX_LENGTH}
-            className="relative w-full resize-none rounded-xl border border-slate-200 bg-white/70 px-4 py-3.5 pb-11 text-sm leading-6 text-slate-950 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/15 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/[0.16] dark:focus:border-white/25 dark:focus:bg-white/[0.06] dark:focus:ring-white/10"
+            className="relative w-full resize-none rounded-xl border border-slate-200 bg-white/70 px-3.5 py-3 text-sm leading-6 text-slate-950 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/15 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/[0.16] dark:focus:border-white/25 dark:focus:bg-white/[0.06] dark:focus:ring-white/10"
         />
-
-          <div
-              className={`${hairline} pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-medium text-slate-500 dark:bg-slate-900/90 dark:text-slate-400`}
-          >
-            <AtSign className="size-3" />
-            Mention teammates
-          </div>
 
           {isMentionListOpen && (
               <div className="absolute left-0 top-full z-[100] mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10 dark:border-white/[0.1] dark:bg-slate-950 dark:shadow-black/50">

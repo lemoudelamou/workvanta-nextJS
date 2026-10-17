@@ -1,4 +1,4 @@
-import { Paperclip, Pencil } from "lucide-react";
+import { ChevronDown, FileText, Pencil } from "lucide-react";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -29,6 +29,7 @@ import { DeleteAttachmentButton } from "./components/delete-attachment-button";
 import {createCommentAction, deleteCommentAction, updateCommentAction, updateTaskAction, deleteTaskAction, uploadAttachmentAction, deleteAttachmentAction } from "./task-actions";
 import { fieldClass, NEUTRAL_DOT} from "@/app/style/ui-tokens";
 import { personColor } from "@/lib/ui/person-color";
+import { projectHex } from "@/lib/navigation/project-color";
 
 
 
@@ -67,97 +68,47 @@ function getInitials(name: string | null, email: string) {
     return text.slice(0, 2).toUpperCase();
 }
 
-function Panel({
-                   children,
-                   className = "",
-               }: {
-    children: ReactNode;
-    className?: string;
-}) {
+function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
     return (
-        <section className={`rounded-xl border border-border bg-card ${className}`}>
+        <section className={`rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)] ${className}`}>
             {children}
         </section>
-    );
-}
-
-function SectionHeader({
-                           icon,
-                           title,
-                           description,
-                       }: {
-    icon: ReactNode;
-    title: string;
-    description?: string;
-}) {
-    return (
-        <div className="flex items-start gap-3">
-      <span
-          aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground [&>svg]:size-[18px]"
-      >
-        {icon}
-      </span>
-            <div className="min-w-0">
-                <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
-                {description && (
-                    <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-                )}
-            </div>
-        </div>
     );
 }
 
 function Pill({ dot, children }: { dot: string; children: ReactNode }) {
     return (
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground">
-      <span aria-hidden="true" className={`size-1.5 rounded-full ${dot}`} />
+            <span aria-hidden="true" className={`size-1.5 rounded-full ${dot}`} />
             {children}
-    </span>
+        </span>
     );
 }
 
-function Avatar({
-                    name,
-                    email,
-                    image,
-                }: {
-    name: string | null;
-    email: string;
-    image: string | null;
-}) {
+function Avatar({ name, email, image }: { name: string | null; email: string; image: string | null }) {
     return (
-        <span className={`relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-semibold ${personColor(email)}`}>
-      {image ? (
-          <Image src={image} alt="" fill className="object-cover" sizes="32px" />
-      ) : (
-          getInitials(name, email)
-      )}
-    </span>
+        <span
+            className={`relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold ${personColor(email)}`}
+        >
+            {image ? <Image src={image} alt="" fill className="object-cover" sizes="24px" /> : getInitials(name, email)}
+        </span>
     );
 }
 
-function MetaCell({ label, children }: { label: string; children: ReactNode }) {
+/** One label/value row in the details sidebar. */
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
     return (
-        <div className="min-w-0 bg-card px-3.5 py-3 sm:p-5">
-            <dt className="text-xs text-muted-foreground sm:text-sm">{label}</dt>
-            <dd className="mt-1.5 flex min-h-7 items-center text-sm font-medium text-foreground sm:mt-2">{children}</dd>
+        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 py-2.5">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="flex min-h-6 min-w-0 items-center text-sm font-medium text-foreground">{children}</dd>
         </div>
     );
 }
 
-function Field({
-                   id,
-                   label,
-                   children,
-               }: {
-    id: string;
-    label: string;
-    children: ReactNode;
-}) {
+function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <label htmlFor={id} className="text-sm font-medium text-foreground">
+            <label htmlFor={id} className="text-[13px] font-medium text-foreground">
                 {label}
             </label>
             {children}
@@ -271,8 +222,10 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
     const attachmentCount = task.attachments.length;
     const overdue = !!task.dueDate && task.status !== "DONE" && task.dueDate < new Date();
 
+    const field = `${fieldClass} py-2`;
+
     return (
-        <PageBody>
+        <PageBody glow={projectHex(projectId)}>
             <Breadcrumb
                 items={[
                     { label: task.project.workspace.name, href: `/workspace/${slug}`, truncate: true },
@@ -285,134 +238,242 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 ]}
             />
 
-            <header>
-                <div className="flex flex-wrap items-center gap-2">
-                    <Pill dot={status.dot}>{status.label}</Pill>
-                    <Pill dot={priority.dot}>{priority.label} priority</Pill>
-                </div>
+            {/* Phones: header, details, the work, then delete. Wide screens: details in a sticky column
+                (the aside is display:contents below xl so its cards can be ordered in the grid). */}
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:grid-rows-[auto_1fr] xl:gap-x-10">
+                <header className="min-w-0 xl:col-start-1 xl:row-start-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Pill dot={status.dot}>{status.label}</Pill>
+                        <Pill dot={priority.dot}>{priority.label} priority</Pill>
+                    </div>
 
-                <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                    {task.title}
-                </h1>
+                    <h1 className="mt-3 break-words text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                        {task.title}
+                    </h1>
 
-                {task.description ? (
-                    <p className="mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-muted-foreground">
-                        {task.description}
-                    </p>
-                ) : (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                        No description yet.{canEdit ? " Add one from the edit panel." : ""}
-                    </p>
-                )}
-            </header>
-
-            <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:mt-8 lg:grid-cols-4">
-                <MetaCell label="Assignee">
-                    {task.assignee ? (
-                        <span className="flex items-center gap-2.5">
-              <Avatar
-                  name={task.assignee.name}
-                  email={task.assignee.email}
-                  image={task.assignee.image}
-              />
-              <span className="truncate">{task.assignee.name ?? task.assignee.email}</span>
-            </span>
+                    {task.description ? (
+                        <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
+                            {task.description}
+                        </p>
                     ) : (
-                        <span className="text-muted-foreground">Unassigned</span>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            No description yet.{canEdit ? " Add one from the edit panel." : ""}
+                        </p>
                     )}
-                </MetaCell>
+                </header>
 
-                <MetaCell label="Due date">
-                    {task.dueDate ? (
-                        <span className={overdue ? "font-medium text-danger" : undefined}>
-              {DATE.format(task.dueDate)}
-                            {overdue ? " (overdue)" : ""}
-            </span>
-                    ) : (
-                        <span className="text-muted-foreground">No due date</span>
-                    )}
-                </MetaCell>
+                <aside
+                    aria-label="Task details"
+                    className="contents xl:sticky xl:top-6 xl:z-10 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:block xl:min-w-0 xl:space-y-4 xl:self-start"
+                >
+                    <Card>
+                        <h2 className="border-b border-border px-4 py-3 text-sm font-semibold text-foreground">Details</h2>
+                        <dl className="divide-y divide-border px-4">
+                            <DetailRow label="Assignee">
+                                {task.assignee ? (
+                                    <span className="flex min-w-0 items-center gap-2">
+                                        <Avatar
+                                            name={task.assignee.name}
+                                            email={task.assignee.email}
+                                            image={task.assignee.image}
+                                        />
+                                        <span className="truncate">{task.assignee.name ?? task.assignee.email}</span>
+                                    </span>
+                                ) : (
+                                    <span className="font-normal text-muted-foreground">Unassigned</span>
+                                )}
+                            </DetailRow>
 
-                <MetaCell label="Created by">
-          <span className="truncate">
-            {task.creator ? (task.creator.name ?? task.creator.email) : "Unknown"}
-          </span>
-                </MetaCell>
+                            <DetailRow label="Due date">
+                                {task.dueDate ? (
+                                    <span className={overdue ? "text-danger" : undefined}>
+                                        {DATE.format(task.dueDate)}
+                                        {overdue ? " (overdue)" : ""}
+                                    </span>
+                                ) : (
+                                    <span className="font-normal text-muted-foreground">No due date</span>
+                                )}
+                            </DetailRow>
 
-                <MetaCell label="Created">{DATE.format(task.createdAt)}</MetaCell>
-            </dl>
+                            <DetailRow label="Created by">
+                                <span className="truncate">
+                                    {task.creator ? (task.creator.name ?? task.creator.email) : "Unknown"}
+                                </span>
+                            </DetailRow>
 
-            <div
-                className={`mt-8 grid gap-6 ${canEdit ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
-            >
-                <div className="min-w-0 space-y-6">
-                    <SubtasksSection
-                        taskId={task.id}
-                        subtasks={task.subtasks}
-                        slug={slug}
-                        projectId={projectId}
-                    />
+                            <DetailRow label="Created">{DATE.format(task.createdAt)}</DetailRow>
+                        </dl>
 
-                    <Panel className="p-5 sm:p-6">
-                        <SectionHeader
-                            icon={<Paperclip />}
-                            title="Attachments"
-                            description={`${attachmentCount} ${attachmentCount === 1 ? "file" : "files"} attached`}
-                        />
-
-                        <div className="mt-5 space-y-3">
-                            {attachmentCount === 0 ? (
-                                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
-                                    <Paperclip
-                                        className="mx-auto size-5 text-muted-foreground"
+                        {canEdit && (
+                            <details className="group border-t border-border">
+                                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand [&::-webkit-details-marker]:hidden">
+                                    <Pencil className="size-4 text-muted-foreground" aria-hidden="true" />
+                                    <span className="flex-1">Edit task</span>
+                                    <ChevronDown
+                                        className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
                                         aria-hidden="true"
                                     />
-                                    <p className="mt-2 text-sm text-muted-foreground">No attachments yet.</p>
-                                </div>
-                            ) : (
-                                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-                                    {task.attachments.map((attachment) => (
-                                        <li
-                                            key={attachment.id}
-                                            className="flex items-center justify-between gap-3 bg-card px-3.5 py-3 transition-colors hover:bg-muted/40"
+                                </summary>
+
+                                <form action={updateTask} className="space-y-4 border-t border-border px-4 pb-4 pt-4">
+                                    <Field id="task-title" label="Title">
+                                        <input
+                                            id="task-title"
+                                            name="title"
+                                            defaultValue={task.title}
+                                            className={field}
+                                            required
+                                        />
+                                    </Field>
+
+                                    <Field id="task-description" label="Description">
+                                        <textarea
+                                            id="task-description"
+                                            name="description"
+                                            defaultValue={task.description ?? ""}
+                                            rows={4}
+                                            className={`${field} resize-y`}
+                                            placeholder="Add a description…"
+                                        />
+                                    </Field>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Field id="task-status" label="Status">
+                                            <select id="task-status" name="status" defaultValue={task.status} className={field}>
+                                                {Object.entries(STATUSES).map(([value, { label }]) => (
+                                                    <option key={value} value={value}>
+                                                        {label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </Field>
+
+                                        <Field id="task-priority" label="Priority">
+                                            <select
+                                                id="task-priority"
+                                                name="priority"
+                                                defaultValue={task.priority}
+                                                className={field}
+                                            >
+                                                {Object.entries(PRIORITIES).map(([value, { label }]) => (
+                                                    <option key={value} value={value}>
+                                                        {label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </Field>
+                                    </div>
+
+                                    <Field id="task-assignee" label="Assignee">
+                                        <select
+                                            id="task-assignee"
+                                            name="assigneeId"
+                                            defaultValue={task.assigneeId ?? ""}
+                                            className={field}
                                         >
-                                            <div className="flex min-w-0 items-center gap-3">
-                        <span
-                            aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                                            <option value="">Unassigned</option>
+                                            {people.map((person) => (
+                                                <option key={person.id} value={person.id}>
+                                                    {person.name ?? person.email}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+
+                                    <Field id="task-due" label="Due date">
+                                        <input
+                                            id="task-due"
+                                            type="date"
+                                            name="dueDate"
+                                            defaultValue={task.dueDate ? task.dueDate.toISOString().slice(0, 10) : ""}
+                                            className={field}
+                                        />
+                                    </Field>
+
+                                    <button type="submit" className={`${buttonStyles()} w-full justify-center`}>
+                                        Save changes
+                                    </button>
+                                </form>
+                            </details>
+                        )}
+                    </Card>
+
+                    {canEdit && (
+                        <section
+                            aria-labelledby="danger-zone"
+                            className="order-last flex items-center justify-between gap-4 rounded-xl border border-danger/20 px-4 py-3 xl:order-none"
                         >
-                          <Paperclip className="size-4" />
-                        </span>
+                            <div className="min-w-0">
+                                <h2 id="danger-zone" className="text-sm font-medium text-foreground">
+                                    Delete this task
+                                </h2>
+                                <p className="mt-0.5 text-xs text-muted-foreground">This can&apos;t be undone.</p>
+                            </div>
+                            <DeleteTaskConfirmation action={deleteTask} />
+                        </section>
+                    )}
+                </aside>
 
-                                                <div className="min-w-0">
-                                                    <a
-                                                        href={attachmentHref(attachment.id)}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="block truncate text-sm font-medium text-foreground hover:underline"
-                                                    >
-                                                        {attachment.filename}
-                                                    </a>
-                                                    <p className="mt-0.5 text-xs text-muted-foreground">
-                                                        Added {DATE.format(attachment.createdAt)}
-                                                    </p>
-                                                </div>
-                                            </div>
+                <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-2">
+                    <SubtasksSection taskId={task.id} subtasks={task.subtasks} slug={slug} projectId={projectId} />
 
-                                            {canEdit && (
-                                                <DeleteAttachmentButton
-                                                    action={deleteAttachment.bind(null, attachment.id)}
-                                                />
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-
+                    <Card>
+                        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                                <h2 className="text-sm font-semibold text-foreground">Attachments</h2>
+                                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                    {attachmentCount} {attachmentCount === 1 ? "file" : "files"} attached
+                                </span>
+                            </div>
                             {canEdit && <AttachmentUpload action={uploadAttachment} />}
                         </div>
-                    </Panel>
 
+                        {attachmentCount === 0 ? (
+                            <p className="border-t border-border px-4 py-4 text-sm text-muted-foreground sm:px-5">
+                                No attachments yet.
+                            </p>
+                        ) : (
+                            <ul className="divide-y divide-border border-t border-border">
+                                {task.attachments.map((attachment) => (
+                                    <li
+                                        key={attachment.id}
+                                        className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:px-5"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <span
+                                                aria-hidden="true"
+                                                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                                            >
+                                                <FileText className="size-4" />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <a
+                                                    href={attachmentHref(attachment.id)}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="block truncate text-sm font-medium text-foreground hover:underline"
+                                                >
+                                                    {attachment.filename}
+                                                </a>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Added {DATE.format(attachment.createdAt)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {canEdit && (
+                                            <DeleteAttachmentButton
+                                                filename={attachment.filename}
+                                                action={deleteAttachment.bind(null, attachment.id)}
+                                            />
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </Card>
+
+                    {/* Above Activity so the @mention list can overlap it. */}
                     <div className="relative z-20">
                         <CommentsSection
                             form={<CommentForm action={createComment} members={people} />}
@@ -435,126 +496,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                         />
                     </div>
                 </div>
-
-                {canEdit && (
-                    <aside className="relative z-10">
-                        <Panel className="p-5 sm:p-6 lg:sticky lg:top-6">
-                            <SectionHeader
-                                icon={<Pencil />}
-                                title="Edit task"
-                                description="Changes apply to everyone"
-                            />
-
-                            <form action={updateTask} className="mt-6 space-y-5">
-                                <Field id="task-title" label="Title">
-                                    <input
-                                        id="task-title"
-                                        name="title"
-                                        defaultValue={task.title}
-                                        className={fieldClass}
-                                        required
-                                    />
-                                </Field>
-
-                                <Field id="task-description" label="Description">
-                  <textarea
-                      id="task-description"
-                      name="description"
-                      defaultValue={task.description ?? ""}
-                      rows={5}
-                      className={`${fieldClass} resize-y`}
-                      placeholder="Add a description…"
-                  />
-                                </Field>
-
-                                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
-                                    <Field id="task-status" label="Status">
-                                        <select
-                                            id="task-status"
-                                            name="status"
-                                            defaultValue={task.status}
-                                            className={fieldClass}
-                                        >
-                                            {Object.entries(STATUSES).map(([value, { label }]) => (
-                                                <option key={value} value={value}>
-                                                    {label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </Field>
-
-                                    <Field id="task-priority" label="Priority">
-                                        <select
-                                            id="task-priority"
-                                            name="priority"
-                                            defaultValue={task.priority}
-                                            className={fieldClass}
-                                        >
-                                            {Object.entries(PRIORITIES).map(([value, { label }]) => (
-                                                <option key={value} value={value}>
-                                                    {label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </Field>
-                                </div>
-
-                                <Field id="task-assignee" label="Assignee">
-                                    <select
-                                        id="task-assignee"
-                                        name="assigneeId"
-                                        defaultValue={task.assigneeId ?? ""}
-                                        className={fieldClass}
-                                    >
-                                        <option value="">Unassigned</option>
-                                        {people.map((person) => (
-                                            <option key={person.id} value={person.id}>
-                                                {person.name ?? person.email}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </Field>
-
-                                <Field id="task-due" label="Due date">
-                                    <input
-                                        id="task-due"
-                                        type="date"
-                                        name="dueDate"
-                                        defaultValue={
-                                            task.dueDate ? task.dueDate.toISOString().slice(0, 10) : ""
-                                        }
-                                        className={fieldClass}
-                                    />
-                                </Field>
-
-                                <button type="submit" className={`${buttonStyles()} w-full justify-center`}>
-                                    Save changes
-                                </button>
-                            </form>
-                        </Panel>
-                    </aside>
-                )}
             </div>
-
-            {canEdit && (
-                <section
-                    aria-labelledby="danger-zone"
-                    className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <div className="flex items-start gap-3">
-                        <div>
-                            <h2 id="danger-zone" className="text-sm font-semibold text-foreground">
-                                Delete this task
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                This permanently removes the task and can&apos;t be undone.
-                            </p>
-                        </div>
-                    </div>
-
-                    <DeleteTaskConfirmation action={deleteTask} />
-                </section>
-            )}
         </PageBody>
     );
 }

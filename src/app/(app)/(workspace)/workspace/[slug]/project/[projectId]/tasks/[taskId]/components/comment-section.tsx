@@ -1,17 +1,11 @@
 "use client";
 
-import {
-    Check,
-    Loader2,
-    MessageSquare,
-    Pencil,
-    Sparkles,
-    Trash2,
-} from "lucide-react";
+import { Check, Loader2, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
-import { hairline, glass, starlightEdge, iconTile, smallPrimaryButton, smallGhostButton, bubbleClass, editFieldClass } from "@/app/style/ui-tokens";
+import { smallPrimaryButton, smallGhostButton, editFieldClass } from "@/app/style/ui-tokens";
+import ConfirmationModal from "@/components/ui/Modal";
 import { personColor } from "@/lib/ui/person-color";
 
 type Author = {
@@ -47,7 +41,6 @@ type CommentsSectionProps = {
 };
 
 const MAX_LENGTH = 5000;
-const MAX_STACKED_AVATARS = 4;
 const MENTION_PATTERN = /@\[([^\]]+)\]\(([^)]+)\)/g;
 
 const MONTHS = [
@@ -55,23 +48,6 @@ const MONTHS = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-
-const AVATAR_VARIANTS = {
-    stacked: {
-        px: 28,
-        box: "size-7",
-        text: "text-[9px]",
-        image: "ring-2 ring-white dark:ring-slate-900",
-        fallback: "ring-2 ring-white dark:ring-slate-900",
-    },
-    full: {
-        px: 40,
-        box: "size-10",
-        text: "text-xs",
-        image: "border border-slate-200 dark:border-white/[0.08]",
-        fallback: "",
-    },
-} as const;
 
 export function formatCommentDate(date: string | Date) {
     const value = new Date(date);
@@ -128,7 +104,7 @@ function renderCommentContent(content: string, members: Author[]) {
         parts.push(
             <span
                 key={`mention-${start}`}
-                className="rounded-md bg-slate-900/[0.06] px-1.5 py-0.5 font-semibold text-slate-950 dark:bg-white/[0.1] dark:text-white"
+                className="rounded-md bg-brand-soft px-1 py-0.5 font-medium text-brand dark:bg-brand/15"
             >
         @{member?.name ?? displayName}
       </span>,
@@ -144,105 +120,127 @@ function renderCommentContent(content: string, members: Author[]) {
     return parts;
 }
 
-function Avatar({
-                    author,
-                    variant,
-                }: {
-    author: Author;
-    variant: keyof typeof AVATAR_VARIANTS;
-}) {
-    const v = AVATAR_VARIANTS[variant];
-
+function Avatar({ author }: { author: Author }) {
     if (author.image) {
         return (
             <Image
                 src={author.image}
                 alt={getDisplayName(author)}
-                width={v.px}
-                height={v.px}
-                className={`${v.box} rounded-full object-cover ${v.image}`}
+                width={32}
+                height={32}
+                className="size-8 rounded-full object-cover"
             />
         );
     }
 
     return (
         <div
-            className={`${v.box} flex items-center justify-center rounded-full ${v.text} font-semibold ${personColor(author.email)} ${v.fallback}`}
+            className={`flex size-8 items-center justify-center rounded-full text-[11px] font-semibold ${personColor(author.email)}`}
         >
             {getInitials(author.name, author.email)}
         </div>
     );
 }
 
-function CommentBubble({
-                           content,
-                           members,
-                           className = "",
-                       }: {
-    content: string;
-    members: Author[];
-    className?: string;
-}) {
+function CommentBody({ content, members }: { content: string; members: Author[] }) {
     return (
-        <div className={`${bubbleClass} ${className}`}>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800 dark:text-slate-200">
-                {renderCommentContent(content, members)}
-            </p>
-        </div>
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
+            {renderCommentContent(content, members)}
+        </p>
     );
 }
 
-function ModeratorDeleteButton({
-                                   commentId,
-                                   deleteComment,
-                               }: {
-    commentId: string;
-    deleteComment: DeleteComment;
-}) {
+const actionButton =
+    "inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50";
+
+/**
+ * Asks before deleting a comment, in the app's own dialog rather than the
+ * browser's. Shared by authors deleting their own comment and moderators.
+ */
+function useDeleteConfirmation(commentId: string, deleteComment: DeleteComment, failure: string) {
+    const [open, setOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
-    function handleDelete() {
-        if (!window.confirm("Remove this comment for everyone?")) return;
-
+    function confirm() {
         setError(null);
         startTransition(async () => {
             try {
                 await deleteComment(commentId);
-            } catch {
-                setError("Failed to remove comment.");
+                setOpen(false);
+            } catch (err) {
+                setError(err instanceof Error && err.message ? err.message : failure);
             }
         });
     }
 
+    return {
+        isPending,
+        ask: () => {
+            setError(null);
+            setOpen(true);
+        },
+        modalProps: {
+            open,
+            error,
+            loading: isPending,
+            loadingLabel: "Deleting...",
+            onConfirm: confirm,
+            onClose: () => setOpen(false),
+        },
+    };
+}
+
+function ModeratorDeleteButton({
+    commentId,
+    authorName,
+    deleteComment,
+}: {
+    commentId: string;
+    authorName: string;
+    deleteComment: DeleteComment;
+}) {
+    const { isPending, ask, modalProps } = useDeleteConfirmation(
+        commentId,
+        deleteComment,
+        "Couldn't remove the comment. Please try again.",
+    );
+
     return (
-        <div className="mt-2 flex items-center gap-2">
-            <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isPending}
-                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:opacity-60 dark:text-slate-400"
-            >
-                {isPending ? (
-                    <Loader2 className="size-3 motion-safe:animate-spin" />
-                ) : (
-                    <Trash2 className="size-3" />
-                )}
-                Remove
-            </button>
-            {error && (
-                <p className="text-xs font-medium text-danger">{error}</p>
-            )}
-        </div>
+        <>
+            <div className="mt-1 flex items-center gap-1">
+                <button
+                    type="button"
+                    onClick={ask}
+                    disabled={isPending}
+                    className={`${actionButton} hover:bg-danger/10 hover:text-danger`}
+                >
+                    {isPending ? (
+                        <Loader2 className="size-3 motion-safe:animate-spin" aria-hidden="true" />
+                    ) : (
+                        <Trash2 className="size-3" aria-hidden="true" />
+                    )}
+                    Remove
+                </button>
+            </div>
+
+            <ConfirmationModal
+                {...modalProps}
+                title="Remove comment?"
+                description={`${authorName}'s comment will be removed for everyone. This can't be undone.`}
+                confirmLabel="Remove"
+                loadingLabel="Removing..."
+            />
+        </>
     );
 }
 
 function OwnCommentActions({
-                               comment,
-                               members,
-                               updateComment,
-                               deleteComment,
-                           }: {
+    comment,
+    members,
+    updateComment,
+    deleteComment,
+}: {
     comment: Comment;
     members: Author[];
     updateComment: UpdateComment;
@@ -251,7 +249,8 @@ function OwnCommentActions({
     const [editing, setEditing] = useState(false);
     const [content, setContent] = useState(comment.content);
     const [error, setError] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
+    const [isSaving, startTransition] = useTransition();
+    const deletion = useDeleteConfirmation(comment.id, deleteComment, "Couldn't delete the comment. Please try again.");
 
     function startEditing() {
         setError(null);
@@ -282,312 +281,197 @@ function OwnCommentActions({
         });
     }
 
-    function handleDelete() {
-        if (!window.confirm("Delete this comment?")) return;
-
-        setError(null);
-
-        startTransition(async () => {
-            try {
-                await deleteComment(comment.id);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to delete comment.");
-            }
-        });
-    }
-
     if (editing) {
         return (
-            <div
-                className={`${hairline} mt-4 overflow-hidden rounded-xl bg-white/90 dark:bg-slate-900/90`}
-            >
-                <div className="border-b border-slate-200/70 bg-slate-50/70 px-4 py-3.5 dark:border-white/[0.06] dark:bg-white/[0.03]">
-                    <div className="flex items-center gap-3">
-            <span className={`${iconTile} size-8 rounded-xl`}>
-              <Pencil className="size-3.5" />
-            </span>
+            <div className="mt-2">
+                <label className="sr-only" htmlFor={`edit-${comment.id}`}>
+                    Edit comment
+                </label>
+                <textarea
+                    id={`edit-${comment.id}`}
+                    value={content}
+                    onChange={(event) => setContent(event.target.value)}
+                    maxLength={MAX_LENGTH}
+                    rows={3}
+                    disabled={isSaving}
+                    autoFocus
+                    className={editFieldClass}
+                />
 
-                        <div>
-                            <p className="text-xs font-semibold text-foreground">
-                                Edit comment
-                            </p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                                Update your message and save the changes.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-4">
-          <textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              maxLength={MAX_LENGTH}
-              rows={4}
-              disabled={isPending}
-              autoFocus
-              className={editFieldClass}
-          />
-
-                    <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {content.length.toLocaleString()} / {MAX_LENGTH.toLocaleString()}
-            </span>
-
-                        {error && (
-                            <p className="text-xs font-medium text-danger">
-                                {error}
-                            </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving || !content.trim()}
+                        className={smallPrimaryButton}
+                    >
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Check className="size-3.5" aria-hidden="true" />
+                                Save changes
+                            </>
                         )}
-                    </div>
+                    </button>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={isPending || !content.trim()}
-                            className={smallPrimaryButton}
-                        >
-                            {isPending ? (
-                                <>
-                                    <Loader2 className="size-3.5 motion-safe:animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Check className="size-3.5" />
-                                    Save changes
-                                </>
-                            )}
-                        </button>
+                    <button type="button" onClick={cancelEditing} disabled={isSaving} className={smallGhostButton}>
+                        Cancel
+                    </button>
 
-                        <button
-                            type="button"
-                            onClick={cancelEditing}
-                            disabled={isPending}
-                            className={smallGhostButton}
-                        >
-                            Cancel
-                        </button>
-                    </div>
+                    <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                        {content.length.toLocaleString()} / {MAX_LENGTH.toLocaleString()}
+                    </span>
                 </div>
+
+                {error && <p className="mt-2 text-xs font-medium text-danger">{error}</p>}
             </div>
         );
     }
 
     return (
-        <div className="mt-3">
-            <CommentBubble content={comment.content} members={members} />
+        <>
+            <CommentBody content={comment.content} members={members} />
 
-            <div className="mt-2 flex items-center gap-1">
+            <div className="mt-1 -ml-2 flex items-center gap-0.5">
                 <button
                     type="button"
                     onClick={startEditing}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-500/10 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
+                    className={`${actionButton} hover:bg-muted hover:text-foreground`}
                 >
-                    <Pencil className="size-3" />
+                    <Pencil className="size-3" aria-hidden="true" />
                     Edit
                 </button>
 
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-
                 <button
                     type="button"
-                    onClick={handleDelete}
-                    disabled={isPending}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-danger transition-colors duration-200 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={deletion.ask}
+                    disabled={deletion.isPending}
+                    className={`${actionButton} hover:bg-danger/10 hover:text-danger`}
                 >
-                    <Trash2 className="size-3" />
-                    {isPending ? "Deleting..." : "Delete"}
+                    <Trash2 className="size-3" aria-hidden="true" />
+                    {deletion.isPending ? "Deleting..." : "Delete"}
                 </button>
             </div>
 
-            {error && (
-                <p className="mt-2 text-xs font-medium text-danger">
-                    {error}
-                </p>
-            )}
-        </div>
+            {error && <p className="mt-1 text-xs font-medium text-danger">{error}</p>}
+
+            <ConfirmationModal
+                {...deletion.modalProps}
+                title="Delete comment?"
+                description="Your comment will be removed for everyone. This can't be undone."
+                confirmLabel="Delete"
+            />
+        </>
     );
 }
 
 export function CommentsSection({
-                                    comments,
-                                    form,
-                                    currentUserId,
-                                    members,
-                                    deleteComment,
-                                    updateComment,
-                                    canModerate = false,
-                                    totalCount,
-                                    showAllHref,
-                                }: CommentsSectionProps) {
+    comments,
+    form,
+    currentUserId,
+    members,
+    deleteComment,
+    updateComment,
+    canModerate = false,
+    totalCount,
+    showAllHref,
+}: CommentsSectionProps) {
     const total = totalCount ?? comments.length;
     const hiddenCount = Math.max(0, total - comments.length);
 
     return (
         // overflow-visible on purpose: the mention dropdown extends below the composer
-        <section
-            className={`${glass} ${hairline} ${starlightEdge} relative overflow-visible rounded-xl`}
-        >
-            <div className="relative border-b border-slate-200/70 px-5 py-5 sm:px-6 dark:border-white/[0.06]">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <div className={`${iconTile} size-10 rounded-xl`}>
-                            <MessageSquare className="size-5" />
-                        </div>
-
-                        <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h2 className="text-base font-semibold tracking-tight text-slate-950 sm:text-lg dark:text-white">
-                                    Comments
-                                </h2>
-
-                                <span
-                                    className={`${hairline} inline-flex min-w-6 items-center justify-center rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 dark:bg-white/[0.04] dark:text-slate-300`}
-                                >
-                  {total}
+        <section className="relative overflow-visible rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
+            <div className="flex items-center gap-2 px-4 py-3 sm:px-5">
+                <h2 className="text-sm font-semibold text-foreground">Comments</h2>
+                <span className="min-w-5 rounded-full bg-muted px-1.5 text-center text-xs font-medium leading-5 tabular-nums text-muted-foreground">
+                    {total}
                 </span>
-                            </div>
-
-                            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
-                                Discuss progress, ask questions, and keep the conversation here.
-                            </p>
-                        </div>
-                    </div>
-
-                    {comments.length > 0 && (
-                        <div className="hidden shrink-0 items-center -space-x-2 sm:flex">
-                            {comments.slice(0, MAX_STACKED_AVATARS).map((comment) => (
-                                <Avatar key={comment.id} author={comment.author} variant="stacked" />
-                            ))}
-
-                            {comments.length > MAX_STACKED_AVATARS && (
-                                <div className="flex size-7 items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-700 ring-2 ring-white dark:bg-white/[0.12] dark:text-slate-200 dark:ring-slate-900">
-                                    +{comments.length - MAX_STACKED_AVATARS}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
             </div>
 
-            <div className="relative divide-y divide-slate-200/70 dark:divide-white/[0.06]">
-                {hiddenCount > 0 && showAllHref && (
-                    <div className="px-5 py-3 text-center sm:px-6">
-                        <Link
-                            href={showAllHref}
-                            scroll={false}
-                            className="text-sm font-medium text-slate-600 hover:text-slate-950 hover:underline dark:text-slate-300 dark:hover:text-white"
-                        >
-                            Show {hiddenCount} earlier {hiddenCount === 1 ? "comment" : "comments"}
-                        </Link>
-                    </div>
-                )}
-                {comments.length === 0 ? (
-                    <div className="px-5 py-12 text-center sm:px-6">
-                        <div className={`${iconTile} mx-auto size-14 rounded-xl border-dashed`}>
-                            <MessageSquare className="size-6" />
-                        </div>
+            {hiddenCount > 0 && showAllHref && (
+                <div className="border-t border-border px-4 py-2.5 text-center sm:px-5">
+                    <Link
+                        href={showAllHref}
+                        scroll={false}
+                        className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                        Show {hiddenCount} earlier {hiddenCount === 1 ? "comment" : "comments"}
+                    </Link>
+                </div>
+            )}
 
-                        <h3 className="mt-4 text-sm font-semibold text-foreground">
-                            No comments yet
-                        </h3>
-
-                        <p className="mx-auto mt-1.5 max-w-sm text-xs leading-5 text-slate-500 sm:text-sm dark:text-slate-400">
-                            Start the conversation by sharing an update, question, or useful
-                            context about this task.
-                        </p>
-                    </div>
-                ) : (
-                    comments.map((comment) => {
+            {comments.length === 0 ? (
+                <div className="flex items-center gap-3 border-t border-border px-4 py-4 sm:px-5">
+                    <MessageSquare className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <p className="text-sm text-muted-foreground">
+                        No comments yet. Share an update or ask a question below.
+                    </p>
+                </div>
+            ) : (
+                <ol className="divide-y divide-border border-t border-border">
+                    {comments.map((comment) => {
                         const isCurrentUser = comment.author.id === currentUserId;
 
                         return (
-                            <article
-                                key={comment.id}
-                                className="group relative px-5 py-5 transition-colors duration-200 hover:bg-slate-500/[0.03] sm:px-6"
-                            >
-                                <div className="flex gap-3.5 sm:gap-4">
-                                    <div className="shrink-0">
-                                        <Avatar author={comment.author} variant="full" />
-                                    </div>
+                            <li key={comment.id} className="flex gap-3 px-4 py-4 sm:px-5">
+                                <div className="shrink-0 pt-0.5">
+                                    <Avatar author={comment.author} />
+                                </div>
 
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-semibold text-foreground">
-                        {getDisplayName(comment.author)}
-                      </span>
-
-                                            {isCurrentUser && (
-                                                <span
-                                                    className={`${hairline} rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-white/[0.04] dark:text-slate-300`}
-                                                >
-                          You
-                        </span>
-                                            )}
-
-                                            <span className="text-xs text-muted-foreground">
-                        {formatCommentDate(comment.createdAt)}
-                      </span>
-
-                                            {wasEdited(comment) && (
-                                                <>
-                                                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                                                    <span className="text-xs italic text-muted-foreground">
-                            edited
-                          </span>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {isCurrentUser ? (
-                                            <OwnCommentActions
-                                                comment={comment}
-                                                members={members}
-                                                updateComment={updateComment}
-                                                deleteComment={deleteComment}
-                                            />
-                                        ) : (
-                                            <>
-                                                <CommentBubble
-                                                    content={comment.content}
-                                                    members={members}
-                                                    className="mt-3"
-                                                />
-                                                {canModerate && (
-                                                    <ModeratorDeleteButton
-                                                        commentId={comment.id}
-                                                        deleteComment={deleteComment}
-                                                    />
-                                                )}
-                                            </>
+                                <article className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                        <span className="text-sm font-semibold text-foreground">
+                                            {getDisplayName(comment.author)}
+                                        </span>
+                                        {isCurrentUser && (
+                                            <span className="text-xs font-medium text-muted-foreground">(you)</span>
+                                        )}
+                                        <time
+                                            dateTime={new Date(comment.createdAt).toISOString()}
+                                            className="text-xs text-muted-foreground"
+                                        >
+                                            {formatCommentDate(comment.createdAt)}
+                                        </time>
+                                        {wasEdited(comment) && (
+                                            <span className="text-xs italic text-muted-foreground">edited</span>
                                         )}
                                     </div>
-                                </div>
-                            </article>
+
+                                    {isCurrentUser ? (
+                                        <OwnCommentActions
+                                            comment={comment}
+                                            members={members}
+                                            updateComment={updateComment}
+                                            deleteComment={deleteComment}
+                                        />
+                                    ) : (
+                                        <>
+                                            <CommentBody content={comment.content} members={members} />
+                                            {canModerate && (
+                                                <div className="-ml-2">
+                                                    <ModeratorDeleteButton
+                                                        commentId={comment.id}
+                                                        authorName={getDisplayName(comment.author)}
+                                                        deleteComment={deleteComment}
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </article>
+                            </li>
                         );
-                    })
-                )}
-            </div>
+                    })}
+                </ol>
+            )}
 
-            {/* z-index layers keep the mention dropdown above what follows */}
-            <div className="relative z-30 rounded-b-2xl border-t border-slate-200/70 bg-slate-100/50 p-4 sm:p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                <div className="mb-3 flex items-center gap-2.5">
-                    <div className={`${iconTile} size-7 rounded-lg`}>
-                        <Sparkles className="size-3.5" />
-                    </div>
-
-                    <div>
-                        <p className="text-xs font-semibold text-foreground">
-                            Add a comment
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Mention teammates with @
-                        </p>
-                    </div>
-                </div>
-
+            {/* z-index keeps the mention dropdown above what follows */}
+            <div className="relative z-30 rounded-b-xl border-t border-border bg-muted/30 p-4 sm:px-5">
                 <div className="relative z-40 overflow-visible">{form}</div>
             </div>
         </section>

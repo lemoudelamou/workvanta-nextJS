@@ -27,7 +27,7 @@ export function DeleteTaskConfirmation({
                 type="button"
                 onClick={() => setOpen(true)}
                 disabled={isPending}
-                className={`${buttonStyles({ variant: "danger" })} shrink-0`}
+                className={`${buttonStyles({ variant: "danger", size: "sm" })} shrink-0`}
             >
                 {isPending ? "Deleting..." : "Delete task"}
             </button>
