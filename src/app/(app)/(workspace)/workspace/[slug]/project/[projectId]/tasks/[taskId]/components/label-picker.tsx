@@ -24,6 +24,18 @@ type Option =
  * The task's labels as chips, and a menu to tick labels on or off, pick a
  * ready-made one, or create a new one by typing its name. Changes save
  * straight away.
+import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { Check, Plus, Search, Tag } from "lucide-react";
+
+import { LabelChip } from "@/components/ui/LabelChip";
+import { labelColor, LABEL_NAME_MAX, normalizeLabelName, sortLabels, type TaskLabelView } from "@/lib/labels/label-colors";
+import { createLabelAction, setTaskLabelsAction } from "../../../label-actions";
+
+type Option = { kind: "label"; label: TaskLabelView } | { kind: "create"; name: string };
+
+/**
+ * The task's labels as chips, and a menu to tick labels on or off or
+ * create a new one by typing its name. Changes save straight away.
  */
 export function LabelPicker({
     slug,
@@ -79,6 +91,9 @@ export function LabelPicker({
     const options: Option[] = [
         ...matches.map((label) => ({ kind: "label" as const, label })),
         ...presets.map((p) => ({ kind: "preset" as const, ...p })),
+    const exact = labels.some((l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed));
+    const options: Option[] = [
+        ...matches.map((label) => ({ kind: "label" as const, label })),
         ...(trimmed && !exact && trimmed.length <= LABEL_NAME_MAX ? [{ kind: "create" as const, name: trimmed }] : []),
     ];
 
@@ -199,6 +214,7 @@ export function LabelPicker({
                                 setActive(0);
                             }}
                             placeholder="Find or create a label…"
+                            placeholder={labels.length ? "Find or create a label…" : "Name your first label…"}
                             aria-label="Find or create a label"
                             role="combobox"
                             aria-expanded="true"
@@ -211,6 +227,7 @@ export function LabelPicker({
                         {options.length === 0 && (
                             <li className="px-2.5 py-2 text-[13px] text-muted-foreground">
                                 {labels.length || presets.length ? "No labels match." : "Type a name to create a label."}
+                                {labels.length ? "No labels match." : "Type a name to create a label."}
                             </li>
                         )}
                         {options.map((option, index) =>

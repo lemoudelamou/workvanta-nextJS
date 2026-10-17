@@ -47,6 +47,7 @@ function refresh(slug: string, projectId: string, taskId?: string) {
 }
 
 /** Anyone who can edit tasks can add a label to the project, custom or ready-made. */
+/** Anyone who can edit tasks can add a label to the project. */
 export async function createLabelAction(
     slug: string,
     projectId: string,
@@ -72,6 +73,7 @@ export async function createLabelAction(
                 normalizedName,
                 // A ready-made label keeps its usual colour.
                 color: presetLabel(cleaned.name)?.color ?? nextLabelColor(used.map((l) => l.color)),
+                color: nextLabelColor(used.map((l) => l.color)),
             },
             select: { id: true, name: true, color: true },
         });
