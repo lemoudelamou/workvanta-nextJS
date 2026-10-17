@@ -74,7 +74,6 @@ export function DependenciesSection({
 
             {/* No overflow-hidden here: it would clip the blocker picker's dropdown. Corners are rounded per row instead. */}
             <div className="mt-3 rounded-xl border border-border [&>div:last-child>ul:last-child>li:last-child]:rounded-b-[11px]">
-            <div className="mt-3 overflow-hidden rounded-xl border border-border">
                 <Group
                     title="Blocked by"
                     empty={canEdit ? "Nothing. Add a task that has to be done first." : "Nothing."}
@@ -136,7 +135,6 @@ function Group({
             <h3 className={`bg-muted/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground ${bordered ? "" : "rounded-t-[11px]"}`}>
                 {title}
             </h3>
-            <h3 className="bg-muted/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground">{title}</h3>
             {tasks.length === 0 && empty && !children && <p className="px-3.5 py-3 text-sm text-muted-foreground">{empty}</p>}
             {tasks.length > 0 && (
                 <ul className="divide-y divide-border">
