@@ -26,6 +26,7 @@ import {
     WORKSPACE_ROLE_DESCRIPTIONS,
     type WorkspaceRoleName,
 } from "@/lib/auth/permissions";
+import { workspaceTitle } from "@/lib/navigation/page-titles";
 
 const ROLE_RANK: Record<string, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2, GUEST: 3 };
 
@@ -383,4 +384,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             </div>
         </PageBody>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    return workspaceTitle(slug, "Team");
 }

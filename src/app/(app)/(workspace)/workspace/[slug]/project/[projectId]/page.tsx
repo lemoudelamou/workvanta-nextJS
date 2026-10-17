@@ -29,6 +29,7 @@ import { projectHex } from "@/lib/navigation/project-color";
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
 import { StatusRail } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/StatusRail";
+import { projectTitle } from "@/lib/navigation/page-titles";
 
 
 
@@ -338,4 +339,9 @@ export default async function ProjectPage({
             </section>
         </PageBody>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; projectId: string }> }) {
+    const { slug, projectId } = await params;
+    return projectTitle(slug, projectId);
 }

@@ -11,6 +11,7 @@ import type { Focus, RecentProject } from "@/app/(app)/(dashboard)/dashboard/com
 import { groupByDue, myTasksWhere } from "@/lib/tasks/my-tasks";
 import type { WorkspaceRoleName } from "@/lib/auth/permissions";
 import { DashboardView } from "@/app/(app)/(dashboard)/dashboard/components/DashboardView";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 
 
@@ -51,6 +52,15 @@ export default async function DashboardPage() {
     const guestWorkspaceIds = new Set(
         memberships.filter((m) => m.role === "GUEST").map((m) => m.workspace.id),
     );
+
+    // Everyone else in any of these workspaces, each person once.
+    const teammates = workspaceIds.length
+        ? await prisma.workspaceMember.findMany({
+              where: { workspaceId: { in: workspaceIds }, userId: { not: session.user.id } },
+              distinct: ["userId"],
+              select: { userId: true },
+          })
+        : [];
 
     const [allProjects, ownProjectMemberships] = workspaceIds.length
         ? await Promise.all([
@@ -209,10 +219,11 @@ export default async function DashboardPage() {
                 recentProjects={recentProjects}
                 accessibleProjectCountByWorkspace={accessibleProjectCountByWorkspace}
                 totalAccessibleProjectCount={accessibleProjectIds.size}
+                teammateCount={teammates.length}
                 welcome={welcome}
             />
         </PageBody>
     );
 }
 
-
+export const metadata = pageTitle("Home");

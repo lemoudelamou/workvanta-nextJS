@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/FormField";
 import { buttonStyles } from "@/app/style/button-style";
 import { canWorkspace } from "@/lib/auth/permissions";
+import { workspaceTitle } from "@/lib/navigation/page-titles";
 
 export default async function NewProjectPage({
                                                  params,
@@ -171,4 +172,9 @@ export default async function NewProjectPage({
             </form>
         </CenteredFormPage>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    return workspaceTitle(slug, "New project");
 }

@@ -15,6 +15,8 @@ import {
     Search,
     UsersRound,
 } from "lucide-react";
+import { useModKey } from "@/lib/use-mod-key";
+import { useRailTooltip } from "./RailTooltip";
 
 import type { ShellWorkspace } from "@/lib/navigation/shell-data";
 import { projectDot } from "@/lib/navigation/project-color";
@@ -22,21 +24,6 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { UserMenu, type ShellUser } from "./UserMenu";
 
 const focusRing = "outline-none focus-visible:ring-2 focus-visible:ring-brand";
-
-/**
- * Hover/focus label for the collapsed rail, where items show only an icon.
- * Hidden from assistive tech: the link already carries the same name.
- */
-function RailTooltip({ label }: { label: string }) {
-    return (
-        <span
-            aria-hidden="true"
-            className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-        >
-            {label}
-        </span>
-    );
-}
 
 function Count({ value, tone = "muted" }: { value: number; tone?: "muted" | "brand" }) {
     if (value <= 0) return null;
@@ -75,13 +62,15 @@ function NavItem({
     /** Extra words for screen readers, e.g. "3 unread". */
     srExtra?: string;
 }) {
+    const { handlers, tooltip, hide } = useRailTooltip(label, collapsed);
+
     return (
         <Link
             href={href}
             aria-current={active ? "page" : undefined}
             aria-label={collapsed ? [label, srExtra].filter(Boolean).join(", ") : undefined}
-            // The rail's nav scrolls, which would clip a custom tooltip.
-            title={collapsed ? label : undefined}
+            {...handlers}
+            onClick={hide}
             className={`group relative flex h-9 items-center gap-3 rounded-lg text-sm transition-colors ${focusRing} ${
                 collapsed ? "justify-center px-0" : "px-2.5"
             } ${
@@ -116,6 +105,7 @@ function NavItem({
                     )}
                 </>
             )}
+            {tooltip}
         </Link>
     );
 }
@@ -172,6 +162,10 @@ export function SidebarContent({
     const base = current ? `/workspace/${current.slug}` : null;
     const newProjectHref = base ? `${base}/project/new` : null;
 
+    const mod = useModKey();
+    const searchTip = useRailTooltip(`Search (${mod} K)`, collapsed);
+    const toggleTip = useRailTooltip("Expand sidebar ([)", collapsed);
+
     return (
         <div className="flex h-full flex-col">
             <div className={collapsed ? "px-2 pt-3" : "px-3 pt-3"}>
@@ -180,7 +174,11 @@ export function SidebarContent({
                 {onOpenSearch && (
                     <button
                         type="button"
-                        onClick={onOpenSearch}
+                        {...searchTip.handlers}
+                        onClick={() => {
+                            searchTip.hide();
+                            onOpenSearch();
+                        }}
                         aria-label="Search and jump to…"
                         aria-keyshortcuts="Control+K Meta+K"
                         className={`group relative mt-3 flex h-9 w-full items-center gap-2.5 rounded-lg border border-border bg-card text-sm text-muted-foreground shadow-[0_1px_2px_rgba(23,26,33,0.04)] transition-colors hover:border-foreground/20 hover:text-foreground ${focusRing} ${
@@ -189,12 +187,12 @@ export function SidebarContent({
                     >
                         <Search className="size-4 shrink-0" aria-hidden="true" />
                         {collapsed ? (
-                            <RailTooltip label="Search (Ctrl K)" />
+                            searchTip.tooltip
                         ) : (
                             <>
                                 <span className="flex-1 text-left">Search…</span>
                                 <kbd className="rounded border border-border bg-muted px-1.5 font-sans text-[10.5px] font-medium text-muted-foreground">
-                                    Ctrl K
+                                    {mod} K
                                 </kbd>
                             </>
                         )}
@@ -334,7 +332,11 @@ export function SidebarContent({
                 {onToggleCollapsed && (
                     <button
                         type="button"
-                        onClick={onToggleCollapsed}
+                        {...toggleTip.handlers}
+                        onClick={() => {
+                            toggleTip.hide();
+                            onToggleCollapsed();
+                        }}
                         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                         aria-expanded={!collapsed}
                         className={`group relative flex h-8 w-full items-center gap-3 rounded-lg text-xs text-muted-foreground transition-colors hover:bg-sidebar-hover hover:text-foreground ${focusRing} ${
@@ -344,7 +346,7 @@ export function SidebarContent({
                         {collapsed ? (
                             <>
                                 <PanelLeftOpen className="size-4" aria-hidden="true" />
-                                <RailTooltip label="Expand sidebar" />
+                                {toggleTip.tooltip}
                             </>
                         ) : (
                             <>

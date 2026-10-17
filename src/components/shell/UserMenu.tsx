@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen, ChevronsUpDown, Keyboard, LogOut, Settings } from "lucide-react";
 
 import { SHOW_SHORTCUTS_EVENT } from "@/lib/shortcuts";
+import { useRailTooltip } from "./RailTooltip";
 
 import { logout } from "@/app/(auth)/signin/actions";
 import { useDismiss } from "./use-dismiss";
@@ -51,6 +52,7 @@ export function UserMenu({
     compact?: boolean;
 }) {
     const [open, setOpen] = useState(false);
+    const tip = useRailTooltip(user.name, compact && !open);
     const containerRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const close = useCallback(() => setOpen(false), []);
@@ -135,14 +137,18 @@ export function UserMenu({
             <button
                 ref={triggerRef}
                 type="button"
-                onClick={() => setOpen((value) => !value)}
+                onClick={() => {
+                    tip.hide();
+                    setOpen((value) => !value);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label={`Account: ${user.name}`}
-                title={compact ? user.name : undefined}
+                {...tip.handlers}
                 className={`flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left outline-none transition-colors hover:bg-sidebar-hover focus-visible:ring-2 focus-visible:ring-brand ${compact ? "justify-center" : ""}`}
             >
                 <UserAvatar user={user} />
+                {tip.tooltip}
                 {!compact && (
                 <>
                 <span className="min-w-0 flex-1">

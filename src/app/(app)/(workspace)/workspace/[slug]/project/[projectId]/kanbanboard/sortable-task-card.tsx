@@ -46,7 +46,7 @@ export function SortableTaskCard({
                             ref={setActivatorNodeRef}
                             type="button"
                             aria-label={`Drag ${task.title}`}
-                            className="mt-0.5 cursor-grab touch-none text-slate-400 hover:text-slate-600 active:cursor-grabbing dark:hover:text-slate-200"
+                            className="relative mt-0.5 cursor-grab touch-none text-slate-400 after:absolute after:-inset-2 after:content-[''] hover:text-slate-600 active:cursor-grabbing dark:hover:text-slate-200"
                             {...attributes}
                             {...listeners}
                         >

@@ -89,7 +89,7 @@ export function FocusPanel({ focus, footer }: { focus: Focus; footer?: React.Rea
             <div className="rounded-xl border border-border bg-card">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <h3 className="text-sm font-semibold text-foreground">Up next for you</h3>
-                    <Link href="/tasks" className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+                    <Link href="/tasks" className="group relative inline-flex items-center gap-1 text-xs font-medium text-muted-foreground after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:text-foreground">
                         All my tasks
                         <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                     </Link>

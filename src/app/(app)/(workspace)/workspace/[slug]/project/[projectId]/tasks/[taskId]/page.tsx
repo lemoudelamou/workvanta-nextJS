@@ -40,6 +40,7 @@ import {
     updateTaskAction,
     uploadAttachmentAction,
 } from "./task-actions";
+import { taskTitle } from "@/lib/navigation/page-titles";
 
 const DATE = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -302,4 +303,9 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             </div>
         </PageBody>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; projectId: string; taskId: string }> }) {
+    const { slug, projectId, taskId } = await params;
+    return taskTitle(slug, projectId, taskId);
 }

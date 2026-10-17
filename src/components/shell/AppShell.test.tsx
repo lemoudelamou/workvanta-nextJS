@@ -177,7 +177,13 @@ describe("AppShell sidebar", () => {
         renderShell({ pathname: "/workspace/northwind", collapsed: true, unread: 2 });
 
         // Icon-only, but every link keeps its name (and the count) for screen readers.
-        expect(sidebar().getByRole("link", { name: "Notifications, 2 unread" })).toHaveAttribute("title", "Notifications");
+        const notifications = sidebar().getByRole("link", { name: "Notifications, 2 unread" });
+        // Hovering shows a label beside the icon, drawn outside the scrolling sidebar.
+        fireEvent.mouseEnter(notifications);
+        const tip = Array.from(document.body.children).find((el) => el.textContent === "Notifications");
+        expect(tip).toBeDefined();
+        fireEvent.mouseLeave(notifications);
+        expect(Array.from(document.body.children).some((el) => el.textContent === "Notifications")).toBe(false);
         expect(sidebar().getByRole("link", { name: /^All projects/ })).toHaveAttribute("aria-current", "page");
 
         fireEvent.click(sidebar().getByRole("button", { name: "Expand sidebar" }));

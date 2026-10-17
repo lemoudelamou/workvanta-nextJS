@@ -23,6 +23,7 @@ import { SettingsNav } from "@/app/(app)/(settings)/settings/components/Settings
 
 
 import { getProviderStatus } from "@/lib/auth/provider-status";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 
 
@@ -293,3 +294,5 @@ export default async function SettingsPage({
         </PageBody>
     );
 }
+
+export const metadata = pageTitle("Settings");

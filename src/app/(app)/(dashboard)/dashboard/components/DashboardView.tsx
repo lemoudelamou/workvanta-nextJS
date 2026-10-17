@@ -34,6 +34,7 @@ export function DashboardView({
     recentProjects,
     accessibleProjectCountByWorkspace,
     totalAccessibleProjectCount,
+    teammateCount,
     welcome = null,
 }: {
     session: { user: { name?: string | null; email?: string | null } };
@@ -42,14 +43,11 @@ export function DashboardView({
     recentProjects: RecentProject[];
     accessibleProjectCountByWorkspace: Map<string, number>;
     totalAccessibleProjectCount: number;
+    /** Other people across all of these workspaces, each counted once. */
+    teammateCount: number;
     /** The getting-started checklist, while it's still useful. */
     welcome?: FirstStep[] | null;
 }) {
-    const teammateCount = memberships.reduce(
-        (total, m) => total + m.workspace._count.members,
-        0,
-    );
-
     const managedCount = memberships.filter(
         (m) => m.role === "OWNER" || m.role === "ADMIN",
     ).length;
@@ -104,7 +102,7 @@ export function DashboardView({
                             </div>
                             <Link
                                 href="/workspace"
-                                className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                className="group relative inline-flex shrink-0 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] hover:text-foreground"
                             >
                                 Browse all
                                 <ArrowRight

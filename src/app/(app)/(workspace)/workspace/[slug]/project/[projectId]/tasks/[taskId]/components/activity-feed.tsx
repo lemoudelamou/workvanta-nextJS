@@ -437,7 +437,7 @@ export function ActivityFeed({
                         <Link
                             href={showEarlierHref}
                             scroll={false}
-                            className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                            className="relative text-xs font-medium text-muted-foreground after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:text-foreground hover:underline"
                         >
                             Show earlier activity
                         </Link>
