@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { BoardTask } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/kanbanboard/kanban-types";
 import { personColor } from "@/lib/ui/person-color";
 
@@ -10,10 +12,12 @@ export function Avatar({
 
     if (assignee.image) {
         return (
-            <img
+            <Image
                 src={assignee.image}
                 alt={label}
                 title={label}
+                width={28}
+                height={28}
                 className="size-7 shrink-0 rounded-full object-cover ring-2 ring-card"
             />
         );
