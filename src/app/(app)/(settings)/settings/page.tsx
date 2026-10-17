@@ -23,7 +23,7 @@ import { SettingsNav } from "@/app/(app)/(settings)/settings/components/Settings
 
 
 import { getProviderStatus } from "@/lib/auth/provider-status";
-import { pageTitle } from "@/lib/navigation/page-titles";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 
 

@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonStyles } from "@/app/style/button-style";
-import { pageTitle } from "@/lib/navigation/page-titles";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 
 

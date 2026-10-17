@@ -1,4 +1,5 @@
-import { pageTitle, projectTitle, taskTitle, workspaceTitle } from "./page-titles";
+import { pageTitle } from "./page-title";
+import { projectTitle, taskTitle, workspaceTitle } from "./page-titles";
 import { requireMembership } from "@/lib/auth/team";
 import { requireProjectAccess } from "@/lib/auth/members";
 import { prisma } from "@/lib/db/prisma";

@@ -3,11 +3,7 @@ import type { Metadata } from "next";
 import { requireMembership } from "@/lib/auth/team";
 import { requireProjectAccess } from "@/lib/auth/members";
 import { prisma } from "@/lib/db/prisma";
-
-/** "Task · Project · Workvanta": most specific first, so tabs stay tellable apart. */
-export function pageTitle(...parts: string[]): Metadata {
-    return { title: [...parts, "Workvanta"].join(" · ") };
-}
+import { pageTitle } from "./page-title";
 
 const FALLBACK: Metadata = { title: "Workvanta" };
 

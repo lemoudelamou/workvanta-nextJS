@@ -8,7 +8,7 @@ import { CenteredFormPage } from "@/components/ui/PageBody";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { Field, Input, Textarea } from "@/components/ui/FormField";
 import { buttonStyles } from "@/app/style/button-style";
-import { pageTitle } from "@/lib/navigation/page-titles";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 export default async function NewWorkspacePage({
                                                    searchParams,

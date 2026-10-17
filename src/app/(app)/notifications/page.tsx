@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { buildNotificationViews } from "@/lib/notifications/notification-feed";
 import { PageBody } from "@/components/ui/PageBody";
 import { NotificationsInbox } from "./notifications-inbox";
-import { pageTitle } from "@/lib/navigation/page-titles";
+import { pageTitle } from "@/lib/navigation/page-title";
 
 /** How many notifications the page shows. */
 const PAGE_SIZE = 50;
