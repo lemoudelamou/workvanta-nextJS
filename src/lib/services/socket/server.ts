@@ -186,10 +186,12 @@ io.on("connection", (socket) => {
 type RealtimeEvent = {
     type:
         | "comment-created"
+        | "task-changed"
         | "notification-created"
         | "workspace-access-revoked"
         | "session-revoked";
     workspaceId?: string;
+    recipientIds?: string[];
     data: {
         userId?: string;
         sessionId?: string;
@@ -198,8 +200,17 @@ type RealtimeEvent = {
         taskId?: string;
         projectId?: string;
         authorId?: string;
+        kind?: string;
+        actorId?: string | null;
     };
 };
+
+/** User ids an event is addressed to, ignoring anything malformed. */
+function recipientsOf(event: RealtimeEvent) {
+    return Array.isArray(event.recipientIds)
+        ? event.recipientIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+        : [];
+}
 
 function handleRealtimeMessage(channel: string, message: string) {
     if (channel !== REALTIME_CHANNEL) return;
@@ -214,13 +225,18 @@ function handleRealtimeMessage(channel: string, message: string) {
     }
 
     switch (event.type) {
-        case "comment-created": {
-            if (!event.workspaceId) {
-                console.error("Comment event is missing workspaceId:", event);
+        case "comment-created":
+        case "task-changed": {
+            // Delivered per user, never to the whole workspace: private
+            // projects must not leak activity to people who can't open them.
+            const recipients = recipientsOf(event);
+
+            if (recipients.length === 0) {
+                console.error(`${event.type} event has no recipients:`, event);
                 return;
             }
 
-            io.to(workspaceRoom(event.workspaceId)).emit("comment-created", event.data);
+            io.to(recipients.map(userRoom)).emit(event.type, event.data);
             return;
         }
 

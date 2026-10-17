@@ -14,11 +14,26 @@ export type RealtimeEvent =
     | {
     type: "comment-created";
     workspaceId: string;
+    /** Only these users receive the event: people who can open the project. */
+    recipientIds: string[];
     data: {
         commentId: string;
         taskId: string;
         projectId: string;
         authorId: string;
+    };
+}
+    | {
+    type: "task-changed";
+    workspaceId: string;
+    /** Only these users receive the event: people who can open the project. */
+    recipientIds: string[];
+    data: {
+        projectId: string;
+        taskId: string | null;
+        kind: string;
+        /** Who made the change, so their own tab can skip the refresh. */
+        actorId: string | null;
     };
 }
     | {

@@ -9,13 +9,18 @@ import {
     requireProjectPermission,
     userCanAccessProject,
 } from "@/lib/auth/members";
-import { isProjectVisibility } from "@/lib/auth/permissions";
+import { ForbiddenError, isProjectVisibility } from "@/lib/auth/permissions";
+import { Prisma } from "@/generated/prisma/client";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
 import { runSerializable, type Tx } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
 import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
+import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
+import { createNextOccurrence } from "@/lib/tasks/recurrence";
 
 function projectPath(slug: string, projectId: string) {
     return `/workspace/${slug}/project/${projectId}`;
@@ -95,6 +100,7 @@ export async function deleteProjectAction(projectId: string) {
 
     const workspacePath = `/workspace/${slug}`;
 
+    revalidateAppShell();
     revalidatePath(workspacePath);
     revalidatePath("/dashboard");
     redirect(workspacePath);
@@ -153,6 +159,8 @@ export async function createTaskAction(
         }
     }
 
+    let createdTaskId: string | null = null;
+
     try {
         await runSerializable(async (tx) => {
             const task = await tx.task.create({
@@ -168,6 +176,8 @@ export async function createTaskAction(
                     dueDate,
                 },
             });
+
+            createdTaskId = task.id;
 
             await tx.activity.create({
                 data: {
@@ -199,6 +209,25 @@ export async function createTaskAction(
         return { error: "Couldn't create the task. Please try again." };
     }
 
+    // Tell the assignee, unless they assigned it to themselves. The task is
+    // already saved, so a queue outage must not turn this into an error.
+    if (createdTaskId && assigneeId && assigneeId !== userId) {
+        try {
+            await queueTaskAssignedNotification({
+                userId: assigneeId,
+                taskId: createdTaskId,
+                taskTitle: title,
+                projectId: access.project.id,
+                workspaceId,
+                workspaceSlug: slug,
+                assignedBy: userId,
+            });
+        } catch (error) {
+            console.error("Failed to queue assignment notification:", error);
+        }
+    }
+
+    await publishTaskChanged(access.project.id, { taskId: createdTaskId, kind: "created" });
     revalidateProject(slug, projectId);
 
     return { success: true };
@@ -242,7 +271,7 @@ export async function addCardAction(
         throw new Error("Title is too long.");
     }
 
-    await runSerializable(async (tx) => {
+    const createdId = await runSerializable(async (tx) => {
         const task = await tx.task.create({
             data: {
                 title,
@@ -263,8 +292,11 @@ export async function addCardAction(
                 taskId: task.id,
             },
         });
+
+        return task.id;
     });
 
+    await publishTaskChanged(access.project.id, { taskId: createdId, kind: "created" });
     revalidateProject(slug, projectId);
 }
 
@@ -280,7 +312,7 @@ export async function moveCardAction(
         throw new Error("Invalid status.");
     }
 
-    await runSerializable(async (tx) => {
+    const repeatId = await runSerializable(async (tx) => {
         const task = await tx.task.findFirst({
             where: { id: taskId, projectId: access.project.id },
             select: { id: true, status: true },
@@ -311,8 +343,15 @@ export async function moveCardAction(
                 },
             });
         }
+
+        // Finishing a repeating task brings the next one in.
+        return task.status !== "DONE" && status === "DONE"
+            ? createNextOccurrence(tx as Prisma.TransactionClient, task.id, access.userId)
+            : null;
     });
 
+    await publishTaskChanged(access.project.id, { taskId, kind: "moved" });
+    if (repeatId) await publishTaskChanged(access.project.id, { taskId: repeatId, kind: "created" });
     revalidateProject(slug, projectId);
 }
 
@@ -343,6 +382,7 @@ export async function deleteCardAction(
         });
     });
 
+    await publishTaskChanged(access.project.id, { taskId, kind: "deleted" });
     revalidateProject(slug, projectId);
 }
 
@@ -363,5 +403,67 @@ export async function setProjectVisibilityAction(
     });
 
     revalidateProject(slug, projectId);
+    revalidateAppShell();
     revalidatePath(membersPath(slug, projectId));
+}
+
+export type UpdateProjectDetailsState = { success?: boolean; error?: string };
+
+/** Renames a project or changes its description (project admins). */
+export async function updateProjectDetailsAction(
+    slug: string,
+    projectId: string,
+    _previousState: UpdateProjectDetailsState,
+    formData: FormData,
+): Promise<UpdateProjectDetailsState> {
+    let access: Awaited<ReturnType<typeof requireProjectPermission>>;
+
+    try {
+        access = await requireProjectPermission(
+            slug,
+            projectId,
+            "project.update",
+            "Only project admins can edit project details.",
+        );
+    } catch (error) {
+        if (isRedirectError(error)) throw error;
+        if (error instanceof ForbiddenError) return { error: error.message };
+        throw error;
+    }
+
+    const name = String(formData.get("name") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+
+    if (!name) return { error: "Project name is required." };
+    if (name.length > 100) return { error: "Project name must be 100 characters or fewer." };
+    if (description.length > 500) {
+        return { error: "Description must be 500 characters or fewer." };
+    }
+
+    try {
+        await prisma.project.update({
+            where: { id: access.project.id },
+            data: {
+                name,
+                normalizedName: name.toLowerCase(),
+                description: description || null,
+            },
+        });
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
+            return { error: "Another project in this workspace already has this name." };
+        }
+
+        throw error;
+    }
+
+    revalidateProject(slug, projectId);
+    revalidateAppShell();
+    revalidatePath(`/workspace/${slug}`);
+    revalidatePath("/dashboard");
+
+    return { success: true };
 }

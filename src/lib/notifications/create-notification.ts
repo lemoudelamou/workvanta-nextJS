@@ -13,6 +13,7 @@ type InAppPreferences = {
     inAppComments: boolean;
     inAppMentions: boolean;
     inAppInvitations: boolean;
+    inAppDueDates: boolean;
 };
 
 type EmailPreferences = {
@@ -20,6 +21,7 @@ type EmailPreferences = {
     emailComments: boolean;
     emailMentions: boolean;
     emailInvitations: boolean;
+    emailDueDates: boolean;
 };
 
 const IN_APP_TOGGLE = {
@@ -27,6 +29,8 @@ const IN_APP_TOGGLE = {
     TASK_COMMENTED: "inAppComments",
     MENTION: "inAppMentions",
     INVITATION: "inAppInvitations",
+    TASK_DUE_SOON: "inAppDueDates",
+    TASK_OVERDUE: "inAppDueDates",
 } as const;
 
 const EMAIL_TOGGLE = {
@@ -34,6 +38,8 @@ const EMAIL_TOGGLE = {
     TASK_COMMENTED: "emailComments",
     MENTION: "emailMentions",
     INVITATION: "emailInvitations",
+    TASK_DUE_SOON: "emailDueDates",
+    TASK_OVERDUE: "emailDueDates",
 } as const;
 
 function isInAppEnabled(type: NotificationType, preferences: InAppPreferences) {
@@ -58,6 +64,7 @@ export async function createNotification({ userId, type, data, dedupeKey }: Crea
             inAppComments: true,
             inAppMentions: true,
             inAppInvitations: true,
+            inAppDueDates: true,
         },
     });
 
@@ -97,6 +104,7 @@ export async function sendNotificationEmailIfEnabled({
             emailComments: true,
             emailMentions: true,
             emailInvitations: true,
+            emailDueDates: true,
         },
     });
 

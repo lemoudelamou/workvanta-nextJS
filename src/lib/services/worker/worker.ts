@@ -6,6 +6,8 @@ import { createNotification, sendNotificationEmailIfEnabled } from "@/lib/notifi
 import { sendMentionEmail, sendTaskAssignmentEmail, sendTaskCommentedEmail } from "@/lib/email/mailer";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
 import type { MentionJob, TaskAssignedJob, TaskCommentedJob } from "../../queue/types";
+import { notificationQueue } from "../../queue/notification.queue";
+import { digestSchedule, runDailyDigest, runDueDateSweep } from "@/lib/notifications/due-date-jobs";
 
 type NotificationInput = Parameters<typeof createNotification>[0];
 
@@ -126,6 +128,10 @@ async function processJob(job: Job) {
             return handleTaskCommented(job.data as TaskCommentedJob);
         case "mention":
             return handleMention(job.data as MentionJob);
+        case "due-date-sweep":
+            return runDueDateSweep();
+        case "daily-digest":
+            return runDailyDigest(queueConnection);
         default:
             throw new Error(`Unknown notification job: ${job.name}`);
     }
@@ -143,5 +149,23 @@ worker.on("completed", (job) => {
 worker.on("failed", (job, error) => {
     console.error(`Notification job ${job?.id} (${job?.name}) failed:`, error);
 });
+
+// Repeating jobs. Upserting keeps one schedule each, however often the worker restarts.
+async function scheduleRepeatingJobs() {
+    await notificationQueue.upsertJobScheduler(
+        "due-date-sweep",
+        { every: 15 * 60 * 1000 },
+        { name: "due-date-sweep", opts: { removeOnComplete: 20, removeOnFail: 50 } },
+    );
+    const { pattern, tz } = digestSchedule();
+    await notificationQueue.upsertJobScheduler(
+        "daily-digest",
+        { pattern, tz },
+        { name: "daily-digest", opts: { removeOnComplete: 20, removeOnFail: 50 } },
+    );
+    console.log(`Due date reminders every 15 minutes; digest at "${pattern}" (${tz})`);
+}
+
+scheduleRepeatingJobs().catch((error) => console.error("Could not schedule repeating jobs:", error));
 
 console.log("Workvanta notification worker started");

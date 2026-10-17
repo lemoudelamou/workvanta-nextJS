@@ -27,13 +27,13 @@ export function WorkspaceCard({
             <div className="flex items-center gap-3">
                 <span
                     aria-hidden="true"
-                    className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-sm font-semibold text-[rgb(var(--accent))]"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-sm font-semibold text-background"
                 >
                     {initials(workspace.name)}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-[rgb(var(--accent))]">
+                    <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-brand">
                         {workspace.name}
                     </h3>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">

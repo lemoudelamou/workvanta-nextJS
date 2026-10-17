@@ -12,7 +12,6 @@ import {
     primaryButtonClass,
     inputClass,
     labelClass,
-    cardClass,
 } from "@/app/style/ui-tokens";
 
 type Provider = "github" | "google";
@@ -269,33 +268,33 @@ export default function ConnectAccount({
 
     return (
         <>
-            <div className="space-y-3">
+            <div className="divide-y divide-border">
                 {/* Password */}
-                <div className={cardClass}>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-4">
-                            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-white/[0.04]">
-                                <KeyRound className="size-5 text-slate-950 dark:text-white" />
+                <div className="px-5 py-4 sm:px-6">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3.5">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
+                                <KeyRound className="size-[18px] text-foreground" aria-hidden="true" />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                    <p className="text-sm font-semibold text-foreground">
                                         Password
                                     </p>
 
                                     {hasPassword && (
                                         <span className={connectedBadgeClass}>
-                                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                                            <span className="size-1.5 rounded-full bg-status-done" />
                                             Set
                                         </span>
                                     )}
                                 </div>
 
-                                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                <p className="mt-0.5 text-sm text-muted-foreground">
                                     {hasPassword
-                                        ? "Your account has a password and can be accessed with email and password."
-                                        : "Set a password so you can sign in without using GitHub or Google."}
+                                        ? "Sign in with your email and password."
+                                        : "Add a password to sign in without GitHub or Google."}
                                 </p>
                             </div>
                         </div>
@@ -307,7 +306,7 @@ export default function ConnectAccount({
                                     resetPasswordForm();
                                     setIsPasswordFormOpen(true);
                                 }}
-                                className={primaryButtonClass}
+                                className={secondaryButtonClass}
                             >
                                 {hasPassword
                                     ? "Change password"
@@ -319,7 +318,7 @@ export default function ConnectAccount({
                     {isPasswordFormOpen && (
                         <form
                             onSubmit={handleSetPassword}
-                            className="mt-5 space-y-4 border-t border-slate-200 pt-5 dark:border-white/[0.08]"
+                            className="mt-4 max-w-md space-y-4 border-t border-border pt-4"
                         >
                             {/* Current password */}
                             {hasPassword && (
@@ -431,7 +430,7 @@ export default function ConnectAccount({
 
                             {/* Password requirements */}
                             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-sm dark:border-white/[0.08] dark:bg-white/[0.03]">
-                                <ShieldCheck className="size-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                                <ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
 
                                 {passwordRequirements.map(
                                     ({ label, met }) => (
@@ -440,7 +439,7 @@ export default function ConnectAccount({
                                             className={`flex items-center gap-2 transition-colors duration-200 ${
                                                 met
                                                     ? "text-emerald-600 dark:text-emerald-400"
-                                                    : "text-slate-500 dark:text-slate-400"
+                                                    : "text-muted-foreground"
                                             }`}
                                         >
                                             <CheckCircle2
@@ -515,7 +514,7 @@ export default function ConnectAccount({
                             {passwordErrorMessage && (
                                 <p
                                     role="alert"
-                                    className="text-sm text-red-600 dark:text-red-400"
+                                    className="text-sm text-danger"
                                 >
                                     {passwordErrorMessage}
                                 </p>
@@ -560,20 +559,20 @@ export default function ConnectAccount({
                     return (
                         <div
                             key={provider.id}
-                            className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${cardClass}`}
+                            className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6"
                         >
-                            <div className="flex min-w-0 items-center gap-4">
-                                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-white/[0.04]">
+                            <div className="flex min-w-0 items-center gap-3.5">
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
                                     {provider.id === "github" ? (
-                                        <GitHubIcon className="size-5" />
+                                        <GitHubIcon className="size-[18px]" />
                                     ) : (
-                                        <GoogleIcon className="size-5" />
+                                        <GoogleIcon className="size-[18px]" />
                                     )}
                                 </div>
 
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                        <p className="text-sm font-semibold text-foreground">
                                             {provider.name}
                                         </p>
 
@@ -583,15 +582,15 @@ export default function ConnectAccount({
                                                     connectedBadgeClass
                                                 }
                                             >
-                                                <span className="size-1.5 rounded-full bg-emerald-500" />
+                                                <span className="size-1.5 rounded-full bg-status-done" />
                                                 Connected
                                             </span>
                                         )}
                                     </div>
 
-                                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
                                         {isConnected
-                                            ? `Your ${provider.name} account is connected.`
+                                            ? `You can sign in with ${provider.name}.`
                                             : provider.description}
                                     </p>
                                 </div>
@@ -617,7 +616,7 @@ export default function ConnectAccount({
                                     onClick={() =>
                                         handleConnect(provider.id)
                                     }
-                                    className={primaryButtonClass}
+                                    className={secondaryButtonClass}
                                 >
                                     {connectingProvider === provider.id
                                         ? "Connecting..."

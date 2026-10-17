@@ -1,30 +1,35 @@
+"use client";
+
 import Link from "next/link";
-import { CalendarDays, CheckSquare } from "lucide-react";
+import { CalendarDays, CheckSquare, Lock, Repeat } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LabelChips } from "@/components/ui/LabelChip";
+import { useLiveHighlights } from "@/lib/realtime/live-highlight";
 import { cardStyles } from "@/components/ui/Card";
 import { PRIORITY_META } from "@/lib/task-status";
 import { Avatar } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/kanbanboard/avatar";
 import type { BoardTask } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/kanbanboard/kanban-types";
 
-const PRIORITY_STYLES: Record<string, string> = {
-    LOW: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300",
-    MEDIUM:
-        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300",
-    HIGH: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300",
-    URGENT:
-        "border-red-300 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-300",
+// Priority chips: a soft tint of the priority's color, strongest for urgent.
+const PRIORITY_CHIP: Record<string, string> = {
+    LOW: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    MEDIUM: "bg-amber-500/12 text-amber-700 dark:text-amber-300",
+    HIGH: "bg-orange-500/12 text-orange-700 dark:text-orange-300",
+    URGENT: "bg-danger/12 text-danger",
 };
 
 const PRIORITY_DOT_STYLES: Record<string, string> = {
-    LOW: "bg-emerald-500",
+    LOW: "bg-sky-500",
     MEDIUM: "bg-amber-500",
-    HIGH: "bg-rose-500",
-    URGENT: "bg-red-500",
+    HIGH: "bg-orange-500",
+    URGENT: "bg-danger",
 };
 
+const CHIP = "inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-medium tabular-nums";
+
 const TITLE_CLASS =
-    "min-w-0 flex-1 break-words text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100";
+    "min-w-0 flex-1 break-words text-[13.5px] font-medium leading-5 text-foreground";
 
 export function TaskCard({
                              task,
@@ -39,7 +44,9 @@ export function TaskCard({
 }) {
     const priorityKey = task.priority as keyof typeof PRIORITY_META;
     const priority = PRIORITY_META[priorityKey] ?? PRIORITY_META.MEDIUM;
-    const priorityStyle = PRIORITY_STYLES[priorityKey] ?? PRIORITY_STYLES.MEDIUM;
+    const priorityChip = PRIORITY_CHIP[priorityKey] ?? PRIORITY_CHIP.MEDIUM;
+    // A teammate just changed this card: let it glow for a moment.
+    const justChanged = useLiveHighlights().has(task.id) && !overlay;
     const priorityDot =
         PRIORITY_DOT_STYLES[priorityKey] ?? PRIORITY_DOT_STYLES.MEDIUM;
 
@@ -47,22 +54,16 @@ export function TaskCard({
         <div
             className={cn(
                 cardStyles,
-                "group relative overflow-hidden rounded-xl p-3.5",
-                "transition-all duration-200",
+                "group relative rounded-lg p-3",
+                "transition-[border-color,box-shadow,transform] duration-200",
                 !overlay &&
-                "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:hover:border-white/15",
-                overlay && "rotate-2 shadow-xl",
+                    "hover:border-foreground/15 hover:shadow-[0_6px_16px_-8px_rgba(23,26,33,0.18)] motion-safe:hover:-translate-y-px",
+                task.status === "DONE" && !overlay && "bg-card/70",
+                justChanged && "border-brand/50 motion-safe:animate-[live-glow_2.4s_ease-out]",
+                overlay && "rotate-1 shadow-lg ring-1 ring-brand/30",
             )}
         >
-            {/* Priority accent */}
-            <div
-                className={cn(
-                    "absolute inset-y-0 left-0 w-0.5 opacity-70",
-                    priorityDot,
-                )}
-            />
-
-            <div className="flex items-start gap-2.5 pl-1">
+            <div className="flex items-start gap-2">
                 {handle && (
                     <div className="shrink-0 pt-0.5 opacity-40 transition-opacity group-hover:opacity-100">
                         {handle}
@@ -74,7 +75,7 @@ export function TaskCard({
                         href={href}
                         className={cn(
                             TITLE_CLASS,
-                            "transition-colors hover:text-violet-700 dark:hover:text-violet-300",
+                            "rounded-sm transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
                         )}
                     >
                         {task.title}
@@ -84,14 +85,15 @@ export function TaskCard({
                 )}
             </div>
 
-            <div className="mt-3.5 flex items-center justify-between gap-2 pl-1">
+            {task.labels?.length > 0 && (
+                <div className={cn("mt-2", handle && "pl-6")}>
+                    <LabelChips labels={task.labels} />
+                </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <span
-                        className={cn(
-                            "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                            priorityStyle,
-                        )}
-                    >
+                    <span className={cn(CHIP, priorityChip)}>
                         <span
                             className={cn(
                                 "size-1.5 shrink-0 rounded-full",
@@ -104,27 +106,44 @@ export function TaskCard({
                     {task.dueLabel && (
                         <span
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium",
+                                CHIP,
                                 task.overdue
-                                    ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300"
-                                    : "text-slate-500 dark:text-slate-400",
+                                    ? "bg-danger/10 text-danger"
+                                    : "bg-muted text-muted-foreground",
                             )}
                         >
-                            <CalendarDays className="size-3" />
+                            <CalendarDays className="size-3" aria-hidden="true" />
                             {task.dueLabel}
+                        </span>
+                    )}
+
+                    {(task.openBlockers ?? 0) > 0 && task.status !== "DONE" && (
+                        <span
+                            className={cn(CHIP, "bg-amber-500/12 text-amber-700 dark:text-amber-300")}
+                            title={`Waiting on ${task.openBlockers} open ${task.openBlockers === 1 ? "task" : "tasks"}`}
+                        >
+                            <Lock className="size-3" aria-hidden="true" />
+                            Blocked
+                        </span>
+                    )}
+
+                    {task.recurrence && (
+                        <span className={cn(CHIP, "bg-muted px-1 text-muted-foreground")} title="Repeats">
+                            <Repeat className="size-3" aria-hidden="true" />
+                            <span className="sr-only">Repeats</span>
                         </span>
                     )}
 
                     {task.subtaskTotal > 0 && (
                         <span
                             className={cn(
-                                "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium",
+                                CHIP,
                                 task.subtaskDone === task.subtaskTotal
-                                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                    : "text-slate-500 dark:text-slate-400",
+                                    ? "bg-status-done/12 text-status-done"
+                                    : "bg-muted text-muted-foreground",
                             )}
                         >
-                            <CheckSquare className="size-3" />
+                            <CheckSquare className="size-3" aria-hidden="true" />
                             {task.subtaskDone}/{task.subtaskTotal}
                         </span>
                     )}

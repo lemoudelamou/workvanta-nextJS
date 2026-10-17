@@ -108,6 +108,16 @@ export type NotificationPreference = Prisma.NotificationPreferenceModel
  */
 export type Invitation = Prisma.InvitationModel
 /**
+ * Model Label
+ * A coloured tag for tasks, defined per project.
+ */
+export type Label = Prisma.LabelModel
+/**
+ * Model TaskLabel
+ * 
+ */
+export type TaskLabel = Prisma.TaskLabelModel
+/**
  * Model Activity
  * 
  */
@@ -132,3 +142,9 @@ export type Attachment = Prisma.AttachmentModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model TaskDependency
+ * "blockedTask can't really start until blockingTask is done." Both tasks
+ * are in the same project.
+ */
+export type TaskDependency = Prisma.TaskDependencyModel

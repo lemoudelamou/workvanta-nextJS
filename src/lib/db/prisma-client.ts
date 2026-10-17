@@ -1,3 +1,8 @@
+/**
+ * The one place the Prisma client is created. Import it from
+ * `@/lib/db/prisma` inside the Next.js app; standalone scripts (worker,
+ * socket server) import this file directly.
+ */
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
     DndContext,
     DragOverlay,
@@ -14,7 +14,7 @@ import {
     type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Filter, Plus, Search, UserRound, X } from "lucide-react";
+import { Filter, Plus, Search, Tag, UserRound, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { buttonStyles } from "@/app/style/button-style";
@@ -24,11 +24,14 @@ import { reorderTasksAction } from "@/app/(app)/(workspace)/workspace/[slug]/pro
 import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
 import { getPriorityLabel, getStatusLabel, getAssigneeLabel } from "./kanban-helpers";
 import { findColumn, groupTasks, idsOf } from "./board-utils";
+import { filterTasks } from "../listview/list-utils";
 import { Column } from "./kanban-column";
 import { FilterChip } from "./filter-chip";
 import { FilterSelect } from "./filter-select";
 import { TaskCard } from "./task-card";
 import type { BoardTask, Columns, Filters } from "./kanban-types";
+import type { TaskLabelView } from "@/lib/labels/label-colors";
+import { beginInteraction, endInteraction } from "@/lib/realtime/interaction-lock";
 
 export type { BoardTask } from "./kanban-types";
 
@@ -37,6 +40,7 @@ const EMPTY_FILTERS: Filters = {
     priority: "ALL",
     status: "ALL",
     assignee: "ALL",
+    label: "ALL",
 };
 
 export function KanbanBoard({
@@ -45,12 +49,18 @@ export function KanbanBoard({
                                 tasks,
                                 members,
                                 canEdit,
+                                leading,
+                                labels = [],
                             }: {
     slug: string;
     projectId: string;
     tasks: BoardTask[];
     members: TaskFormMember[];
     canEdit: boolean;
+    /** The project's labels, for the label filter. */
+    labels?: TaskLabelView[];
+    /** Shown at the start of the toolbar, e.g. the Board/List switch. */
+    leading?: React.ReactNode;
 }) {
     const [columns, setColumns] = useState(() => groupTasks(tasks));
     const [syncedFrom, setSyncedFrom] = useState(tasks);
@@ -92,33 +102,10 @@ export function KanbanBoard({
         [columns],
     );
 
-    const filteredTasks = useMemo(() => {
-        const search = filters.search.trim().toLowerCase();
-
-        return allTasks.filter((task) => {
-            const matchesSearch =
-                !search || task.title.toLowerCase().includes(search);
-
-            const matchesPriority =
-                filters.priority === "ALL" || task.priority === filters.priority;
-
-            const matchesStatus =
-                filters.status === "ALL" || task.status === filters.status;
-
-            const matchesAssignee =
-                filters.assignee === "ALL" ||
-                (filters.assignee === "UNASSIGNED"
-                    ? !task.assignee
-                    : task.assignee?.email === filters.assignee);
-
-            return (
-                matchesSearch &&
-                matchesPriority &&
-                matchesStatus &&
-                matchesAssignee
-            );
-        });
-    }, [allTasks, filters]);
+    const filteredTasks = useMemo(
+        () => filterTasks(allTasks, filters),
+        [allTasks, filters],
+    );
 
     const filteredColumns = useMemo(() => {
         const filteredIds = new Set(filteredTasks.map((task) => task.id));
@@ -135,7 +122,8 @@ export function KanbanBoard({
         filters.search.trim() !== "" ||
         filters.priority !== "ALL" ||
         filters.status !== "ALL" ||
-        filters.assignee !== "ALL";
+        filters.assignee !== "ALL" ||
+        filters.label !== "ALL";
 
     const uniqueAssignees = useMemo(() => {
         const map = new Map<string, { email: string; name: string | null }>();
@@ -172,6 +160,14 @@ export function KanbanBoard({
         setDialog((current) => ({ ...current, open: false }));
     }
 
+    // Leaving the page mid-drag must not keep live refreshes on hold.
+    useEffect(
+        () => () => {
+            if (dragStart.current) endInteraction();
+        },
+        [],
+    );
+
     function handleDragStart({ active }: DragStartEvent) {
         const id = String(active.id);
         const status = findColumn(columns, id);
@@ -179,6 +175,8 @@ export function KanbanBoard({
         if (!status) return;
 
         dragStart.current = { status, snapshot: columns };
+        // Hold live refreshes until the card is dropped.
+        beginInteraction();
 
         setActiveId(id);
         setError(null);
@@ -220,6 +218,7 @@ export function KanbanBoard({
     function handleDragEnd({ active, over }: DragEndEvent) {
         const start = dragStart.current;
 
+        if (start) endInteraction();
         dragStart.current = null;
         setActiveId(null);
 
@@ -283,6 +282,7 @@ export function KanbanBoard({
     function handleDragCancel() {
         if (dragStart.current) {
             setColumns(dragStart.current.snapshot);
+            endInteraction();
         }
 
         dragStart.current = null;
@@ -298,45 +298,57 @@ export function KanbanBoard({
         filters.priority !== "ALL" ? filters.priority : "",
         filters.status !== "ALL" ? filters.status : "",
         filters.assignee !== "ALL" ? filters.assignee : "",
+        filters.label !== "ALL" ? filters.label : "",
     ].filter(Boolean).length;
+    // Search has its own box; this counts the filters behind the Filters button.
+    const panelFilterCount = activeFilterCount - (filters.search ? 1 : 0);
 
     return (
         <div>
-            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold">Tasks</h2>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+                {/* Its own slot: it comes from the server page, next to static siblings. */}
+                <div className="contents">{leading}</div>
+                <span className="hidden text-[13px] tabular-nums text-muted-foreground sm:inline">
+                    {hasFilters ? `${filteredTasks.length} of ${allTasks.length}` : allTasks.length}{" "}
+                    {allTasks.length === 1 ? "task" : "tasks"}
+                </span>
+                {!canEdit && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        View only
+                    </span>
+                )}
 
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-white/[0.06] dark:text-slate-400">
-                            {hasFilters
-                                ? `${filteredTasks.length}/${allTasks.length}`
-                                : allTasks.length}
-                        </span>
-                    </div>
+                <div className="ml-auto flex min-w-0 items-center gap-2">
+                    <label className="relative min-w-0">
+                        <span className="sr-only">Search tasks</span>
+                        <Search
+                            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                            aria-hidden="true"
+                        />
+                        <input
+                            type="search"
+                            value={filters.search}
+                            onChange={(event) => updateFilter("search", event.target.value)}
+                            placeholder="Search tasks"
+                            className="h-9 w-36 rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none transition-[width,box-shadow] placeholder:text-muted-foreground focus:w-52 focus:border-brand focus:ring-4 focus:ring-brand/15 sm:w-48 sm:focus:w-60"
+                        />
+                    </label>
 
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        {canEdit
-                            ? "Drag cards to change status or reorder them."
-                            : "You have view-only access to this board."}
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => setShowFilters((value) => !value)}
+                        aria-expanded={showFilters}
                         className={cn(
-                            buttonStyles(),
+                            buttonStyles({ variant: "secondary" }),
                             "gap-2",
-                            showFilters &&
-                            "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/10 dark:text-violet-300",
+                            showFilters && "border-brand/40 bg-brand-soft text-brand dark:bg-brand/15",
                         )}
                     >
-                        <Filter className="size-4" />
-                        Filters
-                        {hasFilters && (
-                            <span className="flex size-5 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white">
-                                {activeFilterCount}
+                        <Filter className="size-4" aria-hidden="true" />
+                        <span className="sr-only sm:not-sr-only">Filters</span>
+                        {panelFilterCount > 0 && (
+                            <span className="flex size-5 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white dark:text-[#0f1115]">
+                                {panelFilterCount}
                             </span>
                         )}
                     </button>
@@ -345,34 +357,21 @@ export function KanbanBoard({
                         <button
                             type="button"
                             onClick={() => openDialog("TODO")}
-                            className={buttonStyles()}
+                            className={cn(buttonStyles(), "whitespace-nowrap")}
                         >
-                            <Plus className="size-4" />
-                            New task
+                            <Plus className="size-4" aria-hidden="true" />
+                            <span className="sr-only sm:not-sr-only">New task</span>
                         </button>
                     )}
                 </div>
             </div>
 
             {showFilters && (
-                <div className="mb-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-
-                            <input
-                                type="text"
-                                value={filters.search}
-                                onChange={(event) =>
-                                    updateFilter("search", event.target.value)
-                                }
-                                placeholder="Search tasks..."
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/[0.06]"
-                            />
-                        </div>
-
+                <div className="mb-5 rounded-xl border border-border bg-card p-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
                         <FilterSelect
                             icon={<span className="size-2 rounded-full bg-amber-500" />}
+                            ariaLabel="Filter by priority"
                             value={filters.priority}
                             onChange={(value) => updateFilter("priority", value)}
                         >
@@ -385,6 +384,7 @@ export function KanbanBoard({
 
                         <FilterSelect
                             icon={<span className="size-2 rounded-full bg-blue-500" />}
+                            ariaLabel="Filter by status"
                             value={filters.status}
                             onChange={(value) => updateFilter("status", value)}
                         >
@@ -398,6 +398,7 @@ export function KanbanBoard({
 
                         <FilterSelect
                             icon={<UserRound className="size-3.5 text-slate-400" />}
+                            ariaLabel="Filter by assignee"
                             value={filters.assignee}
                             onChange={(value) => updateFilter("assignee", value)}
                         >
@@ -409,10 +410,26 @@ export function KanbanBoard({
                                 </option>
                             ))}
                         </FilterSelect>
+
+                        {labels.length > 0 && (
+                            <FilterSelect
+                                icon={<Tag className="size-3.5 text-slate-400" />}
+                                ariaLabel="Filter by label"
+                                value={filters.label}
+                                onChange={(value) => updateFilter("label", value)}
+                            >
+                                <option value="ALL">All labels</option>
+                                {labels.map((label) => (
+                                    <option key={label.id} value={label.id}>
+                                        {label.name}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                        )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/[0.06]">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                             Showing{" "}
                             <span className="font-semibold text-slate-700 dark:text-slate-200">
                                 {filteredTasks.length}
@@ -438,14 +455,8 @@ export function KanbanBoard({
                 </div>
             )}
 
-            {hasFilters && !showFilters && (
+            {panelFilterCount > 0 && !showFilters && (
                 <div className="mb-4 flex flex-wrap items-center gap-2">
-                    {filters.search && (
-                        <FilterChip
-                            label={`Search: ${filters.search}`}
-                            onRemove={() => updateFilter("search", "")}
-                        />
-                    )}
 
                     {filters.priority !== "ALL" && (
                         <FilterChip
@@ -472,6 +483,13 @@ export function KanbanBoard({
                         />
                     )}
 
+                    {filters.label !== "ALL" && (
+                        <FilterChip
+                            label={`Label: ${labels.find((l) => l.id === filters.label)?.name ?? "Removed label"}`}
+                            onRemove={() => updateFilter("label", "ALL")}
+                        />
+                    )}
+
                     <button
                         type="button"
                         onClick={clearFilters}
@@ -485,28 +503,28 @@ export function KanbanBoard({
             {error && (
                 <p
                     role="alert"
-                    className="mb-4 rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-300"
+                    className="mb-4 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger"
                 >
                     {error}
                 </p>
             )}
 
             {filteredTasks.length === 0 && allTasks.length > 0 && (
-                <div className="mb-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                <div className="mb-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
                     <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/[0.06]">
                         <Search className="size-5 text-slate-400" />
                     </div>
 
                     <h3 className="mt-3 text-sm font-semibold">No tasks found</h3>
 
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         Try changing your filters or search.
                     </p>
 
                     <button
                         type="button"
                         onClick={clearFilters}
-                        className="mt-4 text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-300"
+                        className="mt-4 text-xs font-medium text-brand hover:text-brand-strong"
                     >
                         Clear filters
                     </button>
@@ -522,7 +540,11 @@ export function KanbanBoard({
                 onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
             >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                    role="group"
+                    aria-label="Board columns"
+                    className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4"
+                >
                     {TASK_COLUMNS.map((column) => (
                         <Column
                             key={column.status}

@@ -35,6 +35,8 @@ export type NotificationPreferenceMinAggregateOutputType = {
   inAppComments: boolean | null
   inAppMentions: boolean | null
   inAppInvitations: boolean | null
+  inAppDueDates: boolean | null
+  emailDueDates: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +52,8 @@ export type NotificationPreferenceMaxAggregateOutputType = {
   inAppComments: boolean | null
   inAppMentions: boolean | null
   inAppInvitations: boolean | null
+  inAppDueDates: boolean | null
+  emailDueDates: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -65,6 +69,8 @@ export type NotificationPreferenceCountAggregateOutputType = {
   inAppComments: number
   inAppMentions: number
   inAppInvitations: number
+  inAppDueDates: number
+  emailDueDates: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -82,6 +88,8 @@ export type NotificationPreferenceMinAggregateInputType = {
   inAppComments?: true
   inAppMentions?: true
   inAppInvitations?: true
+  inAppDueDates?: true
+  emailDueDates?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -97,6 +105,8 @@ export type NotificationPreferenceMaxAggregateInputType = {
   inAppComments?: true
   inAppMentions?: true
   inAppInvitations?: true
+  inAppDueDates?: true
+  emailDueDates?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -112,6 +122,8 @@ export type NotificationPreferenceCountAggregateInputType = {
   inAppComments?: true
   inAppMentions?: true
   inAppInvitations?: true
+  inAppDueDates?: true
+  emailDueDates?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -200,6 +212,8 @@ export type NotificationPreferenceGroupByOutputType = {
   inAppComments: boolean
   inAppMentions: boolean
   inAppInvitations: boolean
+  inAppDueDates: boolean
+  emailDueDates: boolean
   createdAt: Date
   updatedAt: Date
   _count: NotificationPreferenceCountAggregateOutputType | null
@@ -236,6 +250,8 @@ export type NotificationPreferenceWhereInput = {
   inAppComments?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   inAppMentions?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   inAppInvitations?: Prisma.BoolFilter<"NotificationPreference"> | boolean
+  inAppDueDates?: Prisma.BoolFilter<"NotificationPreference"> | boolean
+  emailDueDates?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   createdAt?: Prisma.DateTimeFilter<"NotificationPreference"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"NotificationPreference"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -252,6 +268,8 @@ export type NotificationPreferenceOrderByWithRelationInput = {
   inAppComments?: Prisma.SortOrder
   inAppMentions?: Prisma.SortOrder
   inAppInvitations?: Prisma.SortOrder
+  inAppDueDates?: Prisma.SortOrder
+  emailDueDates?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -271,6 +289,8 @@ export type NotificationPreferenceWhereUniqueInput = Prisma.AtLeast<{
   inAppComments?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   inAppMentions?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   inAppInvitations?: Prisma.BoolFilter<"NotificationPreference"> | boolean
+  inAppDueDates?: Prisma.BoolFilter<"NotificationPreference"> | boolean
+  emailDueDates?: Prisma.BoolFilter<"NotificationPreference"> | boolean
   createdAt?: Prisma.DateTimeFilter<"NotificationPreference"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"NotificationPreference"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -287,6 +307,8 @@ export type NotificationPreferenceOrderByWithAggregationInput = {
   inAppComments?: Prisma.SortOrder
   inAppMentions?: Prisma.SortOrder
   inAppInvitations?: Prisma.SortOrder
+  inAppDueDates?: Prisma.SortOrder
+  emailDueDates?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.NotificationPreferenceCountOrderByAggregateInput
@@ -308,6 +330,8 @@ export type NotificationPreferenceScalarWhereWithAggregatesInput = {
   inAppComments?: Prisma.BoolWithAggregatesFilter<"NotificationPreference"> | boolean
   inAppMentions?: Prisma.BoolWithAggregatesFilter<"NotificationPreference"> | boolean
   inAppInvitations?: Prisma.BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+  inAppDueDates?: Prisma.BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+  emailDueDates?: Prisma.BoolWithAggregatesFilter<"NotificationPreference"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
 }
@@ -322,6 +346,8 @@ export type NotificationPreferenceCreateInput = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutNotificationPreferencesInput
@@ -338,6 +364,8 @@ export type NotificationPreferenceUncheckedCreateInput = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -352,6 +380,8 @@ export type NotificationPreferenceUpdateInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutNotificationPreferencesNestedInput
@@ -368,6 +398,8 @@ export type NotificationPreferenceUncheckedUpdateInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -383,6 +415,8 @@ export type NotificationPreferenceCreateManyInput = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -397,6 +431,8 @@ export type NotificationPreferenceUpdateManyMutationInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -412,6 +448,8 @@ export type NotificationPreferenceUncheckedUpdateManyInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -432,6 +470,8 @@ export type NotificationPreferenceCountOrderByAggregateInput = {
   inAppComments?: Prisma.SortOrder
   inAppMentions?: Prisma.SortOrder
   inAppInvitations?: Prisma.SortOrder
+  inAppDueDates?: Prisma.SortOrder
+  emailDueDates?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -447,6 +487,8 @@ export type NotificationPreferenceMaxOrderByAggregateInput = {
   inAppComments?: Prisma.SortOrder
   inAppMentions?: Prisma.SortOrder
   inAppInvitations?: Prisma.SortOrder
+  inAppDueDates?: Prisma.SortOrder
+  emailDueDates?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -462,6 +504,8 @@ export type NotificationPreferenceMinOrderByAggregateInput = {
   inAppComments?: Prisma.SortOrder
   inAppMentions?: Prisma.SortOrder
   inAppInvitations?: Prisma.SortOrder
+  inAppDueDates?: Prisma.SortOrder
+  emailDueDates?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -508,6 +552,8 @@ export type NotificationPreferenceCreateWithoutUserInput = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -522,6 +568,8 @@ export type NotificationPreferenceUncheckedCreateWithoutUserInput = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -552,6 +600,8 @@ export type NotificationPreferenceUpdateWithoutUserInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -566,6 +616,8 @@ export type NotificationPreferenceUncheckedUpdateWithoutUserInput = {
   inAppComments?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppMentions?: Prisma.BoolFieldUpdateOperationsInput | boolean
   inAppInvitations?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  inAppDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailDueDates?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -583,6 +635,8 @@ export type NotificationPreferenceSelect<ExtArgs extends runtime.Types.Extension
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -599,6 +653,8 @@ export type NotificationPreferenceSelectCreateManyAndReturn<ExtArgs extends runt
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -615,6 +671,8 @@ export type NotificationPreferenceSelectUpdateManyAndReturn<ExtArgs extends runt
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -631,11 +689,13 @@ export type NotificationPreferenceSelectScalar = {
   inAppComments?: boolean
   inAppMentions?: boolean
   inAppInvitations?: boolean
+  inAppDueDates?: boolean
+  emailDueDates?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type NotificationPreferenceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "emailTaskAssignments" | "emailComments" | "emailMentions" | "emailInvitations" | "inAppTaskAssignments" | "inAppComments" | "inAppMentions" | "inAppInvitations" | "createdAt" | "updatedAt", ExtArgs["result"]["notificationPreference"]>
+export type NotificationPreferenceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "emailTaskAssignments" | "emailComments" | "emailMentions" | "emailInvitations" | "inAppTaskAssignments" | "inAppComments" | "inAppMentions" | "inAppInvitations" | "inAppDueDates" | "emailDueDates" | "createdAt" | "updatedAt", ExtArgs["result"]["notificationPreference"]>
 export type NotificationPreferenceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -662,6 +722,14 @@ export type $NotificationPreferencePayload<ExtArgs extends runtime.Types.Extensi
     inAppComments: boolean
     inAppMentions: boolean
     inAppInvitations: boolean
+    /**
+     * Reminders before a task is due and when it becomes overdue.
+     */
+    inAppDueDates: boolean
+    /**
+     * The morning summary email of overdue and upcoming tasks.
+     */
+    emailDueDates: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["notificationPreference"]>
@@ -1098,6 +1166,8 @@ export interface NotificationPreferenceFieldRefs {
   readonly inAppComments: Prisma.FieldRef<"NotificationPreference", 'Boolean'>
   readonly inAppMentions: Prisma.FieldRef<"NotificationPreference", 'Boolean'>
   readonly inAppInvitations: Prisma.FieldRef<"NotificationPreference", 'Boolean'>
+  readonly inAppDueDates: Prisma.FieldRef<"NotificationPreference", 'Boolean'>
+  readonly emailDueDates: Prisma.FieldRef<"NotificationPreference", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"NotificationPreference", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"NotificationPreference", 'DateTime'>
 }

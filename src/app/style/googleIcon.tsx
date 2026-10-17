@@ -1,6 +1,7 @@
 export default function GoogleIcon({ className }: { className?: string }) {
     return (
         <svg
+            className={className}
             width="18"
             height="18"
             viewBox="0 0 24 24"

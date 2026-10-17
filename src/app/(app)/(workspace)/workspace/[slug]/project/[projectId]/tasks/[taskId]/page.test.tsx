@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { act, render, screen, within, fireEvent } from "@testing-library/react";
 
 import TaskPage from "./page";
 import { notFound, redirect } from "next/navigation";
@@ -32,12 +32,7 @@ jest.mock("next/image", () => ({
     __esModule: true,
     default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
-jest.mock("lucide-react", () => ({
-    MessageSquare: () => null,
-    Paperclip: () => null,
-    Pencil: () => null,
-    TriangleAlert: () => null,
-}));
+
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));
 jest.mock("@/lib/auth/members", () => ({
@@ -52,8 +47,9 @@ jest.mock("@/components/ui/AccessDenied", () => ({
 jest.mock("@/lib/auth/task_permission", () => ({ canEditTasks: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
     prisma: {
-        task: { findFirst: jest.fn() },
+        task: { findFirst: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
         workspaceMember: { findMany: jest.fn() },
+        label: { findMany: jest.fn() },
     },
 }));
 
@@ -80,25 +76,48 @@ jest.mock("./components/comment-form", () => ({
         </button>
     ),
 }));
-jest.mock("./components/comment-section", () => ({
-    CommentsSection: ({
-                          form,
-                          comments,
-                          currentUserId,
-                          members,
-                          deleteComment,
-                          updateComment,
-                      }: any) => (
+jest.mock("./components/activity-feed", () => ({
+    ActivityFeed: ({
+        items,
+        composer,
+        commentCount,
+        currentUserId,
+        members,
+        deleteComment,
+        updateComment,
+        showEarlierHref,
+    }: any) => (
         <div
-            data-testid="comments"
+            data-testid="feed"
             data-user={currentUserId}
-            data-count={comments.length}
+            data-order={items.map((i: any) => `${i.kind}:${i.id}`).join(",")}
+            data-comments={commentCount}
+            data-href={showEarlierHref ?? ""}
             data-members={members.length}
         >
-            {form}
+            {composer}
             <button data-testid="delete-comment" onClick={() => deleteComment("c1")} />
             <button data-testid="update-comment" onClick={() => updateComment("c1")} />
         </div>
+    ),
+}));
+jest.mock("./components/label-picker", () => ({
+    LabelPicker: ({ taskId, projectLabels, initialSelected, canEdit }: any) => (
+        <div
+            data-testid="labels"
+            data-task={taskId}
+            data-options={projectLabels.map((l: any) => l.name).join(",")}
+            data-selected={initialSelected.join(",")}
+            data-can-edit={String(canEdit)}
+        />
+    ),
+}));
+jest.mock("./components/repeat-menu", () => ({
+    RepeatMenu: ({ value }: any) => <span data-testid="repeat">{value ?? "none"}</span>,
+}));
+jest.mock("./components/dependencies-section", () => ({
+    DependenciesSection: ({ blockedBy, blocking }: any) => (
+        <div data-testid="dependencies" data-blocked-by={blockedBy.length} data-blocking={blocking.length} />
     ),
 }));
 jest.mock("./components/subtasks-section", () => ({
@@ -110,11 +129,6 @@ jest.mock("./components/subtasks-section", () => ({
             data-slug={slug}
             data-project={projectId}
         />
-    ),
-}));
-jest.mock("./components/activity-section", () => ({
-    ActivitySection: ({ activities }: any) => (
-        <div data-testid="activity" data-count={activities.length} />
     ),
 }));
 jest.mock("./components/attachement-upload", () => ({
@@ -168,8 +182,8 @@ const NOW = new Date("2026-10-16T12:00:00Z");
 const ada = { id: "u2", name: "Ada Lovelace", email: "ada@x.com", image: null };
 const bob = { id: "u3", name: null, email: "bob@x.com", image: null };
 
-function makeTask(overrides: Record<string, unknown> = {}) {
-    return {
+function makeTask(overrides: Record<string, any> = {}) {
+    const task = {
         id: "t1",
         title: "Ship it",
         description: "Line one\nLine two",
@@ -182,16 +196,29 @@ function makeTask(overrides: Record<string, unknown> = {}) {
         creator: ada,
         project: { workspaceId: "w1", workspace: { name: "Acme Inc" } },
         subtasks: [],
+        labels: [],
+        recurrence: null,
+        blockedBy: [],
+        blocking: [],
         comments: [],
         attachments: [],
         activities: [],
         ...overrides,
     };
+    return {
+        ...task,
+        _count: {
+            comments: task.comments.length,
+            activities: task.activities.length,
+            ...overrides._count,
+        },
+    };
 }
 
-async function renderPage() {
+async function renderPage(query: { comments?: string; activity?: string } = {}) {
     const ui = await TaskPage({
         params: Promise.resolve({ slug: "acme", projectId: "p1", taskId: "t1" }),
+        searchParams: Promise.resolve(query),
     });
     return render(ui);
 }
@@ -220,6 +247,7 @@ beforeEach(() => {
     mockCanEditTasks.mockReturnValue(false);
     db.task.findFirst.mockResolvedValue(makeTask());
     mockListProjectAudience.mockResolvedValue([ada, bob]);
+    (prisma as any).label.findMany.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -257,10 +285,11 @@ describe("TaskPage – guards", () => {
         expect(db.task.findFirst).not.toHaveBeenCalled();
     });
 
-    it("calls notFound when the project does not exist", async () => {
+    it("sends people to the project page when the project does not exist", async () => {
         mockRequireProjectAccess.mockRejectedValue(new Error("Project not found."));
 
-        await expect(renderPage()).rejects.toThrow("NEXT_NOT_FOUND");
+        await expect(renderPage()).rejects.toThrow("NEXT_REDIRECT:/workspace/acme/project/p1");
+        expect(mockNotFound).not.toHaveBeenCalled();
         expect(db.task.findFirst).not.toHaveBeenCalled();
     });
 
@@ -283,12 +312,13 @@ describe("TaskPage – guards", () => {
 });
 
 describe("TaskPage – header", () => {
-    it("renders the title, status and priority pills", async () => {
+    it("renders the title, status and priority", async () => {
         await renderPage();
 
         expect(screen.getByRole("heading", { level: 1, name: "Ship it" })).toBeInTheDocument();
-        expect(screen.getByText("In progress")).toBeInTheDocument();
-        expect(screen.getByText("High priority")).toBeInTheDocument();
+        const properties = within(screen.getByRole("list", { name: "Task properties" }));
+        expect(properties.getByText("In progress")).toBeInTheDocument();
+        expect(properties.getByText("High")).toBeInTheDocument();
     });
 
     it("humanises unknown status and priority values", async () => {
@@ -299,7 +329,7 @@ describe("TaskPage – header", () => {
         await renderPage();
 
         expect(screen.getByText("On hold")).toBeInTheDocument();
-        expect(screen.getByText("Critical plus priority")).toBeInTheDocument();
+        expect(screen.getByText("Critical plus")).toBeInTheDocument();
     });
 
     it("renders the breadcrumb with workspace, project and task", async () => {
@@ -324,21 +354,29 @@ describe("TaskPage – header", () => {
         expect(screen.getByText(/No description yet\./)).not.toHaveTextContent("edit panel");
     });
 
-    it("hints at the edit panel for editors", async () => {
+    it("invites editors to add a description in place", async () => {
         mockCanEditTasks.mockReturnValue(true);
         db.task.findFirst.mockResolvedValue(makeTask({ description: null }));
 
         await renderPage();
 
-        expect(screen.getByText(/No description yet\./)).toHaveTextContent(
-            "Add one from the edit panel.",
-        );
+        fireEvent.click(screen.getByRole("button", { name: "Add a description…" }));
+        expect(screen.getByLabelText("Description")).toHaveValue("");
+    });
+
+    it("lets editors rename the task by clicking the title", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
+        await renderPage();
+
+        fireEvent.click(within(screen.getByRole("heading", { level: 1 })).getByRole("button", { name: "Ship it" }));
+        expect(screen.getByLabelText("Title")).toHaveValue("Ship it");
     });
 });
 
 describe("TaskPage – meta cells", () => {
     it("shows the assignee name with initials when there is no image", async () => {
-        db.task.findFirst.mockResolvedValue(makeTask({ assignee: ada }));
+        db.task.findFirst.mockResolvedValue(makeTask({ assignee: ada, assigneeId: "u2" }));
 
         const { container } = await renderPage();
 
@@ -348,7 +386,7 @@ describe("TaskPage – meta cells", () => {
     });
 
     it("falls back to the email and email initials when the assignee has no name", async () => {
-        db.task.findFirst.mockResolvedValue(makeTask({ assignee: bob }));
+        db.task.findFirst.mockResolvedValue(makeTask({ assignee: bob, assigneeId: "u3" }));
 
         await renderPage();
 
@@ -358,7 +396,7 @@ describe("TaskPage – meta cells", () => {
 
     it("uses the first two letters for single-word names", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ assignee: { ...ada, name: "Grace" } }),
+            makeTask({ assignee: { ...ada, name: "Grace" }, assigneeId: "u2" }),
         );
 
         await renderPage();
@@ -368,7 +406,7 @@ describe("TaskPage – meta cells", () => {
 
     it("renders the avatar image when the assignee has one", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ assignee: { ...ada, image: "https://cdn.x/ada.png" } }),
+            makeTask({ assignee: { ...ada, image: "https://cdn.x/ada.png" }, assigneeId: "u2" }),
         );
 
         const { container } = await renderPage();
@@ -399,7 +437,7 @@ describe("TaskPage – meta cells", () => {
     it("formats the created date", async () => {
         await renderPage();
 
-        expect(screen.getByText("Sep 1, 2026")).toBeInTheDocument();
+        expect(screen.getByText(/Created by/)).toHaveTextContent("Created by Ada Lovelace on Sep 1, 2026");
     });
 
     it("shows the due date without an overdue marker when in the future", async () => {
@@ -418,7 +456,7 @@ describe("TaskPage – meta cells", () => {
 
         const due = screen.getByText(/Oct 10, 2026/);
         expect(due).toHaveTextContent("(overdue)");
-        expect(due).toHaveClass("text-rose-600");
+        expect(due).toHaveClass("text-danger");
     });
 
     it("never marks DONE tasks as overdue", async () => {
@@ -441,33 +479,41 @@ describe("TaskPage – meta cells", () => {
 });
 
 describe("TaskPage – attachments", () => {
-    const attachment = (id: string, filename: string) => ({
+    const attachment = (id: string, filename: string, mimeType = "application/pdf") => ({
         id,
         filename,
         url: `https://files.x/${filename}`,
+        size: 2048,
+        mimeType,
         createdAt: new Date("2026-10-01T12:00:00Z"),
     });
 
-    it("shows the empty state with a plural count", async () => {
+    it("shows only the add tile to editors when there are no files", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
         await renderPage();
 
-        expect(screen.getByText("0 files attached")).toBeInTheDocument();
-        expect(screen.getByText("No attachments yet.")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Attachments" })).toBeInTheDocument();
+        expect(screen.getByTestId("attachment-upload")).toBeInTheDocument();
+    });
+
+    it("leaves the section out for read-only users when there are no files", async () => {
+        await renderPage();
+
+        expect(screen.queryByRole("heading", { name: /Attachments/ })).not.toBeInTheDocument();
     });
 
     it("uses the singular label for one file", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
 
-        expect(screen.getByText("1 file attached")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Attachments 1 file" })).toBeInTheDocument();
     });
 
     it("links attachments through the access-checked route, never the raw file URL", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf"), attachment("a2", "logo.png")] }),
+            makeTask({ attachments: [attachment("a1", "spec.pdf"), attachment("a2", "logo.png", "image/png")] }),
         );
 
         await renderPage();
@@ -476,14 +522,13 @@ describe("TaskPage – attachments", () => {
         expect(link).toHaveAttribute("href", "/api/attachments/a1");
         expect(link).toHaveAttribute("target", "_blank");
         expect(link).toHaveAttribute("rel", "noreferrer");
-        expect(screen.getByText("2 files attached")).toBeInTheDocument();
-        expect(screen.getAllByText("Added Oct 1, 2026")).toHaveLength(2);
+        expect(screen.getByRole("heading", { name: "Attachments 2 files" })).toBeInTheDocument();
+        expect(screen.getByText("PDF, 2 KB, added Oct 1")).toBeInTheDocument();
+        expect(screen.getByText("PNG, 2 KB, added Oct 1")).toBeInTheDocument();
     });
 
     it("hides delete and upload controls for read-only users", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
 
@@ -493,9 +538,7 @@ describe("TaskPage – attachments", () => {
 
     it("binds upload and delete actions for editors", async () => {
         mockCanEditTasks.mockReturnValue(true);
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
         fireEvent.click(screen.getByTestId("attachment-upload"));
@@ -507,14 +550,10 @@ describe("TaskPage – attachments", () => {
 });
 
 describe("TaskPage – child sections", () => {
-    it("passes subtasks, activities and comments to their sections", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({
-                subtasks: [{ id: "s1" }, { id: "s2" }],
-                activities: [{ id: "act1" }],
-                comments: [{ id: "c1" }, { id: "c2" }, { id: "c3" }],
-            }),
-        );
+    const at = (minute: number) => new Date(`2026-10-01T10:${String(minute).padStart(2, "0")}:00Z`);
+
+    it("passes subtasks to their section", async () => {
+        db.task.findFirst.mockResolvedValue(makeTask({ subtasks: [{ id: "s1" }, { id: "s2" }] }));
 
         await renderPage();
 
@@ -523,19 +562,40 @@ describe("TaskPage – child sections", () => {
         expect(subtasks).toHaveAttribute("data-count", "2");
         expect(subtasks).toHaveAttribute("data-slug", "acme");
         expect(subtasks).toHaveAttribute("data-project", "p1");
-        expect(screen.getByTestId("activity")).toHaveAttribute("data-count", "1");
-        expect(screen.getByTestId("comments")).toHaveAttribute("data-count", "3");
     });
 
-    it("gives the comments section the current user and workspace members", async () => {
+    it("merges comments and history into one stream, oldest first", async () => {
+        db.task.findFirst.mockResolvedValue(
+            makeTask({
+                // Both arrive newest first from the query.
+                comments: [
+                    { id: "c2", createdAt: at(30) },
+                    { id: "c1", createdAt: at(10) },
+                ],
+                activities: [
+                    { id: "a3", action: "TASK_STATUS_CHANGED", createdAt: at(40) },
+                    { id: "a2", action: "COMMENT_CREATED", createdAt: at(10) },
+                    { id: "a1", action: "TASK_CREATED", createdAt: at(0) },
+                ],
+            }),
+        );
+
         await renderPage();
 
-        const comments = screen.getByTestId("comments");
-        expect(comments).toHaveAttribute("data-user", "u1");
-        expect(comments).toHaveAttribute("data-members", "2");
-        expect(within(comments).getByTestId("comment-form")).toHaveTextContent(
-            "2 mentionable",
+        // The "added a comment" event is dropped: the comment itself is there.
+        expect(screen.getByTestId("feed")).toHaveAttribute(
+            "data-order",
+            "event:a1,comment:c1,comment:c2,event:a3",
         );
+    });
+
+    it("gives the feed the current user and the people who can open the project", async () => {
+        await renderPage();
+
+        const feed = screen.getByTestId("feed");
+        expect(feed).toHaveAttribute("data-user", "u1");
+        expect(feed).toHaveAttribute("data-members", "2");
+        expect(within(feed).getByTestId("comment-form")).toHaveTextContent("2 mentionable");
     });
 
     it("only offers people who can open the project for mentions and assignment", async () => {
@@ -559,85 +619,177 @@ describe("TaskPage – child sections", () => {
     });
 });
 
-describe("TaskPage – edit panel and danger zone", () => {
-    it("hides the edit panel and delete section for read-only users", async () => {
+describe("TaskPage – properties and delete", () => {
+    const pick = async (pill: RegExp, option: string | RegExp) => {
+        fireEvent.click(screen.getByRole("button", { name: pill }));
+        await act(async () => {
+            fireEvent.click(screen.getByRole("option", { name: option }));
+        });
+    };
+
+    it("shows read-only values and no controls to people who can't edit", async () => {
         await renderPage();
 
-        expect(screen.queryByText("Edit task")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
-        expect(screen.queryByText("Delete this task")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Status:/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Ship it" })).not.toBeInTheDocument();
         expect(screen.queryByTestId("delete-task")).not.toBeInTheDocument();
     });
 
-    it("renders the edit form prefilled with the task values", async () => {
+    it("shows each property as a pill with its current value", async () => {
         mockCanEditTasks.mockReturnValue(true);
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ assigneeId: "u2", assignee: ada }),
+        db.task.findFirst.mockResolvedValue(makeTask({ assigneeId: "u2", assignee: ada }));
+
+        await renderPage();
+
+        expect(screen.getByRole("button", { name: "Status: In progress" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Priority: High" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Assignee: Ada Lovelace" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Due date:/ })).toHaveTextContent("Oct 20, 2026");
+    });
+
+    it("saves a property as soon as it's picked, re-sending the other values", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        const update = updateTaskAction as unknown as jest.Mock;
+        update.mockResolvedValue(undefined);
+
+        await renderPage();
+        await pick(/^Status:/, "Done");
+
+        expect(update).toHaveBeenCalledWith("acme", "p1", "t1", expect.any(FormData));
+        const sent = Object.fromEntries((update.mock.calls[0][3] as FormData).entries());
+        expect(sent).toEqual({
+            title: "Ship it",
+            description: "Line one\nLine two",
+            status: "DONE",
+            priority: "HIGH",
+            assigneeId: "",
+            dueDate: "2026-10-20",
+        });
+        expect(screen.getByRole("button", { name: "Status: Done" })).toBeInTheDocument();
+    });
+
+    it("puts the old value back and explains when saving fails", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        (updateTaskAction as unknown as jest.Mock).mockRejectedValue(
+            new Error("The selected assignee doesn't have access to this project."),
         );
 
         await renderPage();
+        await pick(/^Assignee:/, /bob@x\.com/);
 
-        expect(screen.getByLabelText("Title")).toHaveValue("Ship it");
-        expect(screen.getByLabelText("Description")).toHaveValue("Line one\nLine two");
-        expect(screen.getByLabelText("Status")).toHaveValue("IN_PROGRESS");
-        expect(screen.getByLabelText("Priority")).toHaveValue("HIGH");
-        expect(screen.getByLabelText("Assignee")).toHaveValue("u2");
-        expect(screen.getByLabelText("Due date")).toHaveValue("2026-10-20");
-        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+        expect(screen.getByRole("alert")).toHaveTextContent("doesn't have access");
+        expect(screen.getByRole("button", { name: "Assignee: Unassigned" })).toBeInTheDocument();
     });
 
-    it("offers every status and priority as an option", async () => {
+    it("offers every status and priority", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
 
-        const status = within(screen.getByLabelText("Status"));
-        expect(status.getAllByRole("option").map((o) => o.textContent)).toEqual([
+        fireEvent.click(screen.getByRole("button", { name: /^Status:/ }));
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
             "To do",
             "In progress",
             "In review",
             "Done",
         ]);
+        fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
 
-        const priority = within(screen.getByLabelText("Priority"));
-        expect(priority.getAllByRole("option").map((o) => o.textContent)).toEqual([
-            "Urgent",
-            "High",
-            "Medium",
-            "Low",
-        ]);
+        fireEvent.click(screen.getByRole("button", { name: /^Priority:/ }));
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Urgent", "High", "Medium", "Low"]);
     });
 
-    it("lists Unassigned plus workspace members as assignee options", async () => {
+    it("lists Unassigned plus the people who can open the project", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
+        fireEvent.click(screen.getByRole("button", { name: /^Assignee:/ }));
 
-        const options = within(screen.getByLabelText("Assignee")).getAllByRole("option");
-        expect(options.map((o) => o.textContent)).toEqual([
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
             "Unassigned",
-            "Ada Lovelace",
-            "bob@x.com",
+            "AL" + "Ada Lovelace",
+            "BO" + "bob@x.com",
         ]);
     });
 
-    it("defaults the assignee to Unassigned and due date to empty when unset", async () => {
+    it("shows Unassigned and No due date when unset", async () => {
         mockCanEditTasks.mockReturnValue(true);
         db.task.findFirst.mockResolvedValue(makeTask({ assigneeId: null, dueDate: null }));
 
         await renderPage();
 
-        expect(screen.getByLabelText("Assignee")).toHaveValue("");
-        expect(screen.getByLabelText("Due date")).toHaveValue("");
+        expect(screen.getByRole("button", { name: "Assignee: Unassigned" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Due date:/ })).toHaveTextContent("No due date");
     });
 
-    it("renders the delete section and binds the delete action", async () => {
+    it("binds the delete action for editors", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
         fireEvent.click(screen.getByTestId("delete-task"));
 
-        expect(screen.getByText("Delete this task")).toBeInTheDocument();
         expect(actions.deleteTask).toHaveBeenCalledWith("acme", "p1", "t1");
+    });
+});
+
+describe("TaskPage – labels", () => {
+    it("passes the project's labels and the task's own to the picker", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        (prisma as any).label.findMany.mockResolvedValue([
+            { id: "l1", name: "Bug", color: "red" },
+            { id: "l2", name: "Design", color: "violet" },
+        ]);
+        db.task.findFirst.mockResolvedValue(makeTask({ labels: [{ labelId: "l2" }] }));
+
+        await renderPage();
+
+        const picker = screen.getByTestId("labels");
+        expect(picker).toHaveAttribute("data-task", "t1");
+        expect(picker).toHaveAttribute("data-options", "Bug,Design");
+        expect(picker).toHaveAttribute("data-selected", "l2");
+        expect(picker).toHaveAttribute("data-can-edit", "true");
+        expect((prisma as any).label.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { projectId: "p1" } }),
+        );
+    });
+});
+
+describe("TaskPage – long discussions", () => {
+    const include = () => db.task.findFirst.mock.calls[0][0].include;
+
+    it("loads only the newest 50 comments and 20 activity entries by default", async () => {
+        await renderPage();
+
+        expect(include().comments).toMatchObject({ orderBy: { createdAt: "desc" }, take: 50 });
+        expect(include().activities).toMatchObject({ orderBy: { createdAt: "desc" }, take: 20 });
+        expect(include()._count).toEqual({ select: { comments: true, activities: true } });
+    });
+
+    it("loads everything when asked", async () => {
+        await renderPage({ comments: "all", activity: "all" });
+
+        expect(include().comments).not.toHaveProperty("take");
+        expect(include().activities).not.toHaveProperty("take");
+    });
+
+    it("passes the real comment total and links to the full history when some is hidden", async () => {
+        db.task.findFirst.mockResolvedValue(
+            makeTask({
+                comments: [{ id: "c3", createdAt: new Date() }],
+                _count: { comments: 120, activities: 45 },
+            }),
+        );
+
+        await renderPage();
+
+        const feed = screen.getByTestId("feed");
+        expect(feed).toHaveAttribute("data-comments", "120");
+        expect(feed).toHaveAttribute("data-href", "/workspace/acme/project/p1/tasks/t1?comments=all&activity=all");
+    });
+
+    it("has no link when everything is loaded", async () => {
+        await renderPage();
+
+        expect(screen.getByTestId("feed")).toHaveAttribute("data-href", "");
     });
 });

@@ -21,6 +21,7 @@ export const config = {
     matcher: [
         "/dashboard/:path*",
         "/workspace/:path*",
+        "/tasks/:path*",
         "/settings/:path*",
         "/notifications/:path*",
     ],

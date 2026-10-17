@@ -9,6 +9,11 @@ import { WorkspaceRole } from "@/generated/prisma/enums";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { createWorkspaceSchema } from "@/lib/validations/workspace";
+import { requireWorkspacePermission } from "@/lib/auth/team";
+import { ForbiddenError } from "@/lib/auth/permissions";
+import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
+
+export type UpdateDetailsState = { success?: boolean; error?: string };
 
 function generateWorkspaceSlug(name: string) {
     const baseSlug =
@@ -80,6 +85,7 @@ export async function createWorkspace(formData: FormData) {
         throw error;
     }
 
+    revalidateAppShell();
     revalidatePath("/workspace");
     revalidatePath("/dashboard");
 
@@ -125,9 +131,67 @@ export async function deleteWorkspace(workspaceId: string) {
         },
     });
 
+    revalidateAppShell();
     revalidatePath("/workspace");
     revalidatePath("/dashboard");
 
     redirect("/workspace");
 }
 
+/** Renames a workspace or changes its description (owners and admins). */
+export async function updateWorkspaceDetailsAction(
+    slug: string,
+    _previousState: UpdateDetailsState,
+    formData: FormData,
+): Promise<UpdateDetailsState> {
+    let membership: Awaited<ReturnType<typeof requireWorkspacePermission>>;
+
+    try {
+        membership = await requireWorkspacePermission(
+            slug,
+            "workspace.update",
+            "Only workspace owners and admins can edit workspace details.",
+        );
+    } catch (error) {
+        if (error instanceof ForbiddenError) return { error: error.message };
+        throw error;
+    }
+
+    const validation = createWorkspaceSchema.safeParse({
+        name: formData.get("name") ?? "",
+        description: formData.get("description") ?? "",
+    });
+
+    if (!validation.success) {
+        return { error: validation.error.issues[0]?.message ?? "Please check the details." };
+    }
+
+    const { name, description } = validation.data;
+
+    try {
+        await prisma.workspace.update({
+            where: { id: membership.workspace.id },
+            data: {
+                name,
+                normalizedName: name.toLowerCase().trim(),
+                description: description || null,
+            },
+        });
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
+            return { error: "The workspace owner already has a workspace with this name." };
+        }
+
+        throw error;
+    }
+
+    revalidateAppShell();
+    revalidatePath(`/workspace/${slug}`);
+    revalidatePath("/workspace");
+    revalidatePath("/dashboard");
+
+    return { success: true };
+}

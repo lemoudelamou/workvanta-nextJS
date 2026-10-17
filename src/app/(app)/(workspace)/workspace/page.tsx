@@ -1,13 +1,7 @@
-import {
-    Building2,
-    FolderKanban,
-    Plus,
-    UsersRound,
-} from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Kpi } from "@/app/style/Kpi";
 import { WorkspaceSection } from "./components/WorkspaceSection";
 import { NewWorkspaceTile } from "./components/NewWorspaceTile";
 import { WorkspaceRole } from "@/generated/prisma/enums";
@@ -20,8 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonStyles } from "@/app/style/button-style";
 
 
-const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-3";
+
 
 
 
@@ -56,6 +49,11 @@ export default async function WorkspaceIndexPage() {
                             projects: true,
                         },
                     },
+                    members: {
+                        orderBy: { createdAt: "asc" },
+                        take: 4,
+                        select: { user: { select: { id: true, name: true, email: true, image: true } } },
+                    },
                 },
             },
         },
@@ -67,11 +65,6 @@ export default async function WorkspaceIndexPage() {
 
     const sharedWorkspaces = memberships.filter(
         ({ role }) => role !== WorkspaceRole.OWNER,
-    );
-
-    const totalProjects = memberships.reduce(
-        (sum, m) => sum + m.workspace._count.projects,
-        0,
     );
 
     return (
@@ -105,36 +98,13 @@ export default async function WorkspaceIndexPage() {
                 </Card>
             ) : (
                 <>
-                    <section aria-label="Summary" className={`mt-8 ${KPI_STRIP}`}>
-                        <Kpi
-                            tone="blue"
-                            icon={<Building2 />}
-                            label="Owned by you"
-                            value={ownedWorkspaces.length}
-                            helper="Workspaces you created"
-                        />
-                        <Kpi
-                            tone="violet"
-                            icon={<UsersRound />}
-                            label="Shared with you"
-                            value={sharedWorkspaces.length}
-                            helper="Workspaces you've been invited to"
-                        />
-                        <Kpi
-                            tone="amber"
-                            icon={<FolderKanban />}
-                            label="Projects"
-                            value={totalProjects}
-                            helper="Across all of your workspaces"
-                        />
-                    </section>
 
                     <WorkspaceSection
                         id="my-workspaces"
                         title="Owned by you"
                         description="Workspaces you created and manage."
                         items={ownedWorkspaces}
-                        className="mt-12"
+                        className="mt-8"
                         trailing={<NewWorkspaceTile />}
                         empty={
                             <Card className="border-dashed border-border bg-card">
@@ -157,23 +127,17 @@ export default async function WorkspaceIndexPage() {
                         }
                     />
 
-                    <WorkspaceSection
-                        id="shared-workspaces"
-                        title="Shared with you"
-                        description="Workspaces where you're a collaborator."
-                        items={sharedWorkspaces}
-                        className="mt-12"
-                        empty={
-                            <Card className="border-dashed border-border bg-card">
-                                <EmptyState
-                                    className="sm:py-12"
-                                    icon={<UsersRound />}
-                                    title="Nothing shared with you yet"
-                                    description="When someone invites you to a workspace, it will appear here."
-                                />
-                            </Card>
-                        }
-                    />
+                    {/* Only once someone has invited you somewhere. */}
+                    {sharedWorkspaces.length > 0 && (
+                        <WorkspaceSection
+                            id="shared-workspaces"
+                            title="Shared with you"
+                            description="Workspaces where you're a collaborator."
+                            items={sharedWorkspaces}
+                            className="mt-10"
+                            empty={null}
+                        />
+                    )}
                 </>
             )}
         </PageBody>

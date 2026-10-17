@@ -44,6 +44,14 @@ enum TaskStatus {
   DONE
 }
 
+/// How a repeating task comes back once it's done.
+enum TaskRecurrence {
+  DAILY
+  WEEKDAYS
+  WEEKLY
+  MONTHLY
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -57,6 +65,8 @@ enum NotificationType {
   MENTION
   PROJECT_UPDATED
   INVITATION
+  TASK_DUE_SOON
+  TASK_OVERDUE
 }
 
 model User {
@@ -90,6 +100,7 @@ model User {
 
   notifications   Notification[]
   ownedWorkspaces Workspace[]
+  sentInvitations Invitation[]  @relation("InvitationSender")
 
   @@index([email])
 }
@@ -143,6 +154,7 @@ model Project {
   tasks       Task[]
   members     ProjectMember[]
   invitations Invitation[]
+  labels      Label[]
 
   @@unique([workspaceId, normalizedName])
   @@index([workspaceId])
@@ -187,6 +199,19 @@ model Task {
   subtasks    Subtask[]
   comments    Comment[]
   attachments Attachment[]
+  labels      TaskLabel[]
+
+  /// Set on repeating tasks: finishing one creates the next.
+  recurrence         TaskRecurrence?
+  /// The copy made when this one was finished, so it's only made once.
+  nextOccurrenceId   String?         @unique
+  nextOccurrence     Task?           @relation("TaskRecurrence", fields: [nextOccurrenceId], references: [id], onDelete: SetNull)
+  previousOccurrence Task?           @relation("TaskRecurrence")
+
+  /// Tasks that have to be done before this one.
+  blockedBy TaskDependency[] @relation("BlockedTask")
+  /// Tasks waiting for this one.
+  blocking  TaskDependency[] @relation("BlockingTask")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,6 +387,11 @@ model NotificationPreference {
   inAppMentions        Boolean @default(true)
   inAppInvitations     Boolean @default(true)
 
+  /// Reminders before a task is due and when it becomes overdue.
+  inAppDueDates Boolean @default(true)
+  /// The morning summary email of overdue and upcoming tasks.
+  emailDueDates Boolean @default(true)
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -378,15 +408,48 @@ model Invitation {
   projectRole ProjectRole?
   expiresAt   DateTime
   acceptedAt  DateTime?
+  /// Who sent it; kept empty if that account is deleted.
+  invitedById String?
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedBy User?     @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
   @@index([email])
   @@index([workspaceId])
   @@index([projectId])
+  @@index([invitedById])
+}
+
+/// A coloured tag for tasks, defined per project.
+model Label {
+  id             String   @id @default(cuid())
+  projectId      String
+  name           String
+  normalizedName String
+  /// A colour key from the app's label palette (e.g. "blue").
+  color          String   @default("gray")
+  createdAt      DateTime @default(now())
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   TaskLabel[]
+
+  @@unique([projectId, normalizedName])
+  @@index([projectId])
+}
+
+model TaskLabel {
+  taskId    String
+  labelId   String
+  createdAt DateTime @default(now())
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@index([labelId])
 }
 
 model Activity {
@@ -479,4 +542,18 @@ model Notification {
 
   @@index([userId])
   @@index([userId, readAt])
+}
+
+/// "blockedTask can't really start until blockingTask is done." Both tasks
+/// are in the same project.
+model TaskDependency {
+  blockedTaskId  String
+  blockingTaskId String
+  createdAt      DateTime @default(now())
+
+  blockedTask  Task @relation("BlockedTask", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+  blockingTask Task @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+
+  @@id([blockedTaskId, blockingTaskId])
+  @@index([blockingTaskId])
 }

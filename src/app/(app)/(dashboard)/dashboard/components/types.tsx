@@ -19,3 +19,21 @@ export type RecentProject = {
     isLocked: boolean;
     workspace: { id: string; slug: string; name: string };
 };
+export type FocusTask = {
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    dueLabel: string | null;
+    overdue: boolean;
+    href: string;
+    project: { id: string; name: string };
+};
+
+/** What needs the user's attention, from tasks assigned to them. */
+export type Focus = {
+    overdue: number;
+    today: number;
+    week: number;
+    upNext: FocusTask[];
+};

@@ -25,14 +25,7 @@ jest.mock("next/link", () => ({
         </a>
     ),
 }));
-jest.mock("lucide-react", () => ({
-    AlarmClock: () => null,
-    Clock3: () => null,
-    ListTodo: () => null,
-    TriangleAlert: () => null,
-    User: () => null,
-    UsersRound: () => null,
-}));
+
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));
 jest.mock("@/lib/auth/members", () => ({
@@ -46,47 +39,45 @@ jest.mock("@/lib/db/prisma", () => ({
         projectMember: { count: jest.fn() },
         task: { findMany: jest.fn() },
         workspaceMember: { findMany: jest.fn() },
+        label: { findMany: jest.fn().mockResolvedValue([]) },
     },
 }));
 
 jest.mock(
     "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions",
-    () => ({ setProjectVisibilityAction: jest.fn() }),
+    () => {
+        const updateProjectDetailsAction: any = jest.fn();
+        updateProjectDetailsAction.bind = jest.fn(() => "bound-update-details");
+        return { setProjectVisibilityAction: jest.fn(), updateProjectDetailsAction };
+    },
 );
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/DeleteProjectButton",
-    () => ({
-        DeleteProjectButton: ({ projectName }: any) => (
-            <button data-testid="delete-project">Delete {projectName}</button>
-        ),
-    }),
-);
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/components/ProgressBar",
-    () => ({
-        ProgressBar: ({ done, total, percent }: any) => (
-            <div data-testid="progress">{`${done}/${total}/${percent}`}</div>
-        ),
-    }),
-);
-jest.mock("@/components/ui/ToggleVisibilityButton", () => ({
-    ToggleVisibilityButton: ({ visibility, onToggle }: any) => (
-        <button data-testid="toggle-visibility" onClick={() => onToggle()}>
-            {visibility}
-        </button>
+jest.mock("./components/ProjectActions", () => ({
+    ProjectActions: ({ project, membersHref, updateDetails, setVisibility, canDelete }: any) => (
+        <div data-testid="project-actions" data-members={membersHref}>
+            {updateDetails && <span data-testid="edit-details">{String(updateDetails)}</span>}
+            {setVisibility && (
+                <button data-testid="toggle-visibility" onClick={() => setVisibility("WORKSPACE")}>
+                    {project.visibility}
+                </button>
+            )}
+            {canDelete && <span data-testid="delete-project">Delete {project.name}</span>}
+        </div>
+    ),
+}));
+jest.mock("./components/StatusRail", () => ({
+    StatusRail: ({ counts, overdue, dueSoon, unassigned }: any) => (
+        <div data-testid="rail">
+            <span data-testid="rail-counts">
+                {`${counts.TODO}/${counts.IN_PROGRESS}/${counts.IN_REVIEW}/${counts.DONE}`}
+            </span>
+            <span data-testid="rail-overdue">{overdue}</span>
+            <span data-testid="rail-due-soon">{dueSoon}</span>
+            <span data-testid="rail-unassigned">{unassigned}</span>
+        </div>
     ),
 }));
 jest.mock("@/components/ui/PageBody", () => ({
     PageBody: ({ children }: any) => <main>{children}</main>,
-}));
-jest.mock("@/components/ui/PageHeader", () => ({
-    PageHeader: ({ title, description, actions }: any) => (
-        <header>
-            <h1>{title}</h1>
-            <p data-testid="description">{description}</p>
-            {actions}
-        </header>
-    ),
 }));
 jest.mock("@/components/ui/BreadCrumb", () => ({
     Breadcrumb: ({ items }: any) => (
@@ -100,22 +91,27 @@ jest.mock("@/components/ui/AccessDenied", () => ({
         <div data-testid="access-denied">{message}</div>
     ),
 }));
-jest.mock("@/app/style/Kpi", () => ({
-    Kpi: ({ label, value, helper, tone }: any) => (
-        <div data-testid={`kpi-${label}`} data-tone={tone}>
-            <span data-testid={`kpi-${label}-value`}>{value}</span>
-            <span data-testid={`kpi-${label}-helper`}>{helper}</span>
+// Capture the props passed to the board so we can assert on them.
+// The `mock` prefix is required for variables used inside jest.mock factories.
+let mockListProps: any;
+let mockBoardProps: any;
+jest.mock("./listview/project-list-view", () => ({
+    ProjectListView: (props: any) => {
+        mockListProps = props;
+        return <div data-testid="list-view">{props.leading}</div>;
+    },
+}));
+jest.mock("./calendar/project-calendar", () => ({
+    ProjectCalendar: ({ month, today, leading }: any) => (
+        <div data-testid="calendar" data-month={month} data-today={today}>
+            {leading}
         </div>
     ),
 }));
-
-// Capture the props passed to the board so we can assert on them.
-// The `mock` prefix is required for variables used inside jest.mock factories.
-let mockBoardProps: any;
 jest.mock("./kanbanboard/kanban-board", () => ({
     KanbanBoard: (props: any) => {
         mockBoardProps = props;
-        return <div data-testid="kanban-board" />;
+        return <div data-testid="kanban-board">{props.leading}</div>;
     },
 }));
 
@@ -156,18 +152,23 @@ function makeTask(overrides: Record<string, unknown> = {}) {
         dueDate: null,
         assignee: null,
         subtasks: [],
+        labels: [],
+        recurrence: null,
+        blockedBy: [],
         ...overrides,
     };
 }
 
-async function renderPage() {
+async function renderPage(query: { view?: string; month?: string } = {}) {
     const ui = await ProjectPage({
         params: Promise.resolve({ slug: "acme", projectId: "p1" }),
+        searchParams: Promise.resolve(query),
     });
     return render(ui);
 }
 
 beforeEach(() => {
+    (prisma as any).label.findMany.mockResolvedValue([]);
     // Only fake Date; leave timers/microtasks alone so awaits keep working
     jest.useFakeTimers({
         now: NOW,
@@ -257,7 +258,8 @@ describe("ProjectPage – header", () => {
     it("renders the project name, description and breadcrumb", async () => {
         await renderPage();
 
-        expect(screen.getByRole("heading", { name: "Apollo" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { level: 1, name: "Apollo" })).toBeInTheDocument();
+        expect(screen.getByText("Private")).toBeInTheDocument();
         expect(screen.getByTestId("description")).toHaveTextContent("Moon landing");
         expect(screen.getByTestId("breadcrumb")).toHaveTextContent("Acme Inc > Apollo");
     });
@@ -289,58 +291,30 @@ describe("ProjectPage – header", () => {
     });
 });
 
-describe("ProjectPage – KPIs and progress", () => {
-    it("computes totals, in-progress, overdue and progress percent", async () => {
+describe("ProjectPage – status rail", () => {
+    it("passes per-status counts and what needs attention", async () => {
         db.task.findMany.mockResolvedValue([
-            makeTask({ id: "1", status: "DONE" }),
-            makeTask({ id: "2", status: "IN_PROGRESS" }),
-            makeTask({ id: "3", status: "IN_REVIEW" }),
+            makeTask({ id: "1", status: "DONE", dueDate: new Date("2026-10-17T00:00:00Z") }),
+            makeTask({ id: "2", status: "IN_PROGRESS", assignee: { name: "A", email: "a@x.com", image: null } }),
+            makeTask({ id: "3", status: "IN_REVIEW", dueDate: new Date("2026-10-20T00:00:00Z") }),
             makeTask({ id: "4", status: "TODO", dueDate: new Date("2026-10-01T00:00:00Z") }),
+            makeTask({ id: "5", status: "TODO", dueDate: new Date("2026-11-30T00:00:00Z") }),
         ]);
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Tasks-value")).toHaveTextContent("4");
-        expect(screen.getByTestId("kpi-Tasks-helper")).toHaveTextContent("1 completed");
-        expect(screen.getByTestId("kpi-In progress-value")).toHaveTextContent("2");
-        expect(screen.getByTestId("kpi-Overdue-value")).toHaveTextContent("1");
-        expect(screen.getByTestId("kpi-Members-value")).toHaveTextContent("3");
-        expect(screen.getByTestId("progress")).toHaveTextContent("1/4/25");
+        expect(screen.getByTestId("rail-counts")).toHaveTextContent("2/1/1/1");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("1");
+        // Only open tasks due within seven days count; done ones never do.
+        expect(screen.getByTestId("rail-due-soon")).toHaveTextContent("1");
+        expect(screen.getByTestId("rail-unassigned")).toHaveTextContent("3");
     });
 
-    it("shows 0% progress and a calm overdue KPI when there are no tasks", async () => {
+    it("passes zeros when there are no tasks", async () => {
         await renderPage();
 
-        expect(screen.getByTestId("progress")).toHaveTextContent("0/0/0");
-        expect(screen.getByTestId("kpi-Overdue")).toHaveAttribute("data-tone", "amber");
-        expect(screen.getByTestId("kpi-Overdue-helper")).toHaveTextContent(
-            "Nothing is late",
-        );
-    });
-
-    it("uses the red tone when tasks are overdue", async () => {
-        db.task.findMany.mockResolvedValue([
-            makeTask({ dueDate: new Date("2026-10-10T00:00:00Z") }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("kpi-Overdue")).toHaveAttribute("data-tone", "red");
-        expect(screen.getByTestId("kpi-Overdue-helper")).toHaveTextContent(
-            "Past their due date",
-        );
-    });
-
-    it("rounds the progress percentage", async () => {
-        db.task.findMany.mockResolvedValue([
-            makeTask({ id: "1", status: "DONE" }),
-            makeTask({ id: "2" }),
-            makeTask({ id: "3" }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("progress")).toHaveTextContent("1/3/33");
+        expect(screen.getByTestId("rail-counts")).toHaveTextContent("0/0/0/0");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("0");
     });
 });
 
@@ -356,6 +330,8 @@ describe("ProjectPage – board tasks", () => {
                 dueDate: new Date("2026-10-20T00:00:00Z"),
                 assignee,
                 subtasks: [{ completed: true }, { completed: false }, { completed: true }],
+                recurrence: "WEEKLY",
+                blockedBy: [{ blockingTask: { status: "TODO" } }, { blockingTask: { status: "DONE" } }],
             }),
         ]);
 
@@ -370,12 +346,39 @@ describe("ProjectPage – board tasks", () => {
                 status: "IN_PROGRESS",
                 priority: "HIGH",
                 dueLabel: "Oct 20",
+                dueAt: "2026-10-20T00:00:00.000Z",
                 overdue: false,
                 assignee,
                 subtaskTotal: 3,
                 subtaskDone: 2,
+                labels: [],
+                recurrence: "WEEKLY",
+                // Only blockers that aren't done yet count.
+                openBlockers: 1,
             },
         ]);
+    });
+
+    it("shows the calendar for ?view=calendar, on the asked-for month", async () => {
+        await renderPage({ view: "calendar", month: "2026-12" });
+        expect(screen.getByTestId("calendar")).toHaveAttribute("data-month", "2026-12");
+        expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+    });
+
+    it("gives the board each task's labels, sorted, and the project's labels for filtering", async () => {
+        const bug = { id: "l1", name: "Bug", color: "red" };
+        const api = { id: "l2", name: "api", color: "blue" };
+        db.task.findMany.mockResolvedValue([makeTask({ labels: [{ label: bug }, { label: api }] })]);
+        (prisma as any).label.findMany.mockResolvedValue([
+            { ...api, _count: { tasks: 1 } },
+            { ...bug, _count: { tasks: 1 } },
+        ]);
+
+        await renderPage();
+
+        expect(mockBoardProps.tasks[0].labels).toEqual([api, bug]);
+        expect(mockBoardProps.labels).toEqual([api, bug]);
+        expect((prisma as any).label.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { projectId: "p1" } }));
     });
 
     it("has a null due label and is not overdue without a due date", async () => {
@@ -395,7 +398,7 @@ describe("ProjectPage – board tasks", () => {
         await renderPage();
 
         expect(mockBoardProps.tasks[0].overdue).toBe(false);
-        expect(screen.getByTestId("kpi-Overdue-value")).toHaveTextContent("0");
+        expect(screen.getByTestId("rail-overdue")).toHaveTextContent("0");
     });
 
     it("queries tasks ordered by position then createdAt", async () => {
@@ -461,7 +464,8 @@ describe("ProjectPage – permissions", () => {
 
         expect(screen.queryByTestId("toggle-visibility")).not.toBeInTheDocument();
         expect(screen.queryByTestId("delete-project")).not.toBeInTheDocument();
-        expect(screen.queryByText("Delete this project")).not.toBeInTheDocument();
+        // Everyone still gets the menu, with the members link.
+        expect(screen.getByTestId("project-actions")).toHaveAttribute("data-members", "/workspace/acme/project/p1/members");
     });
 
     it("binds the visibility action to the workspace slug and project id", async () => {
@@ -470,6 +474,48 @@ describe("ProjectPage – permissions", () => {
         await renderPage();
         fireEvent.click(screen.getByTestId("toggle-visibility"));
 
-        expect(mockSetVisibility).toHaveBeenCalledWith("acme", "p1");
+        expect(mockSetVisibility).toHaveBeenCalledWith("acme", "p1", "WORKSPACE");
+    });
+});
+
+describe("ProjectPage – edit details", () => {
+    it("lets project admins edit the name and description", async () => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ effectiveRole: "ADMIN" }));
+
+        await renderPage();
+
+        expect(screen.getByTestId("edit-details")).toHaveTextContent("bound-update-details");
+    });
+
+    it("hides the edit panel from editors", async () => {
+        await renderPage();
+
+        expect(screen.queryByTestId("edit-details")).not.toBeInTheDocument();
+    });
+});
+
+
+describe("ProjectPage – views", () => {
+    it("shows the board by default and marks it as the current view", async () => {
+        await renderPage();
+
+        expect(screen.getByTestId("kanban-board")).toBeInTheDocument();
+        expect(screen.queryByTestId("list-view")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Board" })).toHaveAttribute("aria-current", "page");
+        expect(screen.getByRole("link", { name: "List" })).toHaveAttribute(
+            "href",
+            "/workspace/acme/project/p1?view=list",
+        );
+    });
+
+    it("shows the list with the same tasks and permissions when asked", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
+        await renderPage({ view: "list" });
+
+        expect(screen.getByTestId("list-view")).toBeInTheDocument();
+        expect(screen.queryByTestId("kanban-board")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "page");
+        expect(mockListProps).toMatchObject({ slug: "acme", projectId: "p1", canEdit: true });
     });
 });

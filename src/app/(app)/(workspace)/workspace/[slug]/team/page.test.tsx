@@ -6,36 +6,22 @@ import { render, screen, within } from "@testing-library/react";
 import TeamPage from "./page";
 import { requireMembership } from "@/lib/auth/team";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor } from "@/lib/accent";
-import { buttonStyles } from "@/app/style/button-style";
-import { removeTeamAction } from "@/app/(app)/(workspace)/workspace/[slug]/team/team-actions";
+import {
+    removeTeamAction,
+    revokeInvitationAction,
+    transferOwnershipAction,
+} from "@/app/(app)/(workspace)/workspace/[slug]/team/team-actions";
 
 // ---------- module mocks ----------
-jest.mock("lucide-react", () => ({
-    ShieldCheck: () => null,
-    Trash2: () => null,
-    UserPlus: () => null,
-    UsersRound: () => null,
-    Crown: () => null,
-    Mail: () => null,
-}));
 jest.mock("next/navigation", () => ({
     notFound: jest.fn(() => {
         throw new Error("NEXT_NOT_FOUND");
     }),
 }));
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/MemberActions",
-    () => ({
-        TransferOwnershipButton: ({ memberId }: any) => (
-            <div data-testid={`transfer-${memberId}`} />
-        ),
-        RevokeInvitationButton: ({ invitationId }: any) => (
-            <div data-testid={`revoke-${invitationId}`} />
-        ),
-    }),
-);
-
+jest.mock("next/image", () => ({
+    __esModule: true,
+    default: (props: any) => <span data-testid="avatar-image" data-src={props.src} />,
+}));
 jest.mock("@/lib/auth/team", () => ({ requireMembership: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
     prisma: {
@@ -43,82 +29,58 @@ jest.mock("@/lib/db/prisma", () => ({
         invitation: { findMany: jest.fn() },
     },
 }));
-jest.mock("@/lib/accent", () => ({
-    accentFor: jest.fn((id: string) => `accent-${id}`),
-    accentVars: jest.fn(() => ({})),
-}));
 
-// Replace the action with a jest.fn that has a spy-able bind()
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/team/team-actions",
-    () => {
+// Each action is a jest.fn whose bind() records its arguments.
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/team/team-actions", () => {
+    const make = (name: string) => {
         const action: any = jest.fn();
-        action.bind = jest.fn(() => jest.fn());
-        return { removeTeamAction: action };
-    },
-);
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/WorkspaceRole",
-    () => ({
-        WorkspaceMemberRoleSelect: ({ slug, memberId, currentRole }: any) => (
-            <div
-                data-testid={`role-select-${memberId}`}
-                data-slug={slug}
-                data-role={currentRole}
-            />
-        ),
-    }),
-);
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/team/componenets/InviteTeamForm",
-    () => ({
-        InviteTeamForm: ({ slug, canInviteAdmin }: any) => (
-            <div
-                data-testid="invite-form"
-                data-slug={slug}
-                data-can-invite-admin={String(canInviteAdmin)}
-            />
-        ),
-    }),
-);
-
-jest.mock("@/app/style/button-style", () => ({ buttonStyles: jest.fn(() => "btn") }));
-jest.mock("@/app/style/Kpi", () => ({
-    Kpi: ({ label, value, helper }: any) => (
-        <div data-testid={`kpi-${label}`}>
-            <span data-testid={`kpi-${label}-value`}>{value}</span>
-            <span data-testid={`kpi-${label}-helper`}>{helper}</span>
+        action.bind = jest.fn((_this: unknown, ...args: unknown[]) => ({ boundTo: [name, ...args] }));
+        return action;
+    };
+    return {
+        removeTeamAction: make("remove"),
+        transferOwnershipAction: make("transfer"),
+        revokeInvitationAction: make("revoke"),
+    };
+});
+jest.mock("@/components/ui/RowActions", () => ({
+    RowActions: ({ label, actions }: any) => (
+        <div data-testid={`actions:${label}`}>
+            {actions.map((a: any) => (
+                <span
+                    key={a.label}
+                    data-testid={`action:${a.label}`}
+                    data-bound={a.run ? JSON.stringify(a.run.boundTo) : ""}
+                    data-copy={a.copy ?? ""}
+                    data-confirm={a.confirm?.title ?? ""}
+                >
+                    {a.label}
+                </span>
+            ))}
         </div>
+    ),
+}));
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/team/componenets/WorkspaceRole", () => ({
+    WorkspaceMemberRoleSelect: ({ slug, memberId, currentRole }: any) => (
+        <div data-testid={`role-select-${memberId}`} data-slug={slug} data-role={currentRole} />
+    ),
+}));
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/team/componenets/InviteTeamForm", () => ({
+    InviteTeamForm: ({ slug, canInviteAdmin }: any) => (
+        <div data-testid="invite-form" data-slug={slug} data-can-invite-admin={String(canInviteAdmin)} />
     ),
 }));
 jest.mock("@/components/ui/PageBody", () => ({
     PageBody: ({ children }: any) => <main>{children}</main>,
 }));
-jest.mock("@/components/ui/PageHeader", () => ({
-    PageHeader: ({ eyebrow, title, description }: any) => (
-        <header>
-            <span data-testid="eyebrow">{eyebrow}</span>
-            <h1>{title}</h1>
-            <p data-testid="description">{description}</p>
-        </header>
-    ),
-}));
 jest.mock("@/components/ui/BreadCrumb", () => ({
     Breadcrumb: ({ items }: any) => (
-        <nav data-testid="breadcrumb">
-            {items.map((i: any) => `${i.label}|${i.href ?? ""}`).join(" > ")}
-        </nav>
+        <nav data-testid="breadcrumb">{items.map((i: any) => `${i.label}|${i.href ?? ""}`).join(" > ")}</nav>
     ),
 }));
-jest.mock("@/components/ui/RoleBadge", () => ({
-    RoleBadge: ({ role }: any) => <span data-testid="role-badge">{role}</span>,
-}));
 
-// ---------- typed handles ----------
+// ---------- handles ----------
 const mockRequireMembership = requireMembership as jest.Mock;
-const mockAccentFor = accentFor as unknown as jest.Mock;
-const mockButtonStyles = buttonStyles as unknown as jest.Mock;
-const mockRemove = removeTeamAction as unknown as { bind: jest.Mock };
 const db = prisma as unknown as {
     workspaceMember: { findMany: jest.Mock };
     invitation: { findMany: jest.Mock };
@@ -126,407 +88,285 @@ const db = prisma as unknown as {
 
 // ---------- helpers ----------
 const JOINED = new Date("2026-03-15T12:00:00Z");
+const NOW = new Date("2026-10-16T12:00:00Z");
 const workspace = { id: "w1", name: "Acme Inc", slug: "acme" };
 
 function makeMembership(overrides: Record<string, unknown> = {}) {
     return { id: "m-me", userId: "me", role: "MEMBER", workspace, ...overrides };
 }
 
-function makeMember(
-    id: string,
-    role: string,
-    userOverrides: Record<string, unknown> = {},
-) {
+function makeMember(id: string, role: string, userOverrides: Record<string, unknown> = {}) {
     return {
         id: `m-${id}`,
         userId: `u-${id}`,
         role,
         createdAt: JOINED,
-        user: {
-            id: `u-${id}`,
-            name: `User ${id}`,
-            email: `${id}@x.com`,
-            image: null,
-            ...userOverrides,
-        },
+        user: { id: `u-${id}`, name: `User ${id}`, email: `${id}@x.com`, image: null, ...userOverrides },
     };
 }
 
-async function renderPage() {
-    const ui = await TeamPage({ params: Promise.resolve({ slug: "acme" }) });
-    return render(ui);
+function me(role: string) {
+    return { ...makeMember("me", role, { name: "Me Myself", email: "me@x.com" }), id: "m-me", userId: "me" };
 }
 
+async function renderPage() {
+    return render(await TeamPage({ params: Promise.resolve({ slug: "acme" }) }));
+}
+
+const people = () => within(screen.getByRole("region", { name: /People/ }));
+const row = (name: string) => people().getByText(name).closest("li") as HTMLElement;
+
 beforeEach(() => {
+    jest.useFakeTimers({ now: NOW, doNotFake: ["nextTick", "setImmediate", "queueMicrotask", "setTimeout", "clearTimeout"] });
     mockRequireMembership.mockResolvedValue(makeMembership());
-    db.workspaceMember.findMany.mockResolvedValue([]);
+    db.workspaceMember.findMany.mockResolvedValue([me("MEMBER")]);
     db.invitation.findMany.mockResolvedValue([]);
 });
 
 afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
 });
 
 // ---------- tests ----------
 describe("TeamPage – access", () => {
-    it("requires membership for the slug", async () => {
-        await renderPage();
-
-        expect(mockRequireMembership).toHaveBeenCalledWith("acme");
-    });
-
-    it("propagates errors from requireMembership without querying members", async () => {
-        const error = new Error("NEXT_REDIRECT:/signin");
-        mockRequireMembership.mockRejectedValue(error);
-
-        await expect(renderPage()).rejects.toBe(error);
-        expect(db.workspaceMember.findMany).not.toHaveBeenCalled();
-    });
-
-    it("queries members of the workspace ordered by join date", async () => {
-        await renderPage();
-
-        expect(db.workspaceMember.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { workspaceId: "w1" },
-                orderBy: { createdAt: "asc" },
-            }),
-        );
+    it("shows the workspace's not-found page to people outside it", async () => {
+        const { ForbiddenError } = jest.requireActual("@/lib/auth/permissions");
+        mockRequireMembership.mockRejectedValue(new ForbiddenError("nope"));
+        await expect(renderPage()).rejects.toThrow("NEXT_NOT_FOUND");
     });
 });
 
-describe("TeamPage – header and summary", () => {
-    it("renders the breadcrumb and header", async () => {
-        await renderPage();
-
-        expect(screen.getByTestId("breadcrumb")).toHaveTextContent(
-            "Acme Inc|/workspace/acme > Team|",
-        );
-        expect(screen.getByTestId("eyebrow")).toHaveTextContent("Acme Inc");
-        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Team");
-    });
-
-    it("counts members and owners/admins", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("o", "OWNER"),
-            makeMember("a", "ADMIN"),
-            makeMember("m", "MEMBER"),
-            makeMember("g", "GUEST"),
-            makeMember("m2", "MEMBER"),
+describe("TeamPage – header", () => {
+    it("renders the breadcrumb, title and a people count", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([me("OWNER"), makeMember("a", "ADMIN")]);
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
+        db.invitation.findMany.mockResolvedValue([
+            { id: "i1", email: "n@x.com", token: "t1", role: "MEMBER", projectRole: null, expiresAt: new Date("2026-10-20T12:00:00Z"), createdAt: NOW, project: null },
         ]);
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Members-value")).toHaveTextContent("5");
-        expect(screen.getByTestId("kpi-Owners and admins-value")).toHaveTextContent("2");
+        expect(screen.getByTestId("breadcrumb")).toHaveTextContent("Acme Inc|/workspace/acme > Team|");
+        expect(screen.getByRole("heading", { level: 1, name: "Team" })).toBeInTheDocument();
+        expect(screen.getByText("2 people in Acme Inc, 1 pending invitation")).toBeInTheDocument();
     });
 
-    it.each([
-        ["OWNER", "Owner", "Full access, including ownership"],
-        ["ADMIN", "Admin", "Manage people and every project"],
-        ["MEMBER", "Member", "Create projects and edit shared ones"],
-        ["GUEST", "Guest", "Only projects they're invited to"],
-    ])("shows the %s role KPI", async (role, label, helper) => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role }));
+    it("explains each role and marks the viewer's own, with counts", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([me("ADMIN"), makeMember("b", "MEMBER"), makeMember("c", "MEMBER")]);
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "ADMIN" }));
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Your role-value")).toHaveTextContent(label);
-        expect(screen.getByTestId("kpi-Your role-helper")).toHaveTextContent(helper);
+        const guide = within(screen.getByRole("complementary", { name: "What each role can do" }));
+        const admin = guide.getByText("Admin").closest("li")!;
+        expect(admin).toHaveTextContent("Your role");
+        expect(admin).toHaveTextContent("Manage people and every project");
+        expect(guide.getByText("Member").closest("li")).toHaveTextContent("2");
+        expect(guide.getByText("Owner").closest("li")).not.toHaveTextContent("Your role");
     });
 });
 
 describe("TeamPage – invite section", () => {
-    it("lets owners invite admins", async () => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
-
-        await renderPage();
-
-        expect(screen.getByText("Invite a member")).toBeInTheDocument();
-        expect(screen.getByText(/invitation to join Acme Inc/)).toBeInTheDocument();
-        const form = screen.getByTestId("invite-form");
-        expect(form).toHaveAttribute("data-slug", "acme");
-        expect(form).toHaveAttribute("data-can-invite-admin", "true");
-    });
-
-    it("lets admins invite, but not invite other admins", async () => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role: "ADMIN" }));
-
-        await renderPage();
-
-        expect(screen.getByTestId("invite-form")).toHaveAttribute(
-            "data-can-invite-admin",
-            "false",
-        );
-    });
-
-    it.each(["MEMBER", "GUEST"])("hides the invite section for a %s", async (role) => {
+    it.each([
+        ["OWNER", true, true],
+        ["ADMIN", true, false],
+        ["MEMBER", false, false],
+        ["GUEST", false, false],
+    ])("viewer %s: invite form %s, can invite admins %s", async (role, shown, admins) => {
         mockRequireMembership.mockResolvedValue(makeMembership({ role }));
+        db.workspaceMember.findMany.mockResolvedValue([me(role)]);
 
         await renderPage();
 
-        expect(screen.queryByText("Invite a member")).not.toBeInTheDocument();
-        expect(screen.queryByTestId("invite-form")).not.toBeInTheDocument();
+        const form = screen.queryByTestId("invite-form");
+        if (!shown) return expect(form).not.toBeInTheDocument();
+        expect(form).toHaveAttribute("data-slug", "acme");
+        expect(form).toHaveAttribute("data-can-invite-admin", String(admins));
     });
 });
 
-describe("TeamPage – member list", () => {
+describe("TeamPage – people", () => {
     it("sorts by role rank, keeps join order within a role, and puts unknown roles last", async () => {
         db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("guest", "GUEST"),
-            makeMember("intern", "INTERN"),
-            makeMember("member1", "MEMBER"),
-            makeMember("owner", "OWNER"),
-            makeMember("member2", "MEMBER"),
-            makeMember("admin", "ADMIN"),
+            makeMember("g", "GUEST"),
+            makeMember("weird", "ROBOT"),
+            makeMember("m1", "MEMBER"),
+            makeMember("o", "OWNER"),
+            makeMember("m2", "MEMBER"),
+            makeMember("a", "ADMIN"),
         ]);
 
         await renderPage();
 
-        const roles = screen.getAllByTestId("role-badge").map((el) => el.textContent);
-        expect(roles).toEqual(["OWNER", "ADMIN", "MEMBER", "MEMBER", "GUEST", "INTERN"]);
-
-        const items = screen.getAllByRole("listitem");
-        expect(items[2]).toHaveTextContent("User member1");
-        expect(items[3]).toHaveTextContent("User member2");
+        const names = people()
+            .getAllByRole("listitem")
+            .map((li) => li.querySelector("p span")?.textContent);
+        expect(names).toEqual(["User o", "User a", "User m1", "User m2", "User g", "User weird"]);
     });
 
-    it("shows name, email and the joined date", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([makeMember("ada", "MEMBER")]);
-
-        const { container } = await renderPage();
-
-        expect(screen.getByText("User ada")).toBeInTheDocument();
-        expect(screen.getByText("ada@x.com")).toBeInTheDocument();
-
-        const time = container.querySelector("time");
-        expect(time).toHaveAttribute("datetime", "2026-03-15T12:00:00.000Z");
-        expect(time).toHaveTextContent("Joined Mar 2026");
-    });
-
-    it("falls back to the email when the member has no name", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("bob", "MEMBER", { name: null }),
-        ]);
+    it("shows name, email, joined date, initials and search text", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([makeMember("a", "MEMBER", { name: "Ada Lovelace" })]);
 
         await renderPage();
 
-        expect(screen.getAllByText("bob@x.com")).toHaveLength(2); // display name + email line
+        const ada = row("Ada Lovelace");
+        expect(ada).toHaveTextContent("a@x.com");
+        expect(ada).toHaveTextContent("Joined Mar 15, 2026");
+        expect(within(ada).getByText("AL")).toBeInTheDocument();
+        expect(ada).toHaveAttribute("data-search", "Ada Lovelace a@x.com MEMBER");
     });
 
-    it("renders initials from a two-word name and seeds the accent from the user id", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("ada", "MEMBER", { name: "Ada Lovelace" }),
-        ]);
+    it("falls back to the email when there is no name", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([makeMember("b", "MEMBER", { name: null, email: "bob@x.com" })]);
 
         await renderPage();
 
-        expect(screen.getByText("AL")).toBeInTheDocument();
-        expect(mockAccentFor).toHaveBeenCalledWith("u-ada");
+        expect(within(people().getAllByRole("listitem")[0]).getAllByText("bob@x.com")).toHaveLength(2);
     });
 
-    it("renders two letters for a single-word name", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("grace", "MEMBER", { name: "Grace" }),
-        ]);
+    it("uses the photo when there is one", async () => {
+        db.workspaceMember.findMany.mockResolvedValue([makeMember("a", "MEMBER", { image: "https://cdn.x/a.png" })]);
 
         await renderPage();
 
-        expect(screen.getByText("GR")).toBeInTheDocument();
-    });
-
-    it("uses email initials when the name is blank", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("bob", "MEMBER", { name: "   " }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByText("BO")).toBeInTheDocument();
-    });
-
-    it("renders the avatar image instead of initials when there is one", async () => {
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("ada", "MEMBER", {
-                name: "Ada Lovelace",
-                image: "https://cdn.x/ada.png",
-            }),
-        ]);
-
-        const { container } = await renderPage();
-
-        expect(container.querySelector("img")).toHaveAttribute("src", "https://cdn.x/ada.png");
-        expect(screen.queryByText("AL")).not.toBeInTheDocument();
+        expect(screen.getByTestId("avatar-image")).toHaveAttribute("data-src", "https://cdn.x/a.png");
     });
 });
 
-describe("TeamPage – member management permissions", () => {
-    // [viewer role, target role, can change role, can remove]
+describe("TeamPage – what the viewer can do to each person", () => {
     it.each([
-        ["OWNER", "ADMIN", true, true],
-        ["OWNER", "MEMBER", true, true],
-        ["OWNER", "GUEST", true, true],
-        ["OWNER", "OWNER", false, false],
-        ["ADMIN", "ADMIN", false, false],
-        ["ADMIN", "MEMBER", false, true],
-        // Admins can remove guests too (matches what the server allows).
-        ["ADMIN", "GUEST", false, true],
-        ["ADMIN", "OWNER", false, false],
-        ["MEMBER", "MEMBER", false, false],
-        ["GUEST", "MEMBER", false, false],
-    ])(
-        "viewer %s managing a %s: change role = %s, remove = %s",
-        async (viewerRole, targetRole, canChange, canRemove) => {
-            mockRequireMembership.mockResolvedValue(makeMembership({ role: viewerRole }));
-            db.workspaceMember.findMany.mockResolvedValue([makeMember("x", targetRole)]);
-
-            await renderPage();
-
-            const select = screen.queryByTestId("role-select-m-x");
-            const remove = screen.queryByRole("button", { name: "Remove User x" });
-
-            if (canChange) {
-                expect(select).toHaveAttribute("data-role", targetRole);
-                expect(select).toHaveAttribute("data-slug", "acme");
-                expect(screen.queryByTestId("role-badge")).not.toBeInTheDocument();
-            } else {
-                expect(select).not.toBeInTheDocument();
-                expect(screen.getByTestId("role-badge")).toHaveTextContent(targetRole);
-            }
-
-            if (canRemove) {
-                expect(remove).toHaveAttribute("type", "submit");
-                expect(mockButtonStyles).toHaveBeenCalledWith({ variant: "danger", size: "sm" });
-            } else {
-                expect(remove).not.toBeInTheDocument();
-            }
-        },
-    );
-
-    it("marks the current user and blocks self-management", async () => {
-        mockRequireMembership.mockResolvedValue(
-            makeMembership({ userId: "u-me", role: "OWNER" }),
-        );
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("me", "OWNER"),
-            makeMember("ada", "MEMBER"),
-        ]);
+        ["OWNER", "ADMIN", true, true, true],
+        ["OWNER", "MEMBER", true, true, true],
+        ["OWNER", "GUEST", true, true, false],
+        ["OWNER", "OWNER", false, false, false],
+        ["ADMIN", "ADMIN", false, false, false],
+        ["ADMIN", "MEMBER", false, true, false],
+        ["ADMIN", "GUEST", false, true, false],
+        ["ADMIN", "OWNER", false, false, false],
+        ["MEMBER", "MEMBER", false, false, false],
+        ["GUEST", "MEMBER", false, false, false],
+    ])("viewer %s, person %s: change role %s, remove %s, make owner %s", async (viewer, target, changeRole, remove, transfer) => {
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: viewer }));
+        db.workspaceMember.findMany.mockResolvedValue([me(viewer), makeMember("t", target)]);
 
         await renderPage();
 
-        const [me, ada] = screen.getAllByRole("listitem");
-
-        expect(within(me).getByText("You")).toBeInTheDocument();
-        expect(within(me).getByTestId("role-badge")).toHaveTextContent("OWNER");
-        expect(within(me).queryByRole("button")).not.toBeInTheDocument();
-        expect(within(me).queryByTestId("role-select-m-me")).not.toBeInTheDocument();
-
-        expect(within(ada).queryByText("You")).not.toBeInTheDocument();
-        expect(within(ada).getByTestId("role-select-m-ada")).toBeInTheDocument();
-        expect(within(ada).getByRole("button", { name: "Remove User ada" })).toBeInTheDocument();
+        expect(!!screen.queryByTestId("role-select-m-t")).toBe(changeRole);
+        expect(!!screen.queryByTestId("action:Remove from workspace")).toBe(remove);
+        expect(!!screen.queryByTestId("action:Make owner")).toBe(transfer);
     });
 
-    it("blocks an admin from managing their own row", async () => {
-        mockRequireMembership.mockResolvedValue(
-            makeMembership({ userId: "u-me", role: "ADMIN" }),
-        );
-        db.workspaceMember.findMany.mockResolvedValue([makeMember("me", "ADMIN")]);
-
-        await renderPage();
-
-        expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
-    });
-
-    it("binds the remove action to the slug and member id only for removable rows", async () => {
+    it("marks the current user and never lets them manage themselves", async () => {
         mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("owner2", "OWNER"),
-            makeMember("ada", "ADMIN"),
-            makeMember("bob", "GUEST"),
+        db.workspaceMember.findMany.mockResolvedValue([me("OWNER")]);
+
+        await renderPage();
+
+        const self = row("Me Myself");
+        expect(self).toHaveTextContent("(you)");
+        expect(screen.queryByTestId("role-select-m-me")).not.toBeInTheDocument();
+        expect(within(self).queryByTestId(/^actions:/)).not.toBeInTheDocument();
+        expect(self).toHaveTextContent("Owner");
+    });
+
+    it("binds remove and make-owner to the slug and member, and asks first", async () => {
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
+        db.workspaceMember.findMany.mockResolvedValue([me("OWNER"), makeMember("t", "MEMBER", { name: "Tom" })]);
+
+        await renderPage();
+
+        const remove = screen.getByTestId("action:Remove from workspace");
+        expect(remove).toHaveAttribute("data-bound", JSON.stringify(["remove", "acme", "m-t"]));
+        expect(remove).toHaveAttribute("data-confirm", "Remove Tom?");
+        const transfer = screen.getByTestId("action:Make owner");
+        expect(transfer).toHaveAttribute("data-bound", JSON.stringify(["transfer", "acme", "m-t"]));
+        expect(transfer).toHaveAttribute("data-confirm", "Make Tom the owner?");
+        expect(screen.getByTestId("actions:Actions for Tom")).toBeInTheDocument();
+        expect((removeTeamAction as any).bind).toHaveBeenCalledWith(null, "acme", "m-t");
+        expect((transferOwnershipAction as any).bind).toHaveBeenCalledWith(null, "acme", "m-t");
+    });
+});
+
+describe("TeamPage – invitations", () => {
+    const invitation = (id: string, overrides: Record<string, unknown> = {}) => ({
+        id,
+        email: `${id}@x.com`,
+        token: `tok-${id}`,
+        role: "MEMBER",
+        projectRole: null,
+        expiresAt: new Date("2026-10-20T12:00:00Z"),
+        createdAt: NOW,
+        project: null,
+        ...overrides,
+    });
+
+    it("doesn't load invitations for people who can't manage them", async () => {
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "MEMBER" }));
+
+        await renderPage();
+
+        expect(db.invitation.findMany).not.toHaveBeenCalled();
+        expect(screen.queryByRole("region", { name: /Invitations/ })).not.toBeInTheDocument();
+    });
+
+    it("lists open and recently expired invitations with their status", async () => {
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
+        db.invitation.findMany.mockResolvedValue([
+            invitation("soon", { expiresAt: new Date("2026-10-17T10:00:00Z") }),
+            invitation("later"),
+            invitation("proj", { project: { name: "Apollo" }, projectRole: "EDITOR" }),
+            invitation("old", { expiresAt: new Date("2026-10-10T12:00:00Z") }),
         ]);
 
         await renderPage();
 
-        expect(mockRemove.bind).toHaveBeenCalledTimes(2);
-        expect(mockRemove.bind).toHaveBeenCalledWith(null, "acme", "m-ada");
-        expect(mockRemove.bind).toHaveBeenCalledWith(null, "acme", "m-bob");
+        const where = db.invitation.findMany.mock.calls[0][0].where;
+        expect(where).toMatchObject({ workspaceId: "w1", acceptedAt: null });
+        // Expired ones from the last 30 days stay visible.
+        expect(where.expiresAt.gt.toISOString()).toBe("2026-09-16T12:00:00.000Z");
+
+        const list = within(screen.getByRole("region", { name: /Invitations/ }));
+        expect(list.getByText("soon@x.com").closest("li")).toHaveTextContent("Expires tomorrow");
+        expect(list.getByText("later@x.com").closest("li")).toHaveTextContent("Expires in 4 days");
+        expect(list.getByText("proj@x.com").closest("li")).toHaveTextContent("Editor on Apollo");
+        expect(list.getByText("old@x.com").closest("li")).toHaveTextContent("Expired");
     });
 
-    it("uses the display name in the remove button label", async () => {
+    it("offers a copy link for open invitations and cancel/remove bound to the invitation", async () => {
         mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("bob", "MEMBER", { name: null }),
+        db.invitation.findMany.mockResolvedValue([
+            invitation("open"),
+            invitation("old", { expiresAt: new Date("2026-10-10T12:00:00Z") }),
         ]);
+
+        await renderPage();
+
+        const open = within(screen.getByTestId("actions:Actions for invitation to open@x.com"));
+        expect(open.getByTestId("action:Copy invite link")).toHaveAttribute("data-copy", "/invite/tok-open");
+        expect(open.getByTestId("action:Cancel invitation")).toHaveAttribute(
+            "data-bound",
+            JSON.stringify(["revoke", "acme", "open"]),
+        );
+
+        const old = within(screen.getByTestId("actions:Actions for invitation to old@x.com"));
+        expect(old.queryByTestId("action:Copy invite link")).not.toBeInTheDocument();
+        expect(old.getByTestId("action:Remove invitation")).toBeInTheDocument();
+        expect((revokeInvitationAction as any).bind).toHaveBeenCalledWith(null, "acme", "old");
+    });
+
+    it("lets only the owner cancel an admin invitation", async () => {
+        mockRequireMembership.mockResolvedValue(makeMembership({ role: "ADMIN" }));
+        db.workspaceMember.findMany.mockResolvedValue([me("ADMIN")]);
+        db.invitation.findMany.mockResolvedValue([invitation("adm", { role: "ADMIN" }), invitation("mem")]);
 
         await renderPage();
 
         expect(
-            screen.getByRole("button", { name: "Remove bob@x.com" }),
+            within(screen.getByTestId("actions:Actions for invitation to adm@x.com")).queryByTestId("action:Cancel invitation"),
+        ).not.toBeInTheDocument();
+        expect(
+            within(screen.getByTestId("actions:Actions for invitation to mem@x.com")).getByTestId("action:Cancel invitation"),
         ).toBeInTheDocument();
-    });
-});
-
-describe("TeamPage – ownership and invitations", () => {
-    it("offers ownership transfer to admins and members, only for the owner", async () => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role: "OWNER" }));
-        db.workspaceMember.findMany.mockResolvedValue([
-            makeMember("me", "OWNER"),
-            makeMember("a", "ADMIN"),
-            makeMember("b", "MEMBER"),
-            makeMember("c", "GUEST"),
-        ]);
-
-        await renderPage();
-
-        expect(screen.queryByTestId("transfer-m-me")).not.toBeInTheDocument();
-        expect(screen.getByTestId("transfer-m-a")).toBeInTheDocument();
-        expect(screen.getByTestId("transfer-m-b")).toBeInTheDocument();
-        expect(screen.queryByTestId("transfer-m-c")).not.toBeInTheDocument();
-    });
-
-    it("hides ownership transfer from admins", async () => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role: "ADMIN" }));
-        db.workspaceMember.findMany.mockResolvedValue([makeMember("b", "MEMBER")]);
-
-        await renderPage();
-
-        expect(screen.queryByTestId("transfer-m-b")).not.toBeInTheDocument();
-    });
-
-    it("lists pending invitations for managers", async () => {
-        mockRequireMembership.mockResolvedValue(makeMembership({ role: "ADMIN" }));
-        db.invitation.findMany.mockResolvedValue([
-            {
-                id: "i1",
-                email: "new@x.com",
-                role: "MEMBER",
-                projectRole: null,
-                expiresAt: new Date("2026-04-01T00:00:00Z"),
-                project: null,
-            },
-            {
-                id: "i2",
-                email: "boss@x.com",
-                role: "ADMIN",
-                projectRole: null,
-                expiresAt: new Date("2026-04-01T00:00:00Z"),
-                project: null,
-            },
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByText("Pending invitations")).toBeInTheDocument();
-        expect(screen.getByText("new@x.com")).toBeInTheDocument();
-        expect(screen.getByTestId("revoke-i1")).toBeInTheDocument();
-        // Admins can't cancel admin invitations sent by the owner.
-        expect(screen.queryByTestId("revoke-i2")).not.toBeInTheDocument();
-    });
-
-    it("does not load invitations for members", async () => {
-        await renderPage();
-
-        expect(db.invitation.findMany).not.toHaveBeenCalled();
-        expect(screen.queryByText("Pending invitations")).not.toBeInTheDocument();
     });
 });

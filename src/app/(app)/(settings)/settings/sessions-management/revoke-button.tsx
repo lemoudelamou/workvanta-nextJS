@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { LogOut } from "lucide-react";
+
+import { buttonStyles } from "@/app/style/button-style";
 
 import { revokeSession } from "@/app/(app)/(settings)/settings/sessions-management/actions";
 import Modal from "@/components/ui/Modal";
@@ -44,7 +46,7 @@ export default function RevokeButton({
                 console.error("Failed to revoke session:", error);
 
                 setError(
-                    "Unable to revoke this session. Please try again.",
+                    "Couldn't sign out that device. Please try again.",
                 );
             }
         });
@@ -52,8 +54,8 @@ export default function RevokeButton({
 
     if (revoked) {
         return (
-            <span className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/[0.08] dark:text-emerald-300">
-                Revoked
+            <span role="status" className="shrink-0 text-sm font-medium text-muted-foreground">
+                Signed out
             </span>
         );
     }
@@ -64,21 +66,21 @@ export default function RevokeButton({
                 type="button"
                 onClick={handleOpenModal}
                 disabled={isPending}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/[0.12]"
+                className={`${buttonStyles({ variant: "secondary", size: "sm" })} shrink-0`}
             >
-                <Trash2 className="size-4" />
+                <LogOut className="size-3.5" aria-hidden="true" />
 
-                {isPending ? "Revoking..." : "Revoke"}
+                {isPending ? "Signing out…" : "Sign out"}
             </button>
 
             <Modal
                 open={isModalOpen}
-                title="Revoke session?"
-                description="This will sign out this device. You can sign in again on the device if needed."
-                confirmLabel="Revoke"
+                title="Sign out this device?"
+                description="Whoever is using it will need to sign in again."
+                confirmLabel="Sign out device"
                 cancelLabel="Cancel"
                 loading={isPending}
-                loadingLabel="Revoking..."
+                loadingLabel="Signing out…"
                 error={error}
                 onConfirm={handleRevoke}
                 onClose={handleCloseModal}

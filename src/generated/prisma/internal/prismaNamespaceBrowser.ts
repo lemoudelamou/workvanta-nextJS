@@ -69,11 +69,14 @@ export const ModelName = {
   UserPreference: 'UserPreference',
   NotificationPreference: 'NotificationPreference',
   Invitation: 'Invitation',
+  Label: 'Label',
+  TaskLabel: 'TaskLabel',
   Activity: 'Activity',
   Subtask: 'Subtask',
   Comment: 'Comment',
   Attachment: 'Attachment',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  TaskDependency: 'TaskDependency'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -167,6 +170,8 @@ export const TaskScalarFieldEnum = {
   projectId: 'projectId',
   assigneeId: 'assigneeId',
   creatorId: 'creatorId',
+  recurrence: 'recurrence',
+  nextOccurrenceId: 'nextOccurrenceId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -313,6 +318,8 @@ export const NotificationPreferenceScalarFieldEnum = {
   inAppComments: 'inAppComments',
   inAppMentions: 'inAppMentions',
   inAppInvitations: 'inAppInvitations',
+  inAppDueDates: 'inAppDueDates',
+  emailDueDates: 'emailDueDates',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -330,10 +337,32 @@ export const InvitationScalarFieldEnum = {
   projectRole: 'projectRole',
   expiresAt: 'expiresAt',
   acceptedAt: 'acceptedAt',
+  invitedById: 'invitedById',
   createdAt: 'createdAt'
 } as const
 
 export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+
+export const LabelScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  name: 'name',
+  normalizedName: 'normalizedName',
+  color: 'color',
+  createdAt: 'createdAt'
+} as const
+
+export type LabelScalarFieldEnum = (typeof LabelScalarFieldEnum)[keyof typeof LabelScalarFieldEnum]
+
+
+export const TaskLabelScalarFieldEnum = {
+  taskId: 'taskId',
+  labelId: 'labelId',
+  createdAt: 'createdAt'
+} as const
+
+export type TaskLabelScalarFieldEnum = (typeof TaskLabelScalarFieldEnum)[keyof typeof TaskLabelScalarFieldEnum]
 
 
 export const ActivityScalarFieldEnum = {
@@ -401,6 +430,15 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const TaskDependencyScalarFieldEnum = {
+  blockedTaskId: 'blockedTaskId',
+  blockingTaskId: 'blockingTaskId',
+  createdAt: 'createdAt'
+} as const
+
+export type TaskDependencyScalarFieldEnum = (typeof TaskDependencyScalarFieldEnum)[keyof typeof TaskDependencyScalarFieldEnum]
 
 
 export const SortOrder = {

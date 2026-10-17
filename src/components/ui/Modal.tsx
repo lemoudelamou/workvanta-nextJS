@@ -15,7 +15,6 @@ type ModalProps = {
     loadingLabel?: string;
     error?: string | null;
 
-    // @ts-ignore
     onConfirm: () => void | Promise<void>;
     onClose: () => void;
 };
@@ -44,8 +43,12 @@ export default function Modal({
     const closeRef = useRef(onClose);
     const isLoadingRef = useRef(loading);
 
-    closeRef.current = onClose;
-    isLoadingRef.current = loading;
+    // Keep the latest callbacks for the keyboard handler without re-running
+    // the open/close effect. Updated after render, as React requires.
+    useEffect(() => {
+        closeRef.current = onClose;
+        isLoadingRef.current = loading;
+    });
 
     useEffect(() => {
         if (!open) {
@@ -167,7 +170,7 @@ export default function Modal({
                     {error && (
                         <p
                             role="alert"
-                            className="mt-3 text-[13px] font-medium leading-5 text-red-600 dark:text-red-400"
+                            className="mt-3 text-[13px] font-medium leading-5 text-danger"
                         >
                             {error}
                         </p>
@@ -201,14 +204,12 @@ export default function Modal({
                         onClick={onConfirm}
                         className="
                             inline-flex h-12 items-center justify-center gap-2
-                            text-[15px] font-semibold text-red-600
+                            text-[15px] font-semibold text-danger
                             transition-colors
-                            hover:bg-red-50 active:bg-red-100
-                            focus-visible:outline-none focus-visible:bg-red-50
-                            disabled:pointer-events-none disabled:opacity-60
-                            dark:text-red-400
-                            dark:hover:bg-red-400/10 dark:active:bg-red-400/15
-                            dark:focus-visible:bg-red-400/10
+                            hover:bg-danger/[0.06] active:bg-danger/10
+                            focus-visible:outline-none focus-visible:bg-danger/[0.06]
+                            disabled:pointer-events-none disabled:opacity-60 dark:active:bg-danger/15
+                            dark:focus-visible:bg-danger/10
                         "
                     >
                         {loading && (

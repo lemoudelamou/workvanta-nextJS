@@ -3,8 +3,6 @@ import {
     Building2,
     FolderKanban,
     Plus,
-    ShieldCheck,
-    UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -14,28 +12,29 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { buttonStyles } from "@/app/style/button-style";
 
 import type {
+    Focus,
     Membership,
     RecentProject,
 } from "@/app/(app)/(dashboard)/dashboard/components/types";
 
-import { Kpi } from "@/app/style/Kpi";
+import { FocusPanel, focusSummary } from "./FocusPanel";
 import { ProjectRow } from "./ProjectRow";
 import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";
 
-const KPI_STRIP =
-    "grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-2 xl:grid-cols-4";
 
 
 
 export function DashboardView({
     session,
+    focus,
     memberships,
     recentProjects,
     accessibleProjectCountByWorkspace,
     totalAccessibleProjectCount,
 }: {
     session: { user: { name?: string | null; email?: string | null } };
+    focus: Focus;
     memberships: Membership[];
     recentProjects: RecentProject[];
     accessibleProjectCountByWorkspace: Map<string, number>;
@@ -60,57 +59,34 @@ export function DashboardView({
             <PageHeader
                 eyebrow="Dashboard"
                 title={`Welcome back, ${firstName}`}
-                description="Everything you're working on, across all of your workspaces."
+                description={focusSummary(focus)}
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                            href="/workspace/new"
-                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
+                        <Link href="/workspace" className={buttonStyles({ variant: "secondary" })}>
+                            All workspaces
+                        </Link>
+                        <Link href="/workspace/new" className={buttonStyles()}>
                             <Plus className="size-4" aria-hidden="true" />
                             New workspace
-                        </Link>
-                        <Link href="/workspace" className={buttonStyles()}>
-                            All workspaces
-                            <ArrowRight className="size-4" aria-hidden="true" />
                         </Link>
                     </div>
                 }
             />
 
-            <section aria-label="Summary" className={`mt-8 ${KPI_STRIP}`}>
-                <Kpi
-                    tone="blue"
-                    icon={<Building2 />}
-                    label="Workspaces"
-                    value={memberships.length}
-                    helper="Teams you belong to"
-                />
-                <Kpi
-                    tone="violet"
-                    icon={<FolderKanban />}
-                    label="Projects"
-                    value={totalAccessibleProjectCount}
-                    helper="Projects you can open"
-                />
-                <Kpi
-                    tone="amber"
-                    icon={<UsersRound />}
-                    label="Teammates"
-                    value={teammateCount}
-                    helper="People across your workspaces"
-                />
-                <Kpi
-                    tone="green"
-                    icon={<ShieldCheck />}
-                    label="Managed by you"
-                    value={managedCount}
-                    helper="Workspaces where you're owner or admin"
-                />
+            <FocusPanel
+                focus={focus}
+                footer={
+                    <section aria-label="Summary" className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-sm text-muted-foreground">
+                <span><span className="font-semibold tabular-nums text-foreground">{memberships.length}</span> {memberships.length === 1 ? "workspace" : "workspaces"}</span>
+                <span><span className="font-semibold tabular-nums text-foreground">{totalAccessibleProjectCount}</span> {totalAccessibleProjectCount === 1 ? "project" : "projects"}</span>
+                <span><span className="font-semibold tabular-nums text-foreground">{teammateCount}</span> {teammateCount === 1 ? "teammate" : "teammates"}</span>
+                {managedCount > 0 && <span>You manage <span className="font-semibold tabular-nums text-foreground">{managedCount}</span></span>}
             </section>
+                }
+            />
 
             {memberships.length ? (
-                <div className="mt-12 grid gap-x-12 gap-y-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+                <div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-10 sm:mt-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
                     <section aria-labelledby="recent-projects">
                         <div className="flex items-end justify-between gap-4">
                             <div id="recent-projects">
@@ -132,7 +108,7 @@ export function DashboardView({
                         </div>
 
                         {recentProjects.length ? (
-                            <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-sm">
+                            <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card p-1.5">
                                 <div className="divide-y divide-border">
                                     {recentProjects.map((project) => (
                                         <ProjectRow key={project.id} project={project} />
@@ -141,7 +117,7 @@ export function DashboardView({
                             </div>
                         ) : (
                             <EmptyState
-                                className="mt-5 rounded-2xl border border-dashed border-border"
+                                className="mt-5 rounded-xl border border-dashed border-border"
                                 icon={<FolderKanban />}
                                 title="No projects yet"
                                 description="Create a project in one of your workspaces and it will show up here."

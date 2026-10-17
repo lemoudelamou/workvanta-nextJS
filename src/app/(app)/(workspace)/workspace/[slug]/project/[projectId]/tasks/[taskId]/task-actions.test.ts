@@ -14,6 +14,7 @@ import {
     userCanAccessProject,
 } from "@/lib/auth/members";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
 import { parseMentions } from "@/helpers/parseMentions";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validations/tasks";
 import { createCommentSchema } from "@/lib/validations/comments";
@@ -75,6 +76,10 @@ jest.mock("@/lib/storage/cloudinary", () => ({
     cloudinary: { uploader: { upload_stream: jest.fn(), destroy: jest.fn() } },
 }));
 jest.mock("@/lib/publisher/publisher", () => ({ publishRealtimeEvent: jest.fn() }));
+jest.mock("@/lib/realtime/task-events", () => ({ publishTaskChanged: jest.fn() }));
+jest.mock("@/lib/tasks/recurrence", () => ({ createNextOccurrence: jest.fn().mockResolvedValue(null) }));
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockCreateNextOccurrence = require("@/lib/tasks/recurrence").createNextOccurrence as jest.Mock;
 jest.mock("@/helpers/parseMentions", () => ({ parseMentions: jest.fn() }));
 jest.mock("@/lib/validations/tasks", () => ({
     createTaskSchema: { safeParse: jest.fn() },
@@ -110,6 +115,7 @@ const access = {
     project: { id: "p1", workspaceId: "w1", visibility: "WORKSPACE" },
 };
 const mockPublish = publishRealtimeEvent as jest.Mock;
+const mockPublishTaskChanged = publishTaskChanged as jest.Mock;
 const mockParseMentions = parseMentions as jest.Mock;
 const mockQueueAssigned = queueTaskAssignedNotification as jest.Mock;
 const mockQueueCommented = queueTaskCommentedNotification as jest.Mock;
@@ -364,10 +370,22 @@ describe("reorderTasksAction", () => {
         ).rejects.toThrow("Invalid task ordering.");
     });
 
+    it("brings in the next repeat when a card is dragged into Done", async () => {
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+        await reorderTasksAction(args());
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+
+        mockCreateNextOccurrence.mockClear();
+        await reorderTasksAction(args({ sourceStatus: "DONE", destinationStatus: "DONE", sourceTaskIds: ["t3", "t1"], destinationTaskIds: ["t3", "t1"] }));
+        expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
+    });
+
     it("revalidates the board after saving", async () => {
         await reorderTasksAction(args());
 
         expect(mockRevalidate).toHaveBeenCalledWith(PROJECT_PATH);
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "moved" });
     });
 
     it("redirects to /signin when signed out", async () => {
@@ -533,7 +551,8 @@ describe("updateTaskAction", () => {
             where: { id: "t1" },
             data: expect.objectContaining({
                 description: "D",
-                dueDate: new Date("2026-10-20T23:59:59"),
+                // The end of that day in UTC, the calendar due dates are shown in.
+                dueDate: new Date("2026-10-20T23:59:59Z"),
             }),
         });
     });
@@ -562,6 +581,23 @@ describe("updateTaskAction", () => {
             from: "MEDIUM",
             to: "HIGH",
         });
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "updated" });
+    });
+
+    it("brings in the next one when a repeating task is marked done", async () => {
+        ok(schema.updateTask, { title: "T", description: "", status: "DONE", priority: "MEDIUM", assigneeId: "", dueDate: "" });
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+
+        await expect(run()).rejects.toThrow();
+
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+    });
+
+    it("doesn't repeat when the status didn't change to done", async () => {
+        ok(schema.updateTask, { title: "T", description: "", status: "IN_PROGRESS", priority: "MEDIUM", assigneeId: "", dueDate: "" });
+        await expect(run()).rejects.toThrow();
+        expect(mockCreateNextOccurrence).not.toHaveBeenCalled();
     });
 
     it("logs an assignment and notifies the new assignee with the new title", async () => {
@@ -641,6 +677,7 @@ describe("deleteTaskAction", () => {
                 userId: "u1",
             },
         });
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "deleted" });
     });
 });
 
@@ -698,6 +735,7 @@ describe("createCommentAction", () => {
         expect(mockPublish).toHaveBeenCalledWith({
             type: "comment-created",
             workspaceId: "w1",
+            recipientIds: ["u1", "c1", "a1", "u2"],
             data: { commentId: "cm1", taskId: "t1", projectId: "p1", authorId: "u1" },
         });
 
@@ -801,6 +839,7 @@ describe("comment ownership", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith(TASK_PATH);
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "comments" });
     });
 
     it("updateCommentAction validates before looking up the comment", async () => {
@@ -935,6 +974,7 @@ describe("subtask actions", () => {
 
             expect(db.subtask.delete).toHaveBeenCalledWith({ where: { id: "s1" } });
             expect(mockRevalidate).toHaveBeenCalledWith(TASK_PATH);
+            expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "subtasks" });
         });
     });
 });
@@ -1043,6 +1083,7 @@ describe("uploadAttachmentAction", () => {
         });
         expect(cloud.uploader.destroy).not.toHaveBeenCalled();
         expect(mockRevalidate).toHaveBeenCalledWith(TASK_PATH);
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "attachments" });
     });
 
     it("propagates upload errors without writing to the database", async () => {
@@ -1236,6 +1277,25 @@ describe("comment access rules", () => {
 
     beforeEach(() => {
         db.task.findFirst.mockResolvedValue(task);
+    });
+
+    it("only sends the live update to people who can open the project", async () => {
+        mockAudience.mockResolvedValue([{ id: "u1" }, { id: "c1" }]);
+
+        await run();
+
+        expect(mockPublish).toHaveBeenCalledWith(
+            expect.objectContaining({ recipientIds: ["u1", "c1"] }),
+        );
+    });
+
+    it("keeps the comment when realtime publishing fails", async () => {
+        mockPublish.mockRejectedValueOnce(new Error("redis down"));
+
+        await expect(run()).resolves.toEqual(
+            expect.objectContaining({ success: true }),
+        );
+        expect(mockQueueCommented).toHaveBeenCalled();
     });
 
     it("never notifies people who can't open the project", async () => {

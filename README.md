@@ -1,6 +1,6 @@
 # Workvanta
 
-Workvanta is a team workspace and project management app. Teams create workspaces, invite people with a role, organize work into projects, and track tasks on a Kanban board, with comments, mentions, attachments and real-time notifications.
+Workvanta is a team workspace and project management app. Teams create workspaces, invite people with a role, organize work into projects, and track tasks on a live Kanban board or list, with comments, mentions, attachments and real-time notifications.
 
 > 🚧 Under active development.
 
@@ -10,6 +10,7 @@ Workvanta is a team workspace and project management app. Teams create workspace
 - **Projects.** Each project is either shared with the whole workspace or private to the people on it. Members are added with a project role of Admin, Editor or Viewer.
 - **Kanban board.** Drag-and-drop tasks across To do, In progress, In review and Done. Tasks have a priority, assignee, due date and subtasks.
 - **Collaboration.** Comments with `@mentions`, file attachments up to 10 MB, and an activity history on every task. Attachments are stored privately and only open for people who can see the project.
+- **Live board.** When a teammate creates, moves, edits or deletes a task, open boards, lists and task pages update within a second, without a reload. Updates go only to people who can open that project.
 - **Notifications.** In-app and email notifications for assignments, comments and mentions, delivered in real time over WebSockets.
 - **Accounts and security.** Sign in with email and password or with Google or GitHub. Also included: email verification, password reset, two-factor authentication (TOTP with backup codes), a session list with remote sign-out, and rate limiting.
 - **Settings.** Profile, linked accounts, theme, language, and account deletion.
@@ -53,8 +54,8 @@ The app runs as three processes that share PostgreSQL and Redis:
 ```
 
 - **Next.js app.** Serves the UI and runs every server action. It writes to PostgreSQL, puts notification jobs on a BullMQ queue, and publishes realtime events to Redis.
-- **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails.
-- **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
+- **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails. It also runs two repeating jobs: a sweep every 15 minutes that reminds assignees when a task is due within a day or has become overdue, and a morning digest email of each person's overdue, due-today and upcoming tasks.
+- **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers: new comments, task changes (the live board) and notifications. Project events are addressed to individual users who can open the project, never broadcast to a whole workspace. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
 
 ## Getting started
 
@@ -107,6 +108,10 @@ SOCKET_AUTH_SECRET=
 
 # Redis: BullMQ queue + realtime pub/sub
 REDIS_URL=redis://localhost:6379
+
+# Due date digest email: the hour (0-23) and time zone it goes out in (optional)
+DIGEST_HOUR=8
+DIGEST_TIMEZONE=UTC
 
 # Upstash Redis: rate limiting
 UPSTASH_REDIS_REST_URL=
@@ -171,6 +176,7 @@ npm run socket   # realtime server → http://localhost:3001
 | `npm test` | Run the Jest test suite |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with a coverage report |
+| `npm run test:e2e` | Run the Playwright end-to-end journey (see below) |
 
 ## Roles and permissions
 
@@ -237,7 +243,24 @@ src/
 npm test
 ```
 
-GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the tests, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint also runs there but doesn't block merges yet, because the codebase still has existing lint errors.
+### End-to-end tests
+
+`e2e/team-journey.spec.ts` runs the core journey in a real browser against a real database: sign up, create a workspace and project, add a task, drag it to In progress, invite a teammate by email, and have them sign up, accept and see the work. Emails are caught by a small SMTP server inside the test run, so no mail provider is needed.
+
+You need PostgreSQL (with migrations applied) and Redis running locally:
+
+```bash
+npx playwright install chromium          # once
+E2E_DATABASE_URL=postgresql://user:pass@localhost:5432/workvanta_e2e \
+E2E_REDIS_URL=redis://localhost:6379 \
+npm run test:e2e                         # builds and starts the app on port 3100
+```
+
+Use a separate database: the test creates real users and workspaces. Set `E2E_DEV=1` to run against `next dev` instead of a production build (faster while iterating).
+
+### Continuous integration
+
+GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the unit tests, runs the end-to-end journey, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error.
 
 Tests sit next to the code they cover, as `*.test.ts(x)` files. Pages and server actions are tested with mocked Prisma and auth. The permission rules have their own unit tests in `src/lib/auth/permissions.test.ts`.
 

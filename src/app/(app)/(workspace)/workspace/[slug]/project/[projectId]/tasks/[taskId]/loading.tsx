@@ -10,7 +10,7 @@ function Bar({ className = "" }: { className?: string }) {
 
 function PanelSkeleton({ rows = 2 }: { rows?: number }) {
     return (
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-start gap-3">
                 <Bar className="size-9 rounded-xl" />
                 <div className="space-y-2">
@@ -43,7 +43,7 @@ export default function TaskLoading() {
                 <Bar className="mt-2 h-4 w-1/2 max-w-xl" />
 
                 {/* Meta strip */}
-                <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="bg-card p-5">
                             <Bar className="h-3 w-16" />
@@ -53,14 +53,14 @@ export default function TaskLoading() {
                 </div>
 
                 {/* Body */}
-                <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                     <div className="space-y-6">
                         <PanelSkeleton rows={3} />
                         <PanelSkeleton rows={1} />
                         <PanelSkeleton rows={2} />
                     </div>
 
-                    <div className="rounded-2xl border border-border bg-card p-6">
+                    <div className="rounded-xl border border-border bg-card p-6">
                         <div className="flex items-start gap-3">
                             <Bar className="size-9 rounded-xl" />
                             <div className="space-y-2">

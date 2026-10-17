@@ -423,3 +423,97 @@ export async function sendMentionEmail({
     `,
     });
 }
+
+/** At most this many tasks per digest section; the rest are counted. */
+const DIGEST_SECTION_LIMIT = 8;
+
+type DigestEmailItem = { title: string; projectName: string; url: string; dueLabel: string };
+
+function plural(count: number, word: string) {
+    return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/** The subject says the most pressing thing first. */
+export function digestSubject(digest: { overdue: unknown[]; today: unknown[]; upcoming: unknown[] }) {
+    const parts = [
+        digest.overdue.length ? `${plural(digest.overdue.length, "task")} overdue` : "",
+        digest.today.length ? `${digest.today.length} due today` : "",
+    ].filter(Boolean);
+    if (parts.length) return `Your tasks: ${parts.join(", ")}`;
+    return `Your tasks: ${digest.upcoming.length} coming up`;
+}
+
+function digestSection(title: string, accent: string, items: DigestEmailItem[]) {
+    if (!items.length) return "";
+    const shown = items.slice(0, DIGEST_SECTION_LIMIT);
+    const rows = shown
+        .map(
+            (item) => `
+        <tr>
+          <td style="padding:12px 0;border-top:1px solid #e5e7eb;">
+            <a href="${escapeHtml(item.url)}" style="font-size:15px;line-height:22px;font-weight:700;color:#111827;text-decoration:none;">${escapeHtml(item.title)}</a>
+            <p style="margin:2px 0 0 0;font-size:13px;line-height:20px;color:#6b7280;">${escapeHtml(item.projectName)} &nbsp;·&nbsp; due ${escapeHtml(item.dueLabel)}</p>
+          </td>
+        </tr>`,
+        )
+        .join("");
+    const more =
+        items.length > shown.length
+            ? `<p style="margin:8px 0 0 0;font-size:13px;line-height:20px;color:#6b7280;">And ${items.length - shown.length} more.</p>`
+            : "";
+    return `
+      <h2 style="margin:28px 0 8px 0;font-size:16px;line-height:24px;color:${accent};">${escapeHtml(title)} (${items.length})</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">${rows}
+      </table>${more}`;
+}
+
+function digestText(title: string, items: DigestEmailItem[]) {
+    if (!items.length) return [];
+    return [
+        `${title} (${items.length})`,
+        ...items.slice(0, DIGEST_SECTION_LIMIT).map((item) => `- ${item.title} (${item.projectName}, due ${item.dueLabel}): ${item.url}`),
+        ...(items.length > DIGEST_SECTION_LIMIT ? [`And ${items.length - DIGEST_SECTION_LIMIT} more.`] : []),
+        "",
+    ];
+}
+
+export async function sendDueDigestEmail({
+    email,
+    name,
+    digest,
+}: {
+    email: string;
+    name: string | null;
+    digest: { overdue: DigestEmailItem[]; today: DigestEmailItem[]; upcoming: DigestEmailItem[] };
+}) {
+    const appUrl = getAppUrl();
+    const greeting = name?.trim() ? `Good morning, ${name.trim().split(/\s+/)[0]}` : "Good morning";
+    const settingsUrl = appUrl ? `${appUrl}/settings` : "";
+
+    await sendEmail({
+        to: email,
+        subject: digestSubject(digest),
+        text: [
+            greeting,
+            "",
+            "Here's what's due on your plate.",
+            "",
+            ...digestText("Overdue", digest.overdue),
+            ...digestText("Due today", digest.today),
+            ...digestText("Coming up", digest.upcoming),
+            settingsUrl ? `Turn off these emails under Due dates in your settings: ${settingsUrl}` : "Turn off these emails under Due dates in your settings.",
+            "",
+            "Workvanta",
+        ],
+        content: `
+      ${eyebrow("Your day")}
+      ${heading(greeting)}
+      ${lead("Here's what's due on your plate.")}
+      ${digestSection("Overdue", "#b91c1c", digest.overdue)}
+      ${digestSection("Due today", "#b45309", digest.today)}
+      ${digestSection("Coming up", "#111827", digest.upcoming)}
+      ${appUrl ? button(`${appUrl}/dashboard`, "Open Workvanta") : ""}
+      ${note("You get this email because due date emails are on. You can turn them off under Due dates in your settings.", "footnote")}
+    `,
+    });
+}

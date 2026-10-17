@@ -1,4 +1,5 @@
 import type { BoardTask } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/kanbanboard/kanban-types";
+import { personColor } from "@/lib/ui/person-color";
 
 export function Avatar({
                            assignee,
@@ -13,7 +14,7 @@ export function Avatar({
                 src={assignee.image}
                 alt={label}
                 title={label}
-                className="size-7 shrink-0 rounded-full object-cover ring-2 ring-white dark:ring-slate-900"
+                className="size-7 shrink-0 rounded-full object-cover ring-2 ring-card"
             />
         );
     }
@@ -30,7 +31,7 @@ export function Avatar({
         <span
             title={label}
             aria-label={label}
-            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white ring-2 ring-white dark:bg-white dark:text-slate-950 dark:ring-slate-900"
+            className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-card ${personColor(assignee.email)}`}
         >
             {initials}
         </span>

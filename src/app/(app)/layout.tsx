@@ -1,10 +1,13 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Navbar } from "@/components/ui/Navbar";
+import { AppShell } from "@/components/shell/AppShell";
+import { LAST_WORKSPACE_COOKIE, SIDEBAR_COOKIE } from "@/lib/navigation/shell-cookies";
 import { getSession } from "@/lib/auth/session";
-import { getIsWorkspaceOwner } from "@/lib/auth/is-owner";
 import { prisma } from "@/lib/db/prisma";
+import { getMyOpenTaskCount, getShellWorkspaces } from "@/lib/navigation/shell-data";
 import { RealtimeProvider } from "@/lib/publisher/realtime-provider";
+import { buildNotificationViews } from "@/lib/notifications/notification-feed";
 
 export default async function AppLayout({
                                             children,
@@ -19,8 +22,9 @@ export default async function AppLayout({
 
     const userId = session.user.id;
 
-    const [isOwner, unreadCount, notifications] = await Promise.all([
-        getIsWorkspaceOwner(userId),
+    const [workspaces, myOpenTasks, unreadCount, notifications, cookieStore] = await Promise.all([
+        getShellWorkspaces(userId),
+        getMyOpenTaskCount(userId),
         prisma.notification.count({
             where: { userId, readAt: null },
         }),
@@ -36,21 +40,32 @@ export default async function AppLayout({
                 createdAt: true,
             },
         }),
+        cookies(),
     ]);
 
+    const notificationViews = await buildNotificationViews(userId, notifications);
+
+    const name =
+        session.user.name?.trim() || session.user.email?.split("@")[0] || "User";
 
     return (
         <>
-            <Navbar
-                session={session}
-                isOwner={isOwner}
-                unreadNotificationCount={unreadCount}
-                notifications={notifications}
-            />
-            <RealtimeProvider
-                userId={session.user.id}
-            />
-            {children}
+            <RealtimeProvider userId={userId} />
+            <AppShell
+                user={{
+                    name,
+                    email: session.user.email ?? "",
+                    image: session.user.image ?? null,
+                }}
+                workspaces={workspaces}
+                lastWorkspaceSlug={cookieStore.get(LAST_WORKSPACE_COOKIE)?.value ?? null}
+                unreadCount={unreadCount}
+                myOpenTasks={myOpenTasks}
+                initiallyCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}
+                notifications={notificationViews}
+            >
+                {children}
+            </AppShell>
         </>
     );
 }

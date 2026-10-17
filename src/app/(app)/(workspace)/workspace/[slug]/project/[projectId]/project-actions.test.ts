@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/members";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
+import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
 import { runSerializable } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
@@ -23,10 +24,16 @@ import {
     moveCardAction,
     deleteCardAction,
     setProjectVisibilityAction,
+    updateProjectDetailsAction,
 } from "./project-actions";
+import { publishTaskChanged } from "@/lib/realtime/task-events";
 
 // ---------- module mocks ----------
 jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
+jest.mock("@/lib/realtime/task-events", () => ({ publishTaskChanged: jest.fn() }));
+jest.mock("@/lib/tasks/recurrence", () => ({ createNextOccurrence: jest.fn().mockResolvedValue(null) }));
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockCreateNextOccurrence = require("@/lib/tasks/recurrence").createNextOccurrence as jest.Mock;
 jest.mock("next/navigation", () => ({
     // The real redirect() throws; mirroring that stops execution like production
     redirect: jest.fn((url: string) => {
@@ -52,6 +59,9 @@ jest.mock("@/lib/db/prisma", () => ({
     },
 }));
 jest.mock("@/lib/db/serializable", () => ({ runSerializable: jest.fn() }));
+jest.mock("@/lib/queue/notification.queue", () => ({
+    queueTaskAssignedNotification: jest.fn(),
+}));
 jest.mock("@/lib/due-date", () => ({ endOfDay: jest.fn() }));
 jest.mock("@/generated/prisma/enums", () => ({
     WorkspaceRole: { OWNER: "OWNER", ADMIN: "ADMIN", MEMBER: "MEMBER", GUEST: "GUEST" },
@@ -75,6 +85,7 @@ const mockUserCanAccess = userCanAccessProject as jest.Mock;
 const mockCanEdit = canEditTasks as jest.Mock;
 const mockRequireEditor = requireTaskEditor as jest.Mock;
 const mockRunSerializable = runSerializable as jest.Mock;
+const mockPublishTaskChanged = publishTaskChanged as jest.Mock;
 const mockEndOfDay = endOfDay as jest.Mock;
 const mockSafeParse = createTaskSchema.safeParse as unknown as jest.Mock;
 const db = prisma as unknown as {
@@ -391,6 +402,8 @@ describe("createTaskAction – creation", () => {
         await createTaskAction("acme", "p1", makeFormData());
 
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        // Teammates with the board open see the new task live.
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "created" });
     });
 
     it("logs and returns a friendly error when the transaction fails", async () => {
@@ -494,6 +507,7 @@ describe("addCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "created" });
     });
 
     it("does not revalidate when the transaction fails", async () => {
@@ -535,6 +549,16 @@ describe("moveCardAction", () => {
         expect(mockRevalidate).not.toHaveBeenCalled();
     });
 
+    it("brings in the next repeat when a task is moved to done", async () => {
+        tx.task.findFirst.mockResolvedValueOnce({ id: "t1", status: "IN_REVIEW" });
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+
+        await moveCardAction("acme", "p1", "t1", "DONE");
+
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
+    });
+
     it("moves the task to the end of the new column and logs the status change", async () => {
         tx.task.findFirst
             .mockResolvedValueOnce({ id: "t1", status: "TODO" }) // the task
@@ -558,6 +582,7 @@ describe("moveCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "moved" });
     });
 
     it("does not log an activity when the status is unchanged", async () => {
@@ -610,6 +635,7 @@ describe("deleteCardAction", () => {
             },
         });
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t1", kind: "deleted" });
     });
 });
 
@@ -652,8 +678,107 @@ describe("setProjectVisibilityAction", () => {
     it("revalidates the project page and the members page", async () => {
         await setProjectVisibilityAction("acme", "p1", "PRIVATE");
 
-        expect(mockRevalidate).toHaveBeenCalledTimes(2);
+        // The sidebar lists projects and workspaces, so the shell refreshes too.
+        expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+        expect(mockRevalidate).toHaveBeenCalledTimes(3);
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
         expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1/members");
+    });
+});
+
+// ---------- assignment notifications on create ----------
+describe("createTaskAction – assignment notification", () => {
+    const mockQueue = queueTaskAssignedNotification as jest.Mock;
+
+    it("notifies the assignee when a task is created for someone else", async () => {
+        parsedTask({ title: "Ship it", assigneeId: "u2" });
+
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).toHaveBeenCalledWith({
+            userId: "u2",
+            taskId: "t1",
+            taskTitle: "Ship it",
+            projectId: "p1",
+            workspaceId: "w1",
+            workspaceSlug: "acme",
+            assignedBy: "u1",
+        });
+    });
+
+    it("does not notify you about tasks you assign to yourself", async () => {
+        parsedTask({ assigneeId: "u1" });
+
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).not.toHaveBeenCalled();
+    });
+
+    it("does not notify when nobody is assigned", async () => {
+        await createTaskAction("acme", "p1", makeFormData());
+
+        expect(mockQueue).not.toHaveBeenCalled();
+    });
+
+    it("still succeeds if the notification queue is down", async () => {
+        parsedTask({ assigneeId: "u2" });
+        mockQueue.mockRejectedValueOnce(new Error("redis down"));
+
+        await expect(createTaskAction("acme", "p1", makeFormData())).resolves.toEqual({
+            success: true,
+        });
+    });
+});
+
+// ---------- updateProjectDetailsAction ----------
+describe("updateProjectDetailsAction", () => {
+    const run = (values: Record<string, string>) =>
+        updateProjectDetailsAction("acme", "p1", {}, makeFormData(values));
+
+    it("requires the project.update permission", async () => {
+        const { ForbiddenError } = jest.requireActual("@/lib/auth/permissions");
+        mockRequirePermission.mockRejectedValue(
+            new ForbiddenError("Only project admins can edit project details."),
+        );
+
+        await expect(run({ name: "New" })).resolves.toEqual({
+            error: "Only project admins can edit project details.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("validates the name and description", async () => {
+        await expect(run({ name: "  " })).resolves.toEqual({ error: "Project name is required." });
+        await expect(run({ name: "x".repeat(101) })).resolves.toEqual({
+            error: "Project name must be 100 characters or fewer.",
+        });
+        await expect(run({ name: "Ok", description: "x".repeat(501) })).resolves.toEqual({
+            error: "Description must be 500 characters or fewer.",
+        });
+        expect(db.project.update).not.toHaveBeenCalled();
+    });
+
+    it("saves trimmed details and refreshes the pages", async () => {
+        await expect(run({ name: "  Apollo 2 ", description: " Next phase " })).resolves.toEqual({
+            success: true,
+        });
+
+        expect(db.project.update).toHaveBeenCalledWith({
+            where: { id: "p1" },
+            data: { name: "Apollo 2", normalizedName: "apollo 2", description: "Next phase" },
+        });
+        expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme/project/p1");
+        expect(mockRevalidate).toHaveBeenCalledWith("/workspace/acme");
+    });
+
+    it("reports a duplicate name", async () => {
+        const { Prisma } = jest.requireActual("@/generated/prisma/client");
+        db.project.update.mockRejectedValue(
+            new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" }),
+        );
+
+        await expect(run({ name: "Apollo" })).resolves.toEqual({
+            error: "Another project in this workspace already has this name.",
+        });
     });
 });

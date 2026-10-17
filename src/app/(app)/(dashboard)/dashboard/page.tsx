@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { PageBody } from "@/components/ui/PageBody";
-import type { RecentProject,  } from "@/app/(app)/(dashboard)/dashboard/components/types";
+import type { Focus, RecentProject } from "@/app/(app)/(dashboard)/dashboard/components/types";
+import { groupByDue, myTasksWhere } from "@/lib/tasks/my-tasks";
+import type { WorkspaceRoleName } from "@/lib/auth/permissions";
 import { DashboardView } from "@/app/(app)/(dashboard)/dashboard/components/DashboardView";
 
 
@@ -121,9 +123,55 @@ export default async function DashboardPage() {
             !accessibleProjectIds.has(project.id),
     }));
 
+    // Tasks assigned to the user that are still open, for the focus panel.
+    const myTasks = memberships.length
+        ? await prisma.task.findMany({
+              where: myTasksWhere(
+                  session.user.id,
+                  memberships.map((m) => ({
+                      workspaceId: m.workspace.id,
+                      role: m.role as WorkspaceRoleName,
+                  })),
+              ),
+              take: 200,
+              select: {
+                  id: true,
+                  title: true,
+                  status: true,
+                  priority: true,
+                  dueDate: true,
+                  project: {
+                      select: { id: true, name: true, workspace: { select: { slug: true } } },
+                  },
+              },
+          })
+        : [];
+
+    const now = new Date();
+    const groups = groupByDue(myTasks, now);
+    const dueLabel = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const focus: Focus = {
+        overdue: groups.overdue.length,
+        today: groups.today.length,
+        week: groups.week.length,
+        upNext: [...groups.overdue, ...groups.today, ...groups.week, ...groups.later, ...groups.none]
+            .slice(0, 5)
+            .map((task) => ({
+                id: task.id,
+                title: task.title,
+                status: task.status,
+                priority: task.priority,
+                dueLabel: task.dueDate ? dueLabel.format(task.dueDate) : null,
+                overdue: groups.overdue.includes(task),
+                href: `/workspace/${task.project.workspace.slug}/project/${task.project.id}/tasks/${task.id}`,
+                project: { id: task.project.id, name: task.project.name },
+            })),
+    };
+
     return (
-        <PageBody>
+        <PageBody glow="#4b3fd9">
             <DashboardView
+                focus={focus}
                 session={session}
                 memberships={memberships}
                 recentProjects={recentProjects}

@@ -4,13 +4,9 @@
 import { render, screen, within } from "@testing-library/react";
 
 import ProjectMembersPage from "./page";
-import { notFound } from "next/navigation";
 import { requireProjectAccess } from "@/lib/auth/members";
 import { prisma } from "@/lib/db/prisma";
-import { accentFor } from "@/lib/accent";
-import { buttonStyles } from "@/app/style/button-style";
 import { removeProjectMemberAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions";
-
 import { effectiveProjectRole } from "@/lib/auth/permissions";
 
 // ---------- module mocks ----------
@@ -19,95 +15,63 @@ jest.mock("next/navigation", () => ({
         throw new Error("NEXT_NOT_FOUND");
     }),
 }));
-jest.mock("lucide-react", () => ({
-    Crown: () => null,
-    Eye: () => <svg data-testid="icon-eye" />,
-    Lock: () => <svg data-testid="icon-lock" />,
-    Trash2: () => null,
-    UserPlus: () => null,
-    UsersRound: () => null,
+jest.mock("next/link", () => ({
+    __esModule: true,
+    default: ({ href, children, ...rest }: any) => (
+        <a href={href} {...rest}>
+            {children}
+        </a>
+    ),
 }));
-
+jest.mock("next/image", () => ({
+    __esModule: true,
+    default: (props: any) => <span data-testid="avatar-image" data-src={props.src} />,
+}));
 jest.mock("@/lib/auth/members", () => ({ requireProjectAccess: jest.fn() }));
 jest.mock("@/lib/db/prisma", () => ({
-    prisma: { projectMember: { findMany: jest.fn() } },
-}));
-jest.mock("@/lib/accent", () => ({
-    accentFor: jest.fn((id: string) => `accent-${id}`),
-    accentVars: jest.fn(() => ({})),
-}));
-
-// The bound action is replaced by a jest.fn, so we can assert on the bind() arguments
-// without having to submit a real server-action form.
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions",
-    () => {
-        const action: any = jest.fn();
-        action.bind = jest.fn(() => jest.fn());
-        return { removeProjectMemberAction: action };
+    prisma: {
+        projectMember: { findMany: jest.fn() },
+        workspaceMember: { findMany: jest.fn() },
     },
-);
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/invite-project-member-form",
-    () => ({
-        InviteProjectMemberForm: ({ slug, projectId }: any) => (
-            <div data-testid="invite-form" data-slug={slug} data-project={projectId} />
-        ),
-    }),
-);
-jest.mock(
-    "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/role-select",
-    () => ({
-        ProjectMemberRoleSelect: ({ slug, projectId, memberId, currentRole }: any) => (
-            <div
-                data-testid={`role-select-${memberId}`}
-                data-slug={slug}
-                data-project={projectId}
-                data-role={currentRole}
-            />
-        ),
-    }),
-);
-
-jest.mock("@/app/style/button-style", () => ({ buttonStyles: jest.fn(() => "btn") }));
-jest.mock("@/app/style/Kpi", () => ({
-    Kpi: ({ label, value, helper, icon }: any) => (
-        <div data-testid={`kpi-${label}`}>
-            {icon}
-            <span data-testid={`kpi-${label}-value`}>{value}</span>
-            <span data-testid={`kpi-${label}-helper`}>{helper}</span>
+}));
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/member-actions", () => {
+    const action: any = jest.fn();
+    action.bind = jest.fn((_this: unknown, ...args: unknown[]) => ({ boundTo: args }));
+    return { removeProjectMemberAction: action };
+});
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/invite-project-member-form", () => ({
+    InviteProjectMemberForm: ({ slug, projectId }: any) => (
+        <div data-testid="invite-form" data-slug={slug} data-project={projectId} />
+    ),
+}));
+jest.mock("@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/members/role-select", () => ({
+    ProjectMemberRoleSelect: ({ slug, projectId, memberId, currentRole }: any) => (
+        <div data-testid={`role-select-${memberId}`} data-slug={slug} data-project={projectId} data-role={currentRole} />
+    ),
+}));
+jest.mock("@/components/ui/RowActions", () => ({
+    RowActions: ({ label, actions }: any) => (
+        <div data-testid={`actions:${label}`}>
+            {actions.map((a: any) => (
+                <span
+                    key={a.label}
+                    data-testid={`action:${a.label}`}
+                    data-bound={JSON.stringify(a.run?.boundTo ?? null)}
+                    data-description={a.confirm?.description ?? ""}
+                >
+                    {a.label}
+                </span>
+            ))}
         </div>
     ),
 }));
 jest.mock("@/components/ui/PageBody", () => ({
     PageBody: ({ children }: any) => <main>{children}</main>,
 }));
-jest.mock("@/components/ui/PageHeader", () => ({
-    PageHeader: ({ eyebrow, title, description }: any) => (
-        <header>
-            <span data-testid="eyebrow">{eyebrow}</span>
-            <h1>{title}</h1>
-            <p data-testid="description">{description}</p>
-        </header>
-    ),
-}));
 jest.mock("@/components/ui/BreadCrumb", () => ({
     Breadcrumb: ({ items }: any) => (
-        <nav data-testid="breadcrumb">
-            {items.map((i: any) => `${i.label}|${i.href ?? ""}`).join(" > ")}
-        </nav>
+        <nav data-testid="breadcrumb">{items.map((i: any) => `${i.label}|${i.href ?? ""}`).join(" > ")}</nav>
     ),
-}));
-jest.mock("@/components/ui/EmptyState", () => ({
-    EmptyState: ({ title, description }: any) => (
-        <div data-testid="empty-state">
-            <h3>{title}</h3>
-            <p>{description}</p>
-        </div>
-    ),
-}));
-jest.mock("@/components/ui/RoleBadge", () => ({
-    RoleBadge: ({ role }: any) => <span data-testid="role-badge">{role}</span>,
 }));
 jest.mock("@/components/ui/AccessDenied", () => ({
     AccessDeniedNotice: ({ message, workspaceSlug }: any) => (
@@ -117,26 +81,24 @@ jest.mock("@/components/ui/AccessDenied", () => ({
     ),
 }));
 
-// ---------- typed handles ----------
-const mockNotFound = notFound as unknown as jest.Mock;
+// ---------- handles ----------
 const mockRequireProjectAccess = requireProjectAccess as jest.Mock;
-const mockAccentFor = accentFor as unknown as jest.Mock;
-const mockButtonStyles = buttonStyles as unknown as jest.Mock;
 const mockRemove = removeProjectMemberAction as unknown as { bind: jest.Mock };
-const db = prisma as unknown as { projectMember: { findMany: jest.Mock } };
+const db = prisma as unknown as {
+    projectMember: { findMany: jest.Mock };
+    workspaceMember: { findMany: jest.Mock };
+};
 
 // ---------- helpers ----------
-const CREATED = new Date("2026-03-15T12:00:00Z");
-
 function makeAccess(overrides: Record<string, any> = {}) {
     const access: Record<string, any> = {
         userId: "me",
         workspaceRole: "MEMBER",
         projectRole: "VIEWER",
+        workspace: { id: "w1", slug: "acme", name: "Acme Inc" },
         ...overrides,
         project: { id: "p1", name: "Apollo", visibility: "PRIVATE", ...overrides.project },
     };
-    // Resolve the effective role with the real rules, like requireProjectAccess does.
     return {
         ...access,
         effectiveRole: effectiveProjectRole({
@@ -147,360 +109,204 @@ function makeAccess(overrides: Record<string, any> = {}) {
     };
 }
 
-function makeMember(
-    id: string,
-    role: string,
-    userOverrides: Record<string, unknown> = {},
-    overrides: Record<string, unknown> = {},
-) {
-    return {
-        id: `m-${id}`,
-        userId: `u-${id}`,
-        role,
-        createdAt: CREATED,
-        user: {
-            id: `u-${id}`,
-            name: `User ${id}`,
-            email: `${id}@x.com`,
-            image: null,
-            ...userOverrides,
-        },
-        ...overrides,
-    };
+type Person = { id: string; workspaceRole: string; projectRole?: string; name?: string | null; image?: string | null };
+
+/** Sets up the workspace and project membership tables. */
+function people(list: Person[]) {
+    db.workspaceMember.findMany.mockResolvedValue(
+        list.map((p) => ({
+            userId: p.id,
+            role: p.workspaceRole,
+            user: { id: p.id, name: p.name === undefined ? `User ${p.id}` : p.name, email: `${p.id}@x.com`, image: p.image ?? null },
+        })),
+    );
+    db.projectMember.findMany.mockResolvedValue(
+        list.filter((p) => p.projectRole).map((p) => ({ id: `pm-${p.id}`, userId: p.id, role: p.projectRole })),
+    );
 }
 
 async function renderPage() {
-    const ui = await ProjectMembersPage({
-        params: Promise.resolve({ slug: "acme", projectId: "p1" }),
-    });
-    return render(ui);
+    return render(await ProjectMembersPage({ params: Promise.resolve({ slug: "acme", projectId: "p1" }) }));
 }
+
+const list = () => within(screen.getByRole("region", { name: /People with access/ }));
+const rowOf = (name: string) => list().getByText(name).closest("li") as HTMLElement;
 
 beforeEach(() => {
     mockRequireProjectAccess.mockResolvedValue(makeAccess());
-    db.projectMember.findMany.mockResolvedValue([]);
+    people([{ id: "me", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Me Myself" }]);
 });
 
-afterEach(() => {
-    jest.clearAllMocks(); // keeps implementations, clears call history
-});
+afterEach(() => jest.clearAllMocks());
 
 // ---------- tests ----------
-describe("ProjectMembersPage – access handling", () => {
-    it("calls notFound when the project does not exist", async () => {
+describe("ProjectMembersPage – access errors", () => {
+    it("shows the not-found page when the project is gone", async () => {
         mockRequireProjectAccess.mockRejectedValue(new Error("Project not found."));
-
         await expect(renderPage()).rejects.toThrow("NEXT_NOT_FOUND");
-        expect(mockNotFound).toHaveBeenCalled();
     });
 
-    it("re-throws Next.js redirect errors", async () => {
-        const redirectError = Object.assign(new Error("redirect"), {
-            digest: "NEXT_REDIRECT;replace;/signin;307;",
-        });
-        mockRequireProjectAccess.mockRejectedValue(redirectError);
-
-        await expect(renderPage()).rejects.toBe(redirectError);
-        expect(mockNotFound).not.toHaveBeenCalled();
-    });
-
-    it("shows the access denied notice with the error message", async () => {
-        mockRequireProjectAccess.mockRejectedValue(new Error("No access to project."));
-
+    it("explains when access is denied", async () => {
+        mockRequireProjectAccess.mockRejectedValue(new Error("You do not have access to this project."));
         await renderPage();
-
-        const notice = screen.getByTestId("access-denied");
-        expect(notice).toHaveTextContent("No access to project.");
-        expect(notice).toHaveAttribute("data-slug", "acme");
-        expect(db.projectMember.findMany).not.toHaveBeenCalled();
-    });
-
-    it("falls back to a generic message for non-Error throws", async () => {
-        mockRequireProjectAccess.mockRejectedValue("boom");
-
-        await renderPage();
-
-        expect(screen.getByTestId("access-denied")).toHaveTextContent(
-            "Something went wrong loading this project.",
-        );
+        expect(screen.getByTestId("access-denied")).toHaveTextContent("You do not have access to this project.");
     });
 });
 
-describe("ProjectMembersPage – header and summary", () => {
-    it("renders the breadcrumb and header", async () => {
+describe("ProjectMembersPage – header and access", () => {
+    it("names the workspace and project in the breadcrumb", async () => {
         await renderPage();
 
         expect(screen.getByTestId("breadcrumb")).toHaveTextContent(
-            "Workspace|/workspace/acme > Apollo|/workspace/acme/project/p1 > Members|",
+            "Acme Inc|/workspace/acme > Apollo|/workspace/acme/project/p1 > Members|",
         );
-        expect(screen.getByTestId("eyebrow")).toHaveTextContent("Apollo");
-        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Project members");
+        expect(screen.getByRole("heading", { level: 1, name: "Members & access" })).toBeInTheDocument();
     });
 
-    it("describes a private project and shows the private access KPI", async () => {
+    it("explains a private project", async () => {
         await renderPage();
-
-        expect(screen.getByTestId("description")).toHaveTextContent(
-            "This project is private.",
+        expect(screen.getByText(/Private project/).closest("p")).toHaveTextContent(
+            "Only people added here, plus Acme Inc's owners and admins, can open it.",
         );
-        expect(screen.getByTestId("kpi-Access-value")).toHaveTextContent("Private");
-        expect(screen.getByTestId("kpi-Access-helper")).toHaveTextContent("Invited people only");
-        expect(screen.getByTestId("icon-lock")).toBeInTheDocument();
     });
 
-    it("describes a workspace-visible project and shows the workspace access KPI", async () => {
-        mockRequireProjectAccess.mockResolvedValue(
-            makeAccess({ project: { name: "Apollo", visibility: "WORKSPACE" } }),
-        );
-
+    it("explains a workspace-wide project", async () => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ project: { visibility: "WORKSPACE" } }));
         await renderPage();
-
-        expect(screen.getByTestId("description")).toHaveTextContent(
-            "Workspace members can open and edit this project; guests can't.",
+        expect(screen.getByText(/Shared with the workspace/).closest("p")).toHaveTextContent(
+            "Everyone in Acme Inc except guests can open and edit it.",
         );
-        expect(screen.getByTestId("kpi-Access-value")).toHaveTextContent("Workspace");
-        expect(screen.getByTestId("kpi-Access-helper")).toHaveTextContent(
-            "Open to the whole workspace",
-        );
-        expect(screen.getByTestId("icon-eye")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Change in project settings" })).toHaveAttribute("href", "/workspace/acme/project/p1");
     });
+});
 
-    it("counts members and project admins", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("a", "ADMIN"),
-            makeMember("b", "ADMIN"),
-            makeMember("c", "EDITOR"),
-            makeMember("d", "VIEWER"),
+describe("ProjectMembersPage – who has access", () => {
+    it("on a private project lists managers and added people only, with why they have access", async () => {
+        people([
+            { id: "own", workspaceRole: "OWNER" },
+            { id: "adm", workspaceRole: "ADMIN" },
+            { id: "mem", workspaceRole: "MEMBER" },
+            { id: "added", workspaceRole: "MEMBER", projectRole: "EDITOR" },
+            { id: "guest", workspaceRole: "GUEST" },
+            { id: "me", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Me Myself" },
         ]);
 
         await renderPage();
 
-        expect(screen.getByTestId("kpi-Members-value")).toHaveTextContent("4");
-        expect(screen.getByTestId("kpi-Project admins-value")).toHaveTextContent("2");
+        const names = list()
+            .getAllByRole("listitem")
+            .map((li) => li.querySelector("p span")?.textContent);
+        expect(names).toEqual(["User adm", "User own", "User added", "Me Myself"]);
+        expect(rowOf("User own")).toHaveTextContent("Workspace owner");
+        expect(rowOf("User adm")).toHaveTextContent("Workspace admin");
+        expect(rowOf("User added")).toHaveTextContent("Added to this project");
+        expect(screen.getByText("2 added to this project directly, 2 through the workspace.")).toBeInTheDocument();
     });
 
-    it("queries members for the project ordered by creation date", async () => {
+    it("on a workspace-wide project includes every member but not guests without a role", async () => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ project: { visibility: "WORKSPACE" } }));
+        people([
+            { id: "mem", workspaceRole: "MEMBER" },
+            { id: "guest", workspaceRole: "GUEST" },
+            { id: "guest2", workspaceRole: "GUEST", projectRole: "VIEWER" },
+            { id: "me", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Me Myself" },
+        ]);
+
         await renderPage();
 
-        expect(db.projectMember.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { projectId: "p1" },
-                orderBy: { createdAt: "asc" },
-            }),
-        );
+        expect(rowOf("User mem")).toHaveTextContent("Everyone in the workspace");
+        expect(rowOf("User mem")).toHaveTextContent("Editor");
+        expect(rowOf("User guest2")).toHaveTextContent("Viewer");
+        expect(list().queryByText("User guest")).not.toBeInTheDocument();
+    });
+
+    it("shows initials, the email fallback and photos", async () => {
+        people([
+            { id: "a", workspaceRole: "OWNER", name: "Ada Lovelace" },
+            { id: "b", workspaceRole: "ADMIN", name: null },
+            { id: "c", workspaceRole: "ADMIN", name: "Cy", image: "https://cdn.x/c.png" },
+        ]);
+
+        await renderPage();
+
+        expect(within(rowOf("Ada Lovelace")).getByText("AL")).toBeInTheDocument();
+        expect(list().getAllByText("b@x.com")).toHaveLength(2);
+        expect(within(rowOf("Cy")).getByTestId("avatar-image")).toHaveAttribute("data-src", "https://cdn.x/c.png");
     });
 });
 
-describe("ProjectMembersPage – add member section", () => {
+describe("ProjectMembersPage – managing people", () => {
     it.each([
-        ["workspace OWNER", { workspaceRole: "OWNER", projectRole: "VIEWER" }],
-        ["workspace ADMIN", { workspaceRole: "ADMIN", projectRole: "VIEWER" }],
-        ["project ADMIN", { workspaceRole: "MEMBER", projectRole: "ADMIN" }],
-    ])("shows the invite form for a %s", async (_label, roles) => {
-        mockRequireProjectAccess.mockResolvedValue(makeAccess(roles));
-
+        ["OWNER", null, true],
+        ["ADMIN", null, true],
+        ["MEMBER", "ADMIN", true],
+        ["MEMBER", "EDITOR", false],
+        ["MEMBER", "VIEWER", false],
+    ])("workspace %s with project role %s: add form shown %s", async (workspaceRole, projectRole, shown) => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ workspaceRole, projectRole }));
         await renderPage();
-
-        expect(screen.getByText("Add a member")).toBeInTheDocument();
-        const form = screen.getByTestId("invite-form");
-        expect(form).toHaveAttribute("data-slug", "acme");
-        expect(form).toHaveAttribute("data-project", "p1");
+        expect(!!screen.queryByTestId("invite-form")).toBe(shown);
     });
 
-    it("hides the invite form for non-admins", async () => {
-        await renderPage();
-
-        expect(screen.queryByText("Add a member")).not.toBeInTheDocument();
-        expect(screen.queryByTestId("invite-form")).not.toBeInTheDocument();
-    });
-});
-
-describe("ProjectMembersPage – empty state", () => {
-    it("tells admins to add people above", async () => {
+    it("lets project admins change roles and remove people who were added", async () => {
         mockRequireProjectAccess.mockResolvedValue(makeAccess({ projectRole: "ADMIN" }));
+        people([
+            { id: "me", workspaceRole: "MEMBER", projectRole: "ADMIN", name: "Me Myself" },
+            { id: "t", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Tom" },
+            { id: "boss", workspaceRole: "ADMIN" },
+        ]);
 
         await renderPage();
 
-        const empty = screen.getByTestId("empty-state");
-        expect(empty).toHaveTextContent("No one has been added yet");
-        expect(empty).toHaveTextContent("Add people above");
-        expect(screen.queryByRole("list")).not.toBeInTheDocument();
+        expect(screen.getByTestId("role-select-pm-t")).toHaveAttribute("data-role", "VIEWER");
+        const remove = screen.getByTestId("action:Remove from project");
+        expect(remove).toHaveAttribute("data-bound", JSON.stringify(["acme", "p1", "pm-t"]));
+        expect(mockRemove.bind).toHaveBeenCalledWith(null, "acme", "p1", "pm-t");
+        // Workspace admins are admins through the workspace: nothing to change here.
+        expect(within(rowOf("User boss")).queryByTestId(/^role-select/)).not.toBeInTheDocument();
+        expect(within(rowOf("User boss")).queryByTestId(/^actions:/)).not.toBeInTheDocument();
+        // Project admins can't edit themselves.
+        expect(screen.queryByTestId("role-select-pm-me")).not.toBeInTheDocument();
+        expect(rowOf("Me Myself")).toHaveTextContent("(you)");
     });
 
-    it("tells non-admins to ask a project admin", async () => {
+    it("says what removing does: losing access, or just the role on a shared project", async () => {
+        mockRequireProjectAccess.mockResolvedValue(makeAccess({ workspaceRole: "OWNER", projectRole: null, project: { visibility: "WORKSPACE" } }));
+        people([
+            { id: "me", workspaceRole: "OWNER", name: "Me Myself" },
+            { id: "m", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Mia" },
+            { id: "g", workspaceRole: "GUEST", projectRole: "EDITOR", name: "Gus" },
+        ]);
+
         await renderPage();
 
-        expect(screen.getByTestId("empty-state")).toHaveTextContent(
-            "A project admin can add people to this project.",
+        expect(within(screen.getByTestId("actions:Actions for Mia")).getByTestId("action:Remove from project")).toHaveAttribute(
+            "data-description",
+            "Their project role is removed. As a workspace member they can still open and edit it.",
+        );
+        expect(within(screen.getByTestId("actions:Actions for Gus")).getByTestId("action:Remove from project")).toHaveAttribute(
+            "data-description",
+            "They'll no longer be able to open this project.",
         );
     });
-});
 
-describe("ProjectMembersPage – member list", () => {
-    it("sorts members by role rank, keeps creation order within a role, and puts unknown roles last", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("viewer", "VIEWER"),
-            makeMember("guest", "GUEST"),
-            makeMember("editor1", "EDITOR"),
-            makeMember("admin", "ADMIN"),
-            makeMember("editor2", "EDITOR"),
+    it("shows only role pills to people who can't manage", async () => {
+        people([
+            { id: "me", workspaceRole: "MEMBER", projectRole: "VIEWER", name: "Me Myself" },
+            { id: "t", workspaceRole: "MEMBER", projectRole: "EDITOR", name: "Tom" },
         ]);
 
         await renderPage();
 
-        const roles = screen.getAllByTestId("role-badge").map((el) => el.textContent);
-        expect(roles).toEqual(["ADMIN", "EDITOR", "EDITOR", "VIEWER", "GUEST"]);
-
-        const names = screen.getAllByRole("listitem").map((li) => li.textContent);
-        expect(names[1]).toContain("User editor1");
-        expect(names[2]).toContain("User editor2");
+        expect(screen.queryByTestId(/^role-select/)).not.toBeInTheDocument();
+        expect(screen.queryByTestId(/^actions:/)).not.toBeInTheDocument();
+        expect(rowOf("Tom")).toHaveTextContent("Editor");
     });
 
-    it("shows name, email and the added date", async () => {
-        db.projectMember.findMany.mockResolvedValue([makeMember("ada", "EDITOR")]);
-
-        const { container } = await renderPage();
-
-        expect(screen.getByText("User ada")).toBeInTheDocument();
-        expect(screen.getByText("ada@x.com")).toBeInTheDocument();
-
-        const time = container.querySelector("time");
-        expect(time).toHaveAttribute("datetime", "2026-03-15T12:00:00.000Z");
-        expect(time).toHaveTextContent("Added Mar 2026");
-    });
-
-    it("falls back to the email when the member has no name", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("bob", "EDITOR", { name: null }),
-        ]);
-
+    it("explains project roles, marking the viewer's own", async () => {
         await renderPage();
-
-        expect(screen.getAllByText("bob@x.com")).toHaveLength(2); // display name + email line
-    });
-
-    it("renders initials from a two-word name", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("ada", "EDITOR", { name: "Ada Lovelace" }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByText("AL")).toBeInTheDocument();
-        expect(mockAccentFor).toHaveBeenCalledWith("u-ada");
-    });
-
-    it("renders two letters for a single-word name", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("grace", "EDITOR", { name: "Grace" }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByText("GR")).toBeInTheDocument();
-    });
-
-    it("uses email initials when the name is blank", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("bob", "EDITOR", { name: "   " }),
-        ]);
-
-        await renderPage();
-
-        expect(screen.getByText("BO")).toBeInTheDocument();
-    });
-
-    it("renders the avatar image instead of initials when there is one", async () => {
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("ada", "EDITOR", {
-                name: "Ada Lovelace",
-                image: "https://cdn.x/ada.png",
-            }),
-        ]);
-
-        const { container } = await renderPage();
-
-        expect(container.querySelector("img")).toHaveAttribute("src", "https://cdn.x/ada.png");
-        expect(screen.queryByText("AL")).not.toBeInTheDocument();
-    });
-});
-
-describe("ProjectMembersPage – member management", () => {
-    it("shows a role badge and no controls for read-only viewers", async () => {
-        db.projectMember.findMany.mockResolvedValue([makeMember("ada", "EDITOR")]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("role-badge")).toHaveTextContent("EDITOR");
-        expect(screen.queryByTestId("role-select-m-ada")).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
-    });
-
-    it("lets admins change roles and remove other members", async () => {
-        mockRequireProjectAccess.mockResolvedValue(makeAccess({ projectRole: "ADMIN" }));
-        db.projectMember.findMany.mockResolvedValue([makeMember("ada", "EDITOR")]);
-
-        await renderPage();
-
-        const select = screen.getByTestId("role-select-m-ada");
-        expect(select).toHaveAttribute("data-slug", "acme");
-        expect(select).toHaveAttribute("data-project", "p1");
-        expect(select).toHaveAttribute("data-role", "EDITOR");
-        expect(screen.queryByTestId("role-badge")).not.toBeInTheDocument();
-
-        const remove = screen.getByRole("button", { name: "Remove User ada" });
-        expect(remove).toHaveAttribute("type", "submit");
-        expect(remove).toHaveAttribute("title", "Remove User ada");
-        expect(mockButtonStyles).toHaveBeenCalledWith({ variant: "danger", size: "sm" });
-    });
-
-    it("binds the remove action to slug, project and member id", async () => {
-        mockRequireProjectAccess.mockResolvedValue(makeAccess({ projectRole: "ADMIN" }));
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("ada", "EDITOR"),
-            makeMember("bob", "VIEWER"),
-        ]);
-
-        await renderPage();
-
-        expect(mockRemove.bind).toHaveBeenCalledWith(null, "acme", "p1", "m-ada");
-        expect(mockRemove.bind).toHaveBeenCalledWith(null, "acme", "p1", "m-bob");
-        expect(mockRemove.bind).toHaveBeenCalledTimes(2);
-    });
-
-    it("marks the current user with a You badge and blocks self-management", async () => {
-        mockRequireProjectAccess.mockResolvedValue(
-            makeAccess({ userId: "u-me", projectRole: "ADMIN" }),
-        );
-        db.projectMember.findMany.mockResolvedValue([
-            makeMember("me", "ADMIN"),
-            makeMember("ada", "EDITOR"),
-        ]);
-
-        await renderPage();
-
-        const items = screen.getAllByRole("listitem");
-        const me = items[0];
-        const ada = items[1];
-
-        expect(within(me).getByText("You")).toBeInTheDocument();
-        expect(within(me).getByTestId("role-badge")).toHaveTextContent("ADMIN");
-        expect(within(me).queryByRole("button")).not.toBeInTheDocument();
-        expect(within(me).queryByTestId("role-select-m-me")).not.toBeInTheDocument();
-
-        expect(within(ada).queryByText("You")).not.toBeInTheDocument();
-        expect(within(ada).getByRole("button", { name: "Remove User ada" })).toBeInTheDocument();
-        expect(mockRemove.bind).toHaveBeenCalledTimes(1);
-    });
-
-    it("lets workspace owners manage members even without a project role", async () => {
-        mockRequireProjectAccess.mockResolvedValue(
-            makeAccess({ workspaceRole: "OWNER", projectRole: null }),
-        );
-        db.projectMember.findMany.mockResolvedValue([makeMember("ada", "VIEWER")]);
-
-        await renderPage();
-
-        expect(screen.getByTestId("role-select-m-ada")).toBeInTheDocument();
+        const guide = within(screen.getByRole("complementary", { name: "Project roles" }));
+        expect(guide.getByText("Viewer").closest("li")).toHaveTextContent("Your role");
+        expect(guide.getByText("Workspace owners and admins are always admins of every project.")).toBeInTheDocument();
     });
 });
