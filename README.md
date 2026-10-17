@@ -11,7 +11,7 @@ Workvanta is a team workspace and project management app. Teams create workspace
 - **Kanban board.** Drag-and-drop tasks across To do, In progress, In review and Done. Tasks have a priority, assignee, due date and subtasks.
 - **Collaboration.** Comments with `@mentions`, file attachments up to 10 MB, and an activity history on every task. Attachments are stored privately and only open for people who can see the project.
 - **Live board.** When a teammate creates, moves, edits or deletes a task, open boards, lists and task pages update within a second, without a reload. Updates go only to people who can open that project.
-- **Notifications.** In-app and email notifications for assignments, comments and mentions, delivered in real time over WebSockets.
+- **Notifications.** In-app and email notifications for assignments, comments and mentions, delivered in real time. Due-date reminders and a morning digest email.
 - **Accounts and security.** Sign in with email and password or with Google or GitHub. Also included: email verification, password reset, two-factor authentication (TOTP with backup codes), a session list with remote sign-out, and rate limiting.
 - **Settings.** Profile, linked accounts, theme, language, and account deletion.
 
@@ -22,8 +22,8 @@ Workvanta is a team workspace and project management app. Teams create workspace
 | Framework | [Next.js 16](https://nextjs.org) (App Router, Server Actions), React 19, TypeScript |
 | Styling | Tailwind CSS 4, shadcn/ui, Base UI, lucide-react |
 | Database | PostgreSQL 17 with [Prisma 7](https://www.prisma.io) (`@prisma/adapter-pg`) |
-| Background jobs | BullMQ on Redis |
-| Real time | Socket.IO with a Redis pub/sub adapter |
+| Real time | [Ably](https://ably.com) (one private channel per user) |
+| Scheduled jobs | Cron routes, called by [Upstash QStash](https://upstash.com/docs/qstash) or Vercel Cron |
 | Rate limiting | Upstash Redis |
 | File storage | Cloudinary (private delivery, signed expiring links) |
 | Email | Nodemailer over SMTP |
@@ -31,31 +31,22 @@ Workvanta is a team workspace and project management app. Teams create workspace
 
 ## Architecture
 
-The app runs as three processes that share PostgreSQL and Redis:
+Everything runs inside the Next.js app; there are no separate servers to host.
 
 ```
-┌──────────────┐   queue jobs    ┌──────────────┐
-│  Next.js app │ ──────────────▶ │    Worker    │  sends notifications + emails
-│  (npm run    │                 │ (npm run     │
-│     dev)     │ ◀─┐             │   worker)    │
-└──────┬───────┘   │             └──────┬───────┘
-       │ publish   │ socket token        │ publish
-       ▼           │                     ▼
-┌─────────────────────────────────────────────────┐
-│                      Redis                      │
-└─────────────────────────────────────────────────┘
+┌──────────────┐  publish   ┌──────┐  user:<id> channel  ┌─────────┐
+│  Next.js app │ ─────────▶ │ Ably │ ──────────────────▶ │ Browser │
+└──────┬───────┘            └──────┘                     └─────────┘
        ▲
-       │ subscribe
-┌──────┴───────┐   WebSocket   ┌──────────┐
-│ Socket server│ ◀───────────▶ │ Browser  │
-│ (npm run     │               └──────────┘
-│   socket)    │
+       │ every 15 min / every morning (Bearer CRON_SECRET)
+┌──────┴───────┐
+│ QStash cron  │
 └──────────────┘
 ```
 
-- **Next.js app.** Serves the UI and runs every server action. It writes to PostgreSQL, puts notification jobs on a BullMQ queue, and publishes realtime events to Redis.
-- **Worker** (`src/lib/services/worker/worker.ts`). Processes the notification jobs: it creates in-app notifications and sends emails. It also runs two repeating jobs: a sweep every 15 minutes that reminds assignees when a task is due within a day or has become overdue, and a morning digest email of each person's overdue, due-today and upcoming tasks.
-- **Socket server** (`src/lib/services/socket/server.ts`). Pushes events to connected browsers: new comments, task changes (the live board) and notifications. Project events are addressed to individual users who can open the project, never broadcast to a whole workspace. A browser authenticates with a short-lived signed token from `/api/socket-token`, and can only join rooms for workspaces it belongs to.
+- **Notifications.** A server action that assigns a task, comments or mentions someone saves its change, responds, and then (with Next's `after()`) creates the in-app notification and sends the email. A slow mail server never holds up the action, and a failure is logged without undoing the change.
+- **Live updates.** The app publishes events (task changes, new comments, new notifications) to each recipient's private Ably channel, `user:<id>`, only for people who can open that project. A browser gets a short-lived token from `/api/realtime-token` that lets it subscribe to its own channel and nothing else. Without `ABLY_API_KEY`, live updates are off and pages update on the next load.
+- **Scheduled jobs.** `/api/cron/due-dates` sends due-soon and overdue reminders; `/api/cron/digest` sends the morning digest email. Both only run for requests carrying `Authorization: Bearer <CRON_SECRET>`. See [Scheduled jobs](#scheduled-jobs).
 
 ## Getting started
 
@@ -63,8 +54,8 @@ The app runs as three processes that share PostgreSQL and Redis:
 
 - Node.js 20 or later
 - Docker, for the local PostgreSQL database
-- A Redis server for the queue and real-time events (local Docker works)
 - Accounts for Upstash Redis, Cloudinary and an SMTP provider. OAuth apps for Google and GitHub are optional.
+- An [Ably](https://ably.com) account for live updates (optional, free plan, no card).
 
 ### 1. Install dependencies
 
@@ -86,7 +77,6 @@ DATABASE_URL=postgresql://workvanta:change-me@localhost:5432/workvanta
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
 
 # OAuth sign-in (optional)
 GOOGLE_CLIENT_ID=
@@ -104,16 +94,15 @@ SMTP_FROM="Workvanta <no-reply@example.com>"
 # Security: generate each secret with `openssl rand -hex 32`
 TWO_FACTOR_ENCRYPTION_KEY=
 EMAIL_RATE_LIMIT_SECRET=
-SOCKET_AUTH_SECRET=
+CRON_SECRET=
 
-# Redis: BullMQ queue + realtime pub/sub
-REDIS_URL=redis://localhost:6379
+# Ably: live updates (optional; without it pages update on the next load)
+ABLY_API_KEY=
 
-# Due date digest email: the hour (0-23) and time zone it goes out in (optional)
-DIGEST_HOUR=8
+# Due date digest email: the time zone "today" means (optional)
 DIGEST_TIMEZONE=UTC
 
-# Upstash Redis: rate limiting
+# Upstash Redis: rate limiting, and sending the digest once a day
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
@@ -126,11 +115,10 @@ For OAuth, register these callback URLs with Google and GitHub:
 - `http://localhost:3000/api/oauth/google/callback`
 - `http://localhost:3000/api/oauth/github/callback`
 
-### 3. Start PostgreSQL and Redis
+### 3. Start PostgreSQL
 
 ```bash
-docker compose up -d                                  # PostgreSQL
-docker run -d --name workvanta-redis -p 6379:6379 redis:7  # Redis
+docker compose up -d   # PostgreSQL
 ```
 
 ### 4. Set up the database
@@ -155,13 +143,26 @@ The second command should report no differences. If it lists any, your database 
 
 ### 5. Run the app
 
-Run each of these in its own terminal:
+```bash
+npm run dev      # → http://localhost:3000
+```
+
+To try the scheduled jobs locally, call them with your `CRON_SECRET`:
 
 ```bash
-npm run dev      # Next.js app  → http://localhost:3000
-npm run worker   # notification worker
-npm run socket   # realtime server → http://localhost:3001
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/due-dates
 ```
+
+## Scheduled jobs
+
+Two routes need calling on a schedule. [Upstash QStash](https://console.upstash.com/qstash) does this for free on the Upstash account the app already uses (the free plan includes up to 1,000 messages a day; these use about 100):
+
+1. In the Upstash console, open **QStash → Schedules → Create schedule**.
+2. Due-date reminders: destination `https://<your-app>/api/cron/due-dates`, cron `*/15 * * * *`.
+3. Morning digest: destination `https://<your-app>/api/cron/digest`, cron `0 8 * * *` (set the schedule's time zone to match `DIGEST_TIMEZONE`).
+4. For both, add the header `Authorization: Bearer <your CRON_SECRET>` (QStash passes it through to the route).
+
+On Vercel, Vercel Cron can call the same routes and sends the `CRON_SECRET` header for you; its free Hobby plan allows only daily jobs, so use QStash for the 15-minute reminders.
 
 ## Scripts
 
@@ -170,8 +171,6 @@ npm run socket   # realtime server → http://localhost:3001
 | `npm run dev` | Start the Next.js dev server |
 | `npm run build` | Build for production |
 | `npm run start` | Start the production server |
-| `npm run worker` | Start the BullMQ notification worker |
-| `npm run socket` | Start the Socket.IO realtime server (port `SOCKET_PORT` or `PORT`, default `3001`) |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run the Jest test suite |
 | `npm run test:watch` | Run tests in watch mode |
@@ -222,17 +221,16 @@ src/
       (workspace)/         Workspaces, team, projects, Kanban board, tasks
       (settings)/          Profile, security, sessions, appearance, language
       notifications/       Notification center
-    api/                   OAuth routes and socket token endpoint
+    api/                   OAuth, realtime token and cron routes
     invite/[token]/        Invitation acceptance
   components/ui/           Shared UI components
   lib/
     auth/                  Sessions, OAuth, 2FA, roles and permissions
     db/                    Prisma clients
     email/                 Email templates and sending
-    notifications/         Notification creation
-    queue/                 BullMQ queues
+    notifications/         Notification creation, delivery, due-date jobs
     publisher/             Realtime event publishing
-    services/              Worker and socket server entry points
+    realtime/              Ably client, channels, live refresh
     validations/           Zod schemas
   proxy.ts                 Redirects signed-out visitors to sign-in
 ```
@@ -247,14 +245,15 @@ npm test
 
 `e2e/team-journey.spec.ts` runs the core journey in a real browser against a real database: sign up, create a workspace and project, add a task, drag it to In progress, invite a teammate by email, and have them sign up, accept and see the work. Emails are caught by a small SMTP server inside the test run, so no mail provider is needed.
 
-You need PostgreSQL (with migrations applied) and Redis running locally:
+You need PostgreSQL running locally, with migrations applied:
 
 ```bash
 npx playwright install chromium          # once
 E2E_DATABASE_URL=postgresql://user:pass@localhost:5432/workvanta_e2e \
-E2E_REDIS_URL=redis://localhost:6379 \
 npm run test:e2e                         # builds and starts the app on port 3100
 ```
+
+The live-update check needs Ably: set `E2E_ABLY_API_KEY` (in CI, as a repository secret of that name); without it that one test is skipped.
 
 Use a separate database: the test creates real users and workspaces. Set `E2E_DEV=1` to run against `next dev` instead of a production build (faster while iterating).
 

@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { E2E_PORT, E2E_SOCKET_PORT, e2eEnv } from "./e2e/env";
+import { E2E_PORT, e2eEnv } from "./e2e/env";
 
 /**
- * End-to-end tests. Needs PostgreSQL (with migrations applied) and Redis;
+ * End-to-end tests. Needs PostgreSQL (with migrations applied);
  * see README → "End-to-end tests". Run with `npm run test:e2e`.
  *
  * By default the app is built and started in production mode. Set
@@ -40,16 +40,6 @@ export default defineConfig({
             timeout: 240_000,
             reuseExistingServer: !isCI,
             env: useDev ? { ...e2eEnv, NODE_ENV: "development" } : e2eEnv,
-            stdout: "pipe",
-            stderr: "pipe",
-        },
-        {
-            // Realtime (live board, comments, notifications).
-            command: "npx tsx src/lib/services/socket/server.ts",
-            url: `http://localhost:${E2E_SOCKET_PORT}/health`,
-            timeout: 60_000,
-            reuseExistingServer: !isCI,
-            env: { ...e2eEnv, SOCKET_PORT: String(E2E_SOCKET_PORT) },
             stdout: "pipe",
             stderr: "pipe",
         },

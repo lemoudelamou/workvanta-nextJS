@@ -1,4 +1,4 @@
-import { digestSchedule, runDailyDigest, runDueDateSweep } from "./due-date-jobs";
+import { digestTimeZone, runDailyDigest, runDueDateSweep } from "./due-date-jobs";
 import { prisma } from "@/lib/db/prisma-client";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { findDigestTasks, findDueReminders } from "@/lib/notifications/due-dates";
@@ -28,19 +28,15 @@ function store(setResult: unknown = "OK") {
 
 beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.DIGEST_HOUR;
     delete process.env.DIGEST_TIMEZONE;
     process.env.NEXT_PUBLIC_APP_URL = "https://app.test/";
 });
 
-describe("digestSchedule", () => {
-    it("defaults to 8am UTC and reads the environment", () => {
-        expect(digestSchedule()).toEqual({ pattern: "0 8 * * *", tz: "UTC" });
-        process.env.DIGEST_HOUR = "7";
+describe("digestTimeZone", () => {
+    it("defaults to UTC and reads the environment", () => {
+        expect(digestTimeZone()).toBe("UTC");
         process.env.DIGEST_TIMEZONE = "Europe/Berlin";
-        expect(digestSchedule()).toEqual({ pattern: "0 7 * * *", tz: "Europe/Berlin" });
-        process.env.DIGEST_HOUR = "31";
-        expect(digestSchedule().pattern).toBe("0 8 * * *");
+        expect(digestTimeZone()).toBe("Europe/Berlin");
     });
 });
 
@@ -103,7 +99,7 @@ describe("runDailyDigest", () => {
     it("emails people with something due, unless they turned it off", async () => {
         const once = store();
         expect(await runDailyDigest(once, NOW)).toEqual({ sent: 1 });
-        expect(once.set).toHaveBeenCalledWith("digest:u1:2026-10-17", "1", "EX", 172800, "NX");
+        expect(once.set).toHaveBeenCalledWith("digest:u1:2026-10-17", "1", { nx: true, ex: 172800 });
         expect(sendDueDigestEmail).toHaveBeenCalledTimes(1);
         const { email, name, digest } = (sendDueDigestEmail as jest.Mock).mock.calls[0][0];
         expect([email, name]).toEqual(["maya@x.com", "Maya Chen"]);
