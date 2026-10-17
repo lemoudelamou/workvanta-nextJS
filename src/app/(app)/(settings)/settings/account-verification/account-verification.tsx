@@ -97,10 +97,8 @@ export default function AccountVerification({
                             </p>
 
                             <p className="mt-2 max-w-2xl text-sm leading-6 text-amber-800/70 dark:text-amber-200/70">
-                                Verify your email address to confirm
-                                that you own it. If you did not
-                                receive the original email, you can
-                                send a new verification link below.
+                                We sent a link to confirm this address is
+                                yours. Can&apos;t find it? Send a new one.
                             </p>
                         </div>
                     </div>

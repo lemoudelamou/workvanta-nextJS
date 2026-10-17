@@ -233,11 +233,11 @@ export default function TwoFactorSettings({
     }
 
     return (
-        <div className="px-5 py-6 sm:px-7 sm:py-7">
+        <div className="p-5 sm:p-6">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 items-start gap-4">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-300">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground">
                         {enabled ? (
                             <ShieldCheck className="size-5" aria-hidden="true" />
                         ) : (
@@ -255,17 +255,17 @@ export default function TwoFactorSettings({
                                 className={[
                                     "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
                                     enabled
-                                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
-                                        : "border-slate-200 bg-slate-50 text-slate-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-slate-400",
+                                        ? "border-transparent bg-status-done/12 text-status-done"
+                                        : "border-transparent bg-muted text-muted-foreground",
                                 ].join(" ")}
                             >
-                                {enabled ? "Enabled" : "Not enabled"}
+                                {enabled ? "On" : "Off"}
                             </span>
                         </div>
 
                         <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                            Add an authenticator app to protect your account
-                            with an additional verification step.
+                            Ask for a code from an authenticator app each time
+                            you sign in, so a stolen password isn&apos;t enough.
                         </p>
                     </div>
                 </div>

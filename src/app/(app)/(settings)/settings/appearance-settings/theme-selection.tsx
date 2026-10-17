@@ -118,7 +118,7 @@ export default function ThemeSelection({
     }
 
     return (
-        <div className="p-5 sm:p-7">
+        <div className="p-5 sm:p-6">
             <section>
                 <div className="mb-4">
                     <p className="text-sm font-semibold text-foreground">

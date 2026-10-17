@@ -47,10 +47,17 @@ export async function updateProfile(formData: FormData) {
 
 
 
+/** Languages the app can be shown in. Anything else is rejected. */
+const SUPPORTED_LANGUAGES = new Set(["en"]);
+
 export async function updateLanguage(
     language: string,
 ) {
     const userId = await requireUser();
+
+    if (!SUPPORTED_LANGUAGES.has(language)) {
+        throw new Error("Unsupported language");
+    }
 
     await prisma.userPreference.upsert({
         where: {
