@@ -1,4 +1,8 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+
+import { firstSteps, showFirstSteps } from "@/lib/onboarding/first-steps";
+import { WELCOME_DISMISSED_COOKIE } from "@/lib/navigation/shell-cookies";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -168,6 +172,34 @@ export default async function DashboardPage() {
             })),
     };
 
+    // The welcome checklist, from what this person has done so far.
+    const managedIds = [...ownerOrAdminWorkspaceIds];
+    const [firstTask, pendingInvite, cookieStore] = await Promise.all([
+        accessibleProjectIds.size
+            ? prisma.task.findFirst({ where: { projectId: { in: [...accessibleProjectIds] } }, select: { id: true } })
+            : null,
+        managedIds.length
+            ? prisma.invitation.findFirst({ where: { workspaceId: { in: managedIds }, acceptedAt: null }, select: { id: true } })
+            : null,
+        cookies(),
+    ]);
+    const firstWorkspace = memberships[0]?.workspace ?? null;
+    const steps = firstSteps(
+        {
+            hasWorkspace: memberships.length > 0,
+            hasTeammate: memberships.some((m) => m.workspace._count.members > 1) || Boolean(pendingInvite),
+            hasProject: accessibleProjectIds.size > 0,
+            hasTask: Boolean(firstTask),
+        },
+        {
+            workspaceSlug: firstWorkspace?.slug ?? null,
+            projectHref: rawRecentProjects[0]
+                ? `/workspace/${rawRecentProjects[0].workspace.slug}/project/${rawRecentProjects[0].id}`
+                : null,
+        },
+    );
+    const welcome = showFirstSteps(steps, cookieStore.get(WELCOME_DISMISSED_COOKIE)?.value === "1") ? steps : null;
+
     return (
         <PageBody glow="#4b3fd9">
             <DashboardView
@@ -177,6 +209,7 @@ export default async function DashboardPage() {
                 recentProjects={recentProjects}
                 accessibleProjectCountByWorkspace={accessibleProjectCountByWorkspace}
                 totalAccessibleProjectCount={accessibleProjectIds.size}
+                welcome={welcome}
             />
         </PageBody>
     );

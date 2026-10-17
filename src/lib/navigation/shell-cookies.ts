@@ -7,3 +7,6 @@ export const LAST_WORKSPACE_COOKIE = "wv-last-workspace";
 
 /** "collapsed" when the person shrank the sidebar to icons. */
 export const SIDEBAR_COOKIE = "wv-sidebar";
+
+/** "1" once the person closed the dashboard's welcome card. */
+export const WELCOME_DISMISSED_COOKIE = "wv-welcome-dismissed";
