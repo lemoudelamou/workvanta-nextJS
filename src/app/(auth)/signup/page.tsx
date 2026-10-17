@@ -27,7 +27,7 @@ export default async function SignupPage({
 
                 <section className="flex min-h-screen items-center justify-center px-6 py-12">
                     <div className="w-full max-w-md">
-                        <WorkvantaBrand className="mb-12 justify-center lg:hidden" />
+                        <WorkvantaBrand href="/" className="mb-12 justify-center lg:hidden" />
 
                         <SignupGate />
 
