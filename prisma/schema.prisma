@@ -67,6 +67,8 @@ enum NotificationType {
   INVITATION
   TASK_DUE_SOON
   TASK_OVERDUE
+  /// The last open task this one was waiting on is done.
+  TASK_UNBLOCKED
 }
 
 model User {

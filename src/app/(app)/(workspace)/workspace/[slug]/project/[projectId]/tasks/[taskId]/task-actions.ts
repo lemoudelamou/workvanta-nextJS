@@ -30,6 +30,7 @@ import { createCommentSchema } from "@/lib/validations/comments";
 import { createSubtaskSchema } from "@/lib/validations/subtask";
 
 import {
+    notifyTaskDone,
     queueTaskAssignedNotification,
     queueTaskCommentedNotification,
     queueMentionNotification,
@@ -250,6 +251,8 @@ export async function reorderTasksAction({
 
     if (changes.length === 0) return;
 
+    const finished = destinationStatus === "DONE" && sourceStatus !== "DONE";
+
     const repeatId = await prisma.$transaction(async (tx) => {
         for (const [id, { status, position }] of changes) {
             await tx.task.update({ where: { id }, data: { status, position } });
@@ -270,11 +273,18 @@ export async function reorderTasksAction({
         }
 
         // Finishing a repeating task brings the next one in.
-        return destinationStatus === "DONE" && sourceStatus !== "DONE"
-            ? createNextOccurrence(tx, task.id, userId)
-            : null;
+        return finished ? createNextOccurrence(tx, task.id, userId) : null;
     });
 
+    if (finished) {
+        await notifyTaskDone({
+            taskId: task.id,
+            projectId: task.projectId,
+            workspaceId: task.project.workspaceId,
+            workspaceSlug: slug,
+            completedBy: userId,
+        });
+    }
     await publishTaskChanged(projectId, { taskId, kind: "moved" });
     if (repeatId) await publishTaskChanged(projectId, { taskId: repeatId, kind: "created" });
     revalidatePath(projectPath(slug, projectId));
@@ -340,6 +350,7 @@ export async function updateTaskAction(
     const statusChanged = task.status !== data.status;
     const priorityChanged = task.priority !== data.priority;
     const assigneeChanged = task.assigneeId !== assigneeId;
+    const finished = statusChanged && data.status === "DONE";
 
     const repeatId = await prisma.$transaction(async (tx) => {
         const position = statusChanged
@@ -385,8 +396,18 @@ export async function updateTaskAction(
         if (assigneeChanged) await log("TASK_ASSIGNED", task.assigneeId, assigneeId);
 
         // Finishing a repeating task brings the next one in.
-        return statusChanged && data.status === "DONE" ? createNextOccurrence(tx, task.id, userId) : null;
+        return finished ? createNextOccurrence(tx, task.id, userId) : null;
     });
+
+    if (finished) {
+        await notifyTaskDone({
+            taskId: task.id,
+            projectId: task.projectId,
+            workspaceId,
+            workspaceSlug: slug,
+            completedBy: userId,
+        });
+    }
 
     if (assigneeChanged && assigneeId && assigneeId !== userId) {
         await queueTaskAssignedNotification({

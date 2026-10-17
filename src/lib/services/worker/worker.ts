@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db/prisma-client";
 import { createNotification, sendNotificationEmailIfEnabled } from "@/lib/notifications/create-notification";
 import { sendMentionEmail, sendTaskAssignmentEmail, sendTaskCommentedEmail } from "@/lib/email/mailer";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
-import type { MentionJob, TaskAssignedJob, TaskCommentedJob } from "../../queue/types";
+import type { MentionJob, TaskAssignedJob, TaskCommentedJob, TaskDoneJob } from "../../queue/types";
+import { newlyUnblocked } from "@/lib/tasks/dependencies";
 import { notificationQueue } from "../../queue/notification.queue";
 import { digestSchedule, runDailyDigest, runDueDateSweep } from "@/lib/notifications/due-date-jobs";
 
@@ -26,7 +27,8 @@ type DeliverInput = {
     type: NotificationInput["type"];
     dedupeKey: string;
     data: NotificationInput["data"];
-    sendEmail: (recipientEmail: string) => Promise<void>;
+    /** Leave out for in-app only. */
+    sendEmail?: (recipientEmail: string) => Promise<void>;
 };
 
 async function deliver({ userId, workspaceId, type, dedupeKey, data, sendEmail }: DeliverInput) {
@@ -40,6 +42,8 @@ async function deliver({ userId, workspaceId, type, dedupeKey, data, sendEmail }
             data: { userId, notificationId: notification.id },
         });
     }
+
+    if (!sendEmail) return;
 
     const recipient = await prisma.user.findUnique({
         where: { id: userId },
@@ -120,6 +124,40 @@ async function handleMention(job: MentionJob) {
     });
 }
 
+async function handleTaskDone(job: TaskDoneJob) {
+    const waiting = await prisma.task.findMany({
+        where: { blockedBy: { some: { blockingTaskId: job.taskId } } },
+        select: {
+            id: true,
+            title: true,
+            status: true,
+            assigneeId: true,
+            blockedBy: { select: { blockingTask: { select: { status: true } } } },
+        },
+    });
+
+    for (const task of newlyUnblocked(waiting)) {
+        const userId = task.assigneeId!;
+        // Whoever finished the blocker already knows.
+        if (userId === job.completedBy) continue;
+
+        await deliver({
+            userId,
+            workspaceId: job.workspaceId,
+            type: "TASK_UNBLOCKED",
+            dedupeKey: `task-unblocked:${task.id}:${job.taskId}:${job.completedAt}`,
+            data: {
+                taskId: task.id,
+                projectId: job.projectId,
+                workspaceSlug: job.workspaceSlug,
+                taskTitle: task.title,
+                completedBy: job.completedBy,
+                blockerId: job.taskId,
+            },
+        });
+    }
+}
+
 async function processJob(job: Job) {
     switch (job.name) {
         case "task-assigned":
@@ -128,6 +166,8 @@ async function processJob(job: Job) {
             return handleTaskCommented(job.data as TaskCommentedJob);
         case "mention":
             return handleMention(job.data as MentionJob);
+        case "task-done":
+            return handleTaskDone(job.data as TaskDoneJob);
         case "due-date-sweep":
             return runDueDateSweep();
         case "daily-digest":

@@ -123,6 +123,7 @@ describe("helpers", () => {
 
     it("has a verb for each type", () => {
         expect(notificationVerb("TASK_COMMENTED")).toBe("commented on");
+        expect(notificationVerb("TASK_UNBLOCKED")).toBe("unblocked");
         expect(notificationVerb("WHATEVER")).toBe("sent you a notification");
     });
 });
