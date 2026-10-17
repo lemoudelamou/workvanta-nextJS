@@ -53,6 +53,15 @@ export default async function DashboardPage() {
         memberships.filter((m) => m.role === "GUEST").map((m) => m.workspace.id),
     );
 
+    // Everyone else in any of these workspaces, each person once.
+    const teammates = workspaceIds.length
+        ? await prisma.workspaceMember.findMany({
+              where: { workspaceId: { in: workspaceIds }, userId: { not: session.user.id } },
+              distinct: ["userId"],
+              select: { userId: true },
+          })
+        : [];
+
     const [allProjects, ownProjectMemberships] = workspaceIds.length
         ? await Promise.all([
             prisma.project.findMany({
@@ -210,6 +219,7 @@ export default async function DashboardPage() {
                 recentProjects={recentProjects}
                 accessibleProjectCountByWorkspace={accessibleProjectCountByWorkspace}
                 totalAccessibleProjectCount={accessibleProjectIds.size}
+                teammateCount={teammates.length}
                 welcome={welcome}
             />
         </PageBody>
