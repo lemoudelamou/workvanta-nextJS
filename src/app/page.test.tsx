@@ -28,6 +28,10 @@ describe("HomePage", () => {
         expect(toDashboard.length).toBeGreaterThan(0);
         toDashboard.forEach((link) => expect(link).toHaveAttribute("href", "/dashboard"));
         expect(screen.queryByRole("link", { name: /Get started/ })).not.toBeInTheDocument();
+        for (const link of screen.getAllByRole("link")) {
+            expect(link).not.toHaveAttribute("href", "/signin");
+            expect(link).not.toHaveAttribute("href", "/signup");
+        }
     });
 
     it("shows visitors what Workvanta is and how to start", async () => {

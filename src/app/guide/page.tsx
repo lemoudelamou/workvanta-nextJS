@@ -58,16 +58,21 @@ const projectRoles = (["ADMIN", "EDITOR", "VIEWER"] as const).map((role) => ({
     text: PROJECT_ROLE_DESCRIPTIONS[role],
 }));
 
-const SECTIONS: Section[] = [
+// Built per reader: someone signed in skips the sign-up instructions.
+const sections = (signedIn: boolean): Section[] => [
     {
         id: "start",
         title: "Create your account",
         body: (
             <>
+                {signedIn && (
+                    <Tip>
+                        You&apos;re already signed in, so you can skip this step and go straight to{" "}
+                        <a href="#workspace">setting up a workspace</a>.
+                    </Tip>
+                )}
                 <Steps>
-                    <li>
-                        Go to <Link href="/signup">Sign up</Link>.
-                    </li>
+                    <li>{signedIn ? <>Open the <UI>Sign up</UI> page.</> : <>Go to <Link href="/signup">Sign up</Link>.</>}</li>
                     <li>
                         Choose <UI>Google</UI> or <UI>GitHub</UI> to sign up in one click, or <UI>Create account</UI> to use
                         your email and a password (at least 8 characters, with a capital letter and a number).
@@ -402,10 +407,12 @@ const SECTIONS: Section[] = [
 
 export default async function GuidePage() {
     const session = await getSession();
+    const signedIn = Boolean(session?.user?.id);
+    const SECTIONS = sections(signedIn);
 
     return (
         <div className="min-h-screen bg-canvas text-foreground">
-            <SiteHeader signedIn={Boolean(session?.user?.id)} />
+            <SiteHeader signedIn={signedIn} />
 
             <main className="mx-auto max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
                 <div className="max-w-2xl">
@@ -449,7 +456,7 @@ export default async function GuidePage() {
                 </div>
             </main>
 
-            <SiteFooter />
+            <SiteFooter signedIn={signedIn} />
         </div>
     );
 }
