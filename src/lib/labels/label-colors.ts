@@ -35,6 +35,24 @@ export function normalizeLabelName(name: string) {
     return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+/** Ready-made labels every project can pick from. One is created in the project the first time it's used. */
+export const PRESET_LABELS: { name: string; color: LabelColor }[] = [
+    { name: "Bug", color: "red" },
+    { name: "Feature", color: "blue" },
+    { name: "Improvement", color: "violet" },
+    { name: "Urgent", color: "orange" },
+    { name: "Design", color: "pink" },
+    { name: "Documentation", color: "teal" },
+    { name: "Research", color: "amber" },
+    { name: "Testing", color: "green" },
+    { name: "Chore", color: "gray" },
+];
+
+export function presetLabel(name: string) {
+    const normalized = normalizeLabelName(name);
+    return PRESET_LABELS.find((p) => normalizeLabelName(p.name) === normalized);
+}
+
 /** Labels in a stable order: by name. */
 export function sortLabels<T extends { name: string }>(labels: T[]) {
     return [...labels].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));

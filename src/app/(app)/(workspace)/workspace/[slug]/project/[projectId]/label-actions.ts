@@ -12,6 +12,7 @@ import {
     LABEL_NAME_MAX,
     nextLabelColor,
     normalizeLabelName,
+    presetLabel,
     type TaskLabelView,
 } from "@/lib/labels/label-colors";
 
@@ -45,7 +46,7 @@ function refresh(slug: string, projectId: string, taskId?: string) {
     if (taskId) revalidatePath(`${projectPath(slug, projectId)}/tasks/${taskId}`);
 }
 
-/** Anyone who can edit tasks can add a label to the project. */
+/** Anyone who can edit tasks can add a label to the project, custom or ready-made. */
 export async function createLabelAction(
     slug: string,
     projectId: string,
@@ -69,7 +70,8 @@ export async function createLabelAction(
                 projectId: access.project.id,
                 name: cleaned.name,
                 normalizedName,
-                color: nextLabelColor(used.map((l) => l.color)),
+                // A ready-made label keeps its usual colour.
+                color: presetLabel(cleaned.name)?.color ?? nextLabelColor(used.map((l) => l.color)),
             },
             select: { id: true, name: true, color: true },
         });

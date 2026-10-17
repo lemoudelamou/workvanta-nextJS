@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { Check, Plus, Search, Tag } from "lucide-react";
 
 import { LabelChip } from "@/components/ui/LabelChip";
-import { labelColor, LABEL_NAME_MAX, normalizeLabelName, sortLabels, type TaskLabelView } from "@/lib/labels/label-colors";
+import {
+    labelColor,
+    LABEL_NAME_MAX,
+    normalizeLabelName,
+    PRESET_LABELS,
+    sortLabels,
+    type LabelColor,
+    type TaskLabelView,
+} from "@/lib/labels/label-colors";
 import { createLabelAction, setTaskLabelsAction } from "../../../label-actions";
 
-type Option = { kind: "label"; label: TaskLabelView } | { kind: "create"; name: string };
+type Option =
+    | { kind: "label"; label: TaskLabelView }
+    | { kind: "preset"; name: string; color: LabelColor }
+    | { kind: "create"; name: string };
 
 /**
- * The task's labels as chips, and a menu to tick labels on or off or
- * create a new one by typing its name. Changes save straight away.
+ * The task's labels as chips, and a menu to tick labels on or off, pick a
+ * ready-made one, or create a new one by typing its name. Changes save
+ * straight away.
  */
 export function LabelPicker({
     slug,
@@ -58,9 +70,15 @@ export function LabelPicker({
     const chosen = labels.filter((l) => selected.includes(l.id));
     const trimmed = query.trim().replace(/\s+/g, " ");
     const matches = labels.filter((l) => l.name.toLowerCase().includes(trimmed.toLowerCase()));
-    const exact = labels.some((l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed));
+    // Ready-made labels the project doesn't have yet.
+    const inProject = new Set(labels.map((l) => normalizeLabelName(l.name)));
+    const presets = PRESET_LABELS.filter(
+        (p) => !inProject.has(normalizeLabelName(p.name)) && p.name.toLowerCase().includes(trimmed.toLowerCase()),
+    );
+    const exact = [...labels, ...PRESET_LABELS].some((l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed));
     const options: Option[] = [
         ...matches.map((label) => ({ kind: "label" as const, label })),
+        ...presets.map((p) => ({ kind: "preset" as const, ...p })),
         ...(trimmed && !exact && trimmed.length <= LABEL_NAME_MAX ? [{ kind: "create" as const, name: trimmed }] : []),
     ];
 
@@ -180,7 +198,7 @@ export function LabelPicker({
                                 setQuery(event.target.value);
                                 setActive(0);
                             }}
-                            placeholder={labels.length ? "Find or create a label…" : "Name your first label…"}
+                            placeholder="Find or create a label…"
                             aria-label="Find or create a label"
                             role="combobox"
                             aria-expanded="true"
@@ -192,7 +210,7 @@ export function LabelPicker({
                     <ul id={listId} role="listbox" aria-label="Labels" aria-multiselectable="true" className="max-h-64 overflow-y-auto p-1">
                         {options.length === 0 && (
                             <li className="px-2.5 py-2 text-[13px] text-muted-foreground">
-                                {labels.length ? "No labels match." : "Type a name to create a label."}
+                                {labels.length || presets.length ? "No labels match." : "Type a name to create a label."}
                             </li>
                         )}
                         {options.map((option, index) =>
@@ -219,6 +237,33 @@ export function LabelPicker({
                                     <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${labelColor(option.label.color).dot}`} />
                                     <span className="min-w-0 flex-1 truncate">{option.label.name}</span>
                                 </li>
+                            ) : option.kind === "preset" ? (
+                                <Fragment key={`preset-${option.name}`}>
+                                    {options[index - 1]?.kind !== "preset" && (
+                                        <li
+                                            role="presentation"
+                                            className={`px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground ${
+                                                index > 0 ? "mt-1 border-t border-border" : ""
+                                            }`}
+                                        >
+                                            Suggested
+                                        </li>
+                                    )}
+                                    <li
+                                        id={`${listId}-${index}`}
+                                        role="option"
+                                        aria-selected={false}
+                                        onMouseMove={() => setActive(index)}
+                                        onClick={() => pick(option)}
+                                        className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] text-foreground ${
+                                            index === active ? "bg-muted" : ""
+                                        }`}
+                                    >
+                                        <span aria-hidden="true" className="size-4 shrink-0 rounded border border-foreground/25" />
+                                        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${labelColor(option.color).dot}`} />
+                                        <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                                    </li>
+                                </Fragment>
                             ) : (
                                 <li
                                     key="create"

@@ -62,6 +62,17 @@ describe("createLabelAction", () => {
         expect(result).toEqual({ label: { id: "l1", name: "Needs review", color: "orange" } });
     });
 
+    it("gives a ready-made label its usual colour", async () => {
+        db.label.findMany.mockResolvedValue([{ color: "red" }]);
+        db.label.create.mockResolvedValue({ id: "l2", name: "Feature", color: "blue" });
+
+        await createLabelAction("acme", "p1", "feature");
+
+        expect(db.label.create).toHaveBeenCalledWith(
+            expect.objectContaining({ data: expect.objectContaining({ normalizedName: "feature", color: "blue" }) }),
+        );
+    });
+
     it("returns the existing label instead of making a duplicate", async () => {
         db.label.findUnique.mockResolvedValue({ id: "l9", name: "Bug", color: "red" });
 
