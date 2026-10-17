@@ -28,6 +28,7 @@ import { RepeatMenu } from "./components/repeat-menu";
 import { DependenciesSection } from "./components/dependencies-section";
 import { isRecurrence } from "@/lib/tasks/recurrence";
 import { openBlockerCount } from "@/lib/tasks/dependencies";
+import { projectPresets } from "@/lib/labels/label-colors";
 import { CopyLinkButton } from "./components/copy-link-button";
 import type { TaskValues } from "./components/task-meta";
 import {
@@ -136,13 +137,14 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
     // this project.
     const canEdit = canEditTasks(access);
 
-    const [people, projectLabels, otherTasks] = await Promise.all([
+    const [people, projectLabels, project, otherTasks] = await Promise.all([
         listProjectAudience(access.project),
         prisma.label.findMany({
             where: { projectId: access.project.id },
             orderBy: { name: "asc" },
             select: { id: true, name: true, color: true },
         }),
+        prisma.project.findUnique({ where: { id: access.project.id }, select: { labelPresets: true } }),
         // Tasks that could be picked as a blocker.
         canEdit
             ? prisma.task.findMany({
@@ -250,6 +252,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                                 projectLabels={projectLabels}
                                 initialSelected={task.labels.map((l) => l.labelId)}
                                 canEdit={canEdit}
+                                presets={projectPresets(project?.labelPresets)}
                             />
                         </div>
 

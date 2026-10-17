@@ -103,17 +103,10 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       DATABASE_URL: postgresql://workvanta:workvanta@localhost:5432/workvanta
+      # Optional repository secret; without it the live-update test is skipped.
+      E2E_ABLY_API_KEY: ${{ secrets.E2E_ABLY_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 

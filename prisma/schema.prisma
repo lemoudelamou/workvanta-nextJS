@@ -149,6 +149,9 @@ model Project {
   normalizedName String
   description    String?
   visibility     ProjectVisibility @default(WORKSPACE)
+  /// The suggested labels in the label menu, as [{ name, color }].
+  /// NULL until an admin edits them: the app's default list applies.
+  labelPresets   Json?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 

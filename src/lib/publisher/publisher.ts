@@ -1,14 +1,5 @@
-import IORedis from "ioredis";
-
-const redisUrl = process.env.REDIS_URL;
-
-if (!redisUrl) {
-    throw new Error("REDIS_URL is not defined");
-}
-
-const publisher = new IORedis(redisUrl, {
-    maxRetriesPerRequest: null,
-});
+import { ablyRest } from "@/lib/realtime/ably";
+import { userChannel } from "@/lib/realtime/channels";
 
 export type RealtimeEvent =
     | {
@@ -52,11 +43,28 @@ export type RealtimeEvent =
     };
 };
 
-export async function publishRealtimeEvent(
-    event: RealtimeEvent,
-) {
-    await publisher.publish(
-        "Workvanta:realtime",
-        JSON.stringify(event),
-    );
+/** Who receives an event: project events name their audience; the rest name one user. */
+function recipientsOf(event: RealtimeEvent) {
+    const ids = "recipientIds" in event ? event.recipientIds : [event.data.userId];
+    return [...new Set(ids.filter((id) => typeof id === "string" && id.length > 0))];
+}
+
+// Ably's batch publish takes up to 100 channels at a time.
+const BATCH = 100;
+
+/**
+ * Sends an event to each recipient's private channel. A no-op when realtime
+ * is off (no ABLY_API_KEY).
+ */
+export async function publishRealtimeEvent(event: RealtimeEvent) {
+    const ably = ablyRest();
+    if (!ably) return;
+
+    const channels = recipientsOf(event).map(userChannel);
+    for (let i = 0; i < channels.length; i += BATCH) {
+        await ably.batchPublish({
+            channels: channels.slice(i, i + BATCH),
+            messages: [{ name: event.type, data: event.data }],
+        });
+    }
 }

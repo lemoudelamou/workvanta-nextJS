@@ -35,8 +35,13 @@ export function normalizeLabelName(name: string) {
     return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-/** Ready-made labels every project can pick from. One is created in the project the first time it's used. */
-export const PRESET_LABELS: { name: string; color: LabelColor }[] = [
+export type PresetLabel = { name: string; color: LabelColor };
+
+/**
+ * The default ready-made labels, until a project admin edits the list.
+ * One is created in the project the first time it's used.
+ */
+export const PRESET_LABELS: PresetLabel[] = [
     { name: "Bug", color: "red" },
     { name: "Feature", color: "blue" },
     { name: "Improvement", color: "violet" },
@@ -48,9 +53,42 @@ export const PRESET_LABELS: { name: string; color: LabelColor }[] = [
     { name: "Chore", color: "gray" },
 ];
 
-export function presetLabel(name: string) {
+export const PRESET_MAX = 20;
+
+/**
+ * Checks a list of suggested labels: tidy names, known colours, no
+ * duplicates, at most PRESET_MAX. Returns the cleaned list or what's wrong.
+ */
+export function parsePresets(value: unknown): { presets: PresetLabel[] } | { error: string } {
+    if (!Array.isArray(value)) return { error: "That list of suggestions isn't valid." };
+    if (value.length > PRESET_MAX) return { error: `Keep it to ${PRESET_MAX} suggestions.` };
+
+    const presets: PresetLabel[] = [];
+    const seen = new Set<string>();
+    for (const item of value) {
+        const raw = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const name = typeof raw.name === "string" ? raw.name.trim().replace(/\s+/g, " ") : "";
+        if (!name) return { error: "Give every suggestion a name." };
+        if (name.length > LABEL_NAME_MAX) return { error: `Keep label names to ${LABEL_NAME_MAX} characters.` };
+        if (!isLabelColor(raw.color)) return { error: "Pick one of the colours." };
+        const key = normalizeLabelName(name);
+        if (seen.has(key)) return { error: `“${name}” is in the list twice.` };
+        seen.add(key);
+        presets.push({ name, color: raw.color });
+    }
+    return { presets };
+}
+
+/** A project's suggestions: its own list once an admin has edited it, else the defaults. */
+export function projectPresets(stored: unknown): PresetLabel[] {
+    if (stored === null || stored === undefined) return PRESET_LABELS;
+    const parsed = parsePresets(stored);
+    return "presets" in parsed ? parsed.presets : PRESET_LABELS;
+}
+
+export function presetLabel(name: string, presets: PresetLabel[] = PRESET_LABELS) {
     const normalized = normalizeLabelName(name);
-    return PRESET_LABELS.find((p) => normalizeLabelName(p.name) === normalized);
+    return presets.find((p) => normalizeLabelName(p.name) === normalized);
 }
 
 /** Labels in a stable order: by name. */

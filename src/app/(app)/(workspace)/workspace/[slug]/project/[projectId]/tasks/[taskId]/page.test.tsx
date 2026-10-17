@@ -30,6 +30,8 @@ jest.mock("next/navigation", () => ({
 }));
 jest.mock("next/image", () => ({
     __esModule: true,
+    // A plain <img> stands in for next/image in tests.
+    // eslint-disable-next-line @next/next/no-img-element
     default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
 
@@ -50,6 +52,7 @@ jest.mock("@/lib/db/prisma", () => ({
         task: { findFirst: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
         workspaceMember: { findMany: jest.fn() },
         label: { findMany: jest.fn() },
+        project: { findUnique: jest.fn().mockResolvedValue({ labelPresets: null }) },
     },
 }));
 

@@ -20,11 +20,11 @@ import { createTaskSchema, updateTaskSchema } from "@/lib/validations/tasks";
 import { createCommentSchema } from "@/lib/validations/comments";
 import { createSubtaskSchema } from "@/lib/validations/subtask";
 import {
+    notifyTaskAssigned,
+    notifyTaskCommented,
     notifyTaskDone,
-    queueTaskAssignedNotification,
-    queueTaskCommentedNotification,
-    queueMentionNotification,
-} from "@/lib/queue/notification.queue";
+    notifyMention,
+} from "@/lib/notifications/notify";
 
 import {
     createSimpleTaskAction,
@@ -92,11 +92,11 @@ jest.mock("@/lib/validations/comments", () => ({
 jest.mock("@/lib/validations/subtask", () => ({
     createSubtaskSchema: { safeParse: jest.fn() },
 }));
-jest.mock("@/lib/queue/notification.queue", () => ({
+jest.mock("@/lib/notifications/notify", () => ({
+    notifyTaskAssigned: jest.fn(),
+    notifyTaskCommented: jest.fn(),
     notifyTaskDone: jest.fn(),
-    queueTaskAssignedNotification: jest.fn(),
-    queueTaskCommentedNotification: jest.fn(),
-    queueMentionNotification: jest.fn(),
+    notifyMention: jest.fn(),
 }));
 
 // ---------- typed handles ----------
@@ -119,9 +119,9 @@ const access = {
 const mockPublish = publishRealtimeEvent as jest.Mock;
 const mockPublishTaskChanged = publishTaskChanged as jest.Mock;
 const mockParseMentions = parseMentions as jest.Mock;
-const mockQueueAssigned = queueTaskAssignedNotification as jest.Mock;
-const mockQueueCommented = queueTaskCommentedNotification as jest.Mock;
-const mockQueueMention = queueMentionNotification as jest.Mock;
+const mockQueueAssigned = notifyTaskAssigned as jest.Mock;
+const mockQueueCommented = notifyTaskCommented as jest.Mock;
+const mockQueueMention = notifyMention as jest.Mock;
 const schema = {
     createTask: createTaskSchema.safeParse as unknown as jest.Mock,
     updateTask: updateTaskSchema.safeParse as unknown as jest.Mock,

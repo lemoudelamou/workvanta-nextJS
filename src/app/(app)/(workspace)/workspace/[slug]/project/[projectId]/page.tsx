@@ -22,7 +22,7 @@ import { ProjectListView } from "./listview/project-list-view";
 import { ProjectCalendar } from "./calendar/project-calendar";
 import { parseMonth } from "./calendar/calendar-utils";
 import { openBlockerCount } from "@/lib/tasks/dependencies";
-import { sortLabels } from "@/lib/labels/label-colors";
+import { projectPresets, sortLabels } from "@/lib/labels/label-colors";
 import { PageBody } from "@/components/ui/PageBody";
 import { ProjectMark } from "@/components/ui/ProjectMark";
 import { projectHex } from "@/lib/navigation/project-color";
@@ -89,6 +89,7 @@ export default async function ProjectPage({
             description: true,
             visibility: true,
             workspaceId: true,
+            labelPresets: true,
             workspace: { select: { slug: true, name: true } },
         },
     });
@@ -274,6 +275,10 @@ export default async function ProjectPage({
                                           color: l.color,
                                           taskCount: l._count.tasks,
                                       })),
+                                      presets: {
+                                          list: projectPresets(project.labelPresets),
+                                          customized: project.labelPresets !== null,
+                                      },
                                   }
                                 : undefined
                         }

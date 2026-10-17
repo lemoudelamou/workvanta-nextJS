@@ -33,4 +33,6 @@ export type Filters = {
     assignee: string;
     /** A label id, or "ALL". */
     label: string;
+    /** "ALL", "BLOCKED" (waiting on open tasks) or "NOT_BLOCKED". */
+    blocked: string;
 };

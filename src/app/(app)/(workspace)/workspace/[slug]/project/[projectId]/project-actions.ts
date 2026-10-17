@@ -17,7 +17,7 @@ import { runSerializable, type Tx } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
 import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
-import { notifyTaskDone, queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
+import { notifyTaskAssigned, notifyTaskDone } from "@/lib/notifications/notify";
 import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 import { publishTaskChanged } from "@/lib/realtime/task-events";
 import { createNextOccurrence } from "@/lib/tasks/recurrence";
@@ -213,7 +213,7 @@ export async function createTaskAction(
     // already saved, so a queue outage must not turn this into an error.
     if (createdTaskId && assigneeId && assigneeId !== userId) {
         try {
-            await queueTaskAssignedNotification({
+            await notifyTaskAssigned({
                 userId: assigneeId,
                 taskId: createdTaskId,
                 taskTitle: title,

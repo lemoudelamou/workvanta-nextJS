@@ -3,7 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { getSocket } from "@/lib/socket/client";
+import type { RealtimeChannel } from "ably";
+
+import { getRealtime } from "@/lib/realtime/client";
+import { userChannel } from "@/lib/realtime/channels";
 import { affectsPage, createLiveRefresher, type TaskChanged } from "@/lib/realtime/live-refresh";
 
 type NotificationCreated = { userId: string; notificationId: string };
@@ -26,7 +29,7 @@ export function RealtimeProvider({ userId }: { userId: string }) {
         if (!userId) return;
 
         let active = true;
-        let socket: Awaited<ReturnType<typeof getSocket>> | null = null;
+        let channel: RealtimeChannel | null = null;
         const refresher = createLiveRefresher(() => router.refresh());
 
         const onNotification = (data: NotificationCreated) => {
@@ -57,22 +60,20 @@ export function RealtimeProvider({ userId }: { userId: string }) {
             refresher.schedule();
         };
 
-        getSocket()
-            .then((s) => {
-                if (!active) return;
+        getRealtime()
+            .then((client) => {
+                if (!active || !client) return;
 
-                socket = s;
-                s.on("notification-created", onNotification);
-                s.on("comment-created", onComment);
-                s.on("task-changed", onTaskChanged);
+                channel = client.channels.get(userChannel(userId));
+                void channel.subscribe("notification-created", (m) => onNotification(m.data));
+                void channel.subscribe("comment-created", (m) => onComment(m.data));
+                void channel.subscribe("task-changed", (m) => onTaskChanged(m.data));
             })
-            .catch((error) => console.error("Failed to initialize realtime socket:", error));
+            .catch((error) => console.error("Failed to connect to realtime:", error));
 
         return () => {
             active = false;
-            socket?.off("notification-created", onNotification);
-            socket?.off("comment-created", onComment);
-            socket?.off("task-changed", onTaskChanged);
+            channel?.unsubscribe();
             refresher.dispose();
         };
     }, [userId, router]);

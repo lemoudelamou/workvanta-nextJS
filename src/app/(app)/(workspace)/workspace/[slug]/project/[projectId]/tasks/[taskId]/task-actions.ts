@@ -30,11 +30,11 @@ import { createCommentSchema } from "@/lib/validations/comments";
 import { createSubtaskSchema } from "@/lib/validations/subtask";
 
 import {
+    notifyTaskAssigned,
+    notifyTaskCommented,
     notifyTaskDone,
-    queueTaskAssignedNotification,
-    queueTaskCommentedNotification,
-    queueMentionNotification,
-} from "@/lib/queue/notification.queue";
+    notifyMention,
+} from "@/lib/notifications/notify";
 import { publishTaskChanged } from "@/lib/realtime/task-events";
 import { createNextOccurrence } from "@/lib/tasks/recurrence";
 import { endOfDay } from "@/lib/due-date";
@@ -410,7 +410,7 @@ export async function updateTaskAction(
     }
 
     if (assigneeChanged && assigneeId && assigneeId !== userId) {
-        await queueTaskAssignedNotification({
+        await notifyTaskAssigned({
             userId: assigneeId,
             taskId: task.id,
             taskTitle: data.title, // the new title, not the pre-edit one
@@ -573,7 +573,7 @@ export async function createCommentAction(
     }
 
     for (const userId of commentedIds) {
-        await queueTaskCommentedNotification({
+        await notifyTaskCommented({
             ...base,
             userId,
             commentedBy: currentUserId,
@@ -581,7 +581,7 @@ export async function createCommentAction(
     }
 
     for (const userId of mentionedIds) {
-        await queueMentionNotification({
+        await notifyMention({
             ...base,
             userId,
             mentionedBy: currentUserId,

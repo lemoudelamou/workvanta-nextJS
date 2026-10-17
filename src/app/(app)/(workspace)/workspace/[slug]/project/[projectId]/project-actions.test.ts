@@ -11,7 +11,7 @@ import {
 } from "@/lib/auth/members";
 import { canEditTasks, requireTaskEditor } from "@/lib/auth/task_permission";
 import { prisma } from "@/lib/db/prisma";
-import { notifyTaskDone, queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
+import { notifyTaskAssigned, notifyTaskDone } from "@/lib/notifications/notify";
 import { runSerializable } from "@/lib/db/serializable";
 import { endOfDay } from "@/lib/due-date";
 import { createTaskSchema } from "@/lib/validations/tasks";
@@ -59,8 +59,8 @@ jest.mock("@/lib/db/prisma", () => ({
     },
 }));
 jest.mock("@/lib/db/serializable", () => ({ runSerializable: jest.fn() }));
-jest.mock("@/lib/queue/notification.queue", () => ({
-    queueTaskAssignedNotification: jest.fn(),
+jest.mock("@/lib/notifications/notify", () => ({
+    notifyTaskAssigned: jest.fn(),
     notifyTaskDone: jest.fn(),
 }));
 jest.mock("@/lib/due-date", () => ({ endOfDay: jest.fn() }));
@@ -701,7 +701,7 @@ describe("setProjectVisibilityAction", () => {
 
 // ---------- assignment notifications on create ----------
 describe("createTaskAction – assignment notification", () => {
-    const mockQueue = queueTaskAssignedNotification as jest.Mock;
+    const mockQueue = notifyTaskAssigned as jest.Mock;
 
     it("notifies the assignee when a task is created for someone else", async () => {
         parsedTask({ title: "Ship it", assigneeId: "u2" });

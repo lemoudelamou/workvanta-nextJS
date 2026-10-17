@@ -219,6 +219,7 @@ test("teammate accepts the invitation and sees the work", async () => {
 });
 
 test("the teammate's open board updates live when the owner changes tasks", async () => {
+    test.skip(!process.env.E2E_ABLY_API_KEY, "Live updates need an Ably key: set E2E_ABLY_API_KEY.");
     const teammate = teammatePage!;
     const owner = ownerPage;
 

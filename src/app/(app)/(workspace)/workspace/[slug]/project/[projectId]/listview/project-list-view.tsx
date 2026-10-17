@@ -27,7 +27,7 @@ import {
     type SortKey,
 } from "./list-utils";
 
-const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL" };
+const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL", blocked: "ALL" };
 
 const PRIORITY_DOTS: Record<string, string> = {
     URGENT: "bg-danger",
@@ -103,7 +103,8 @@ export function ProjectListView({
         filters.priority !== "ALL" ||
         filters.status !== "ALL" ||
         filters.assignee !== "ALL" ||
-        filters.label !== "ALL";
+        filters.label !== "ALL" ||
+        filters.blocked !== "ALL";
 
     function update<K extends keyof Filters>(key: K, value: Filters[K]) {
         setFilters((current) => ({ ...current, [key]: value }));
@@ -270,6 +271,16 @@ export function ProjectListView({
                             ))}
                         </FilterSelect>
                     )}
+                    <FilterSelect
+                        ariaLabel="Filter by dependencies"
+                        value={filters.blocked}
+                        onChange={(value) => update("blocked", value)}
+                        icon={<Lock className="size-4 text-muted-foreground" />}
+                    >
+                        <option value="ALL">Blocked or not</option>
+                        <option value="BLOCKED">Blocked</option>
+                        <option value="NOT_BLOCKED">Not blocked</option>
+                    </FilterSelect>
                 </div>
 
                 <div className="flex items-center gap-2">

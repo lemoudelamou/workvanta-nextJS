@@ -10,6 +10,8 @@ import {
     sortLabels,
 } from "@/lib/labels/label-colors";
 import { createLabelAction, deleteLabelAction, updateLabelAction } from "../label-actions";
+import { LabelPresetsSection } from "./LabelPresetsSection";
+import type { PresetLabel } from "@/lib/labels/label-colors";
 
 export type ManagedLabel = { id: string; name: string; color: string; taskCount: number };
 
@@ -178,12 +180,15 @@ export function ManageLabelsDialog({
     slug,
     projectId,
     labels: initial,
+    presets,
 }: {
     open: boolean;
     onClose: () => void;
     slug: string;
     projectId: string;
     labels: ManagedLabel[];
+    /** The project's suggested labels, and whether it has its own list. */
+    presets: { list: PresetLabel[]; customized: boolean };
 }) {
     const ref = useRef<HTMLDialogElement>(null);
     const [labels, setLabels] = useState(() => sortLabels(initial));
@@ -308,6 +313,14 @@ export function ManageLabelsDialog({
                     </p>
                 )}
             </form>
+
+            <LabelPresetsSection
+                key={open ? "open" : "closed"}
+                slug={slug}
+                projectId={projectId}
+                presets={presets.list}
+                customized={presets.customized}
+            />
         </dialog>
     );
 }

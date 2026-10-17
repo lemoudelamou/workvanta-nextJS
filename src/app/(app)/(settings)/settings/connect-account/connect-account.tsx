@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { setPassword } from "@/app/(app)/(settings)/settings/connect-account/actions";
 import GitHubIcon from "@/app/style/githubIcon";
 import GoogleIcon from "@/app/style/googleIcon";
@@ -102,6 +102,8 @@ export default function ConnectAccount({
         setConnectingProvider(provider);
 
         // Starts the OAuth flow and links the provider to the signed-in user.
+        // A full page load on purpose: this API route redirects to the provider.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign(`/api/oauth/${provider}?intent=link`);
     }
 
@@ -155,24 +157,6 @@ export default function ConnectAccount({
             setDisconnectingProvider(null);
         }
     }
-
-    useEffect(() => {
-        if (!providerToDisconnect) {
-            return;
-        }
-
-        function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === "Escape") {
-                closeDisconnectModal();
-            }
-        }
-
-        document.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [providerToDisconnect, disconnectingProvider]);
 
     async function handleSetPassword(
         event: FormEvent<HTMLFormElement>,

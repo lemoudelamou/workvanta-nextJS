@@ -4,18 +4,15 @@ import { dayInZone, findDigestTasks, findDueReminders, groupDigest } from "@/lib
 import { sendDueDigestEmail } from "@/lib/email/mailer";
 import { publishRealtimeEvent } from "@/lib/publisher/publisher";
 
-/** The bits of a Redis client the digest needs to send at most once a day. */
+/** The bits of a Redis client (Upstash) the digest needs to send at most once a day. */
 type OnceStore = {
-    set(key: string, value: string, ex: "EX", seconds: number, nx: "NX"): Promise<unknown>;
+    set(key: string, value: string, options: { nx: true; ex: number }): Promise<unknown>;
     del(key: string): Promise<unknown>;
 };
 
-export function digestSchedule() {
-    const hour = Number(process.env.DIGEST_HOUR ?? "8");
-    return {
-        pattern: `0 ${Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : 8} * * *`,
-        tz: process.env.DIGEST_TIMEZONE || "UTC",
-    };
+/** The time zone "today" means for the digest. When it's sent is set by the schedule that calls it. */
+export function digestTimeZone() {
+    return process.env.DIGEST_TIMEZONE || "UTC";
 }
 
 /** In-app reminders for tasks due within a day, or overdue. Each goes out once. */
@@ -54,7 +51,7 @@ export async function runDueDateSweep(now = new Date()) {
 
 /** One summary email per person each morning, if they have anything due. */
 export async function runDailyDigest(store: OnceStore, now = new Date()) {
-    const { tz } = digestSchedule();
+    const tz = digestTimeZone();
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
     const byUser = await findDigestTasks(now);
     if (byUser.size === 0) return { sent: 0 };
@@ -71,9 +68,9 @@ export async function runDailyDigest(store: OnceStore, now = new Date()) {
         const digest = groupDigest(byUser.get(user.id) ?? [], now, tz, appUrl);
         if (!digest) continue;
 
-        // A retried job, or a second worker, must not send it twice.
+        // A retried or doubled call must not send it twice.
         const key = `digest:${user.id}:${today}`;
-        if (!(await store.set(key, "1", "EX", 2 * 24 * 60 * 60, "NX"))) continue;
+        if (!(await store.set(key, "1", { nx: true, ex: 2 * 24 * 60 * 60 }))) continue;
 
         try {
             await sendDueDigestEmail({ email: user.email, name: user.name, digest });
