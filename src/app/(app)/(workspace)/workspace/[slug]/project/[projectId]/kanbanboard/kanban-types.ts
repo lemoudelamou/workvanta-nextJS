@@ -18,6 +18,10 @@ export type BoardTask = {
     subtaskTotal: number;
     subtaskDone: number;
     labels: TaskLabelView[];
+    /** Set on repeating tasks ("DAILY", "WEEKLY", ...). */
+    recurrence?: string | null;
+    /** How many tasks this one is waiting on that aren't done yet. */
+    openBlockers?: number;
 };
 
 export type Columns = Record<TaskStatus, BoardTask[]>;

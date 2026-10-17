@@ -20,6 +20,7 @@ import { isTaskStatus, type TaskStatus } from "@/lib/task-status";
 import { queueTaskAssignedNotification } from "@/lib/queue/notification.queue";
 import { revalidateAppShell } from "@/lib/navigation/revalidate-shell";
 import { publishTaskChanged } from "@/lib/realtime/task-events";
+import { createNextOccurrence } from "@/lib/tasks/recurrence";
 
 function projectPath(slug: string, projectId: string) {
     return `/workspace/${slug}/project/${projectId}`;
@@ -311,7 +312,7 @@ export async function moveCardAction(
         throw new Error("Invalid status.");
     }
 
-    await runSerializable(async (tx) => {
+    const repeatId = await runSerializable(async (tx) => {
         const task = await tx.task.findFirst({
             where: { id: taskId, projectId: access.project.id },
             select: { id: true, status: true },
@@ -342,9 +343,15 @@ export async function moveCardAction(
                 },
             });
         }
+
+        // Finishing a repeating task brings the next one in.
+        return task.status !== "DONE" && status === "DONE"
+            ? createNextOccurrence(tx as Prisma.TransactionClient, task.id, access.userId)
+            : null;
     });
 
     await publishTaskChanged(access.project.id, { taskId, kind: "moved" });
+    if (repeatId) await publishTaskChanged(access.project.id, { taskId: repeatId, kind: "created" });
     revalidateProject(slug, projectId);
 }
 

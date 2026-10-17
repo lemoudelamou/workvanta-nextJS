@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Plus, Search, Tag, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Lock, Plus, Repeat, Search, Tag, UserRound } from "lucide-react";
 
 import { buttonStyles } from "@/app/style/button-style";
 import { useLiveHighlights } from "@/lib/realtime/live-highlight";
@@ -291,6 +291,15 @@ export function ProjectListView({
                             >
                                 {task.title}
                             </Link>
+                            {(task.openBlockers ?? 0) > 0 && task.status !== "DONE" && (
+                                <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-amber-500/12 px-1.5 py-0.5 align-middle text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                                    <Lock className="size-3" aria-hidden="true" />
+                                    Blocked
+                                </span>
+                            )}
+                            {task.recurrence && (
+                                <Repeat className="ml-1.5 inline size-3.5 align-middle text-muted-foreground" aria-label="Repeats" />
+                            )}
                             {task.labels.length > 0 && (
                                 <div className="mt-1.5">
                                     <LabelChips labels={task.labels} />
@@ -371,6 +380,15 @@ export function ProjectListView({
                                         >
                                             {task.title}
                                         </Link>
+                                        {(task.openBlockers ?? 0) > 0 && task.status !== "DONE" && (
+                                                        <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-amber-500/12 px-1.5 py-0.5 align-middle text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                                                            <Lock className="size-3" aria-hidden="true" />
+                                                            Blocked
+                                                        </span>
+                                        )}
+                                        {task.recurrence && (
+                                                        <Repeat className="ml-1.5 inline size-3.5 align-middle text-muted-foreground" aria-label="Repeats" />
+                                        )}
                                         {task.subtaskTotal > 0 && (
                                             <span className="ml-2 text-xs text-muted-foreground tabular-nums">
                                                 {task.subtaskDone}/{task.subtaskTotal} subtasks

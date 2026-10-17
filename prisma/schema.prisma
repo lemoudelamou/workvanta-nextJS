@@ -44,6 +44,14 @@ enum TaskStatus {
   DONE
 }
 
+/// How a repeating task comes back once it's done.
+enum TaskRecurrence {
+  DAILY
+  WEEKDAYS
+  WEEKLY
+  MONTHLY
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -192,6 +200,18 @@ model Task {
   comments    Comment[]
   attachments Attachment[]
   labels      TaskLabel[]
+
+  /// Set on repeating tasks: finishing one creates the next.
+  recurrence         TaskRecurrence?
+  /// The copy made when this one was finished, so it's only made once.
+  nextOccurrenceId   String?         @unique
+  nextOccurrence     Task?           @relation("TaskRecurrence", fields: [nextOccurrenceId], references: [id], onDelete: SetNull)
+  previousOccurrence Task?           @relation("TaskRecurrence")
+
+  /// Tasks that have to be done before this one.
+  blockedBy TaskDependency[] @relation("BlockedTask")
+  /// Tasks waiting for this one.
+  blocking  TaskDependency[] @relation("BlockingTask")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -522,4 +542,18 @@ model Notification {
 
   @@index([userId])
   @@index([userId, readAt])
+}
+
+/// "blockedTask can't really start until blockingTask is done." Both tasks
+/// are in the same project.
+model TaskDependency {
+  blockedTaskId  String
+  blockingTaskId String
+  createdAt      DateTime @default(now())
+
+  blockedTask  Task @relation("BlockedTask", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+  blockingTask Task @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+
+  @@id([blockedTaskId, blockingTaskId])
+  @@index([blockingTaskId])
 }

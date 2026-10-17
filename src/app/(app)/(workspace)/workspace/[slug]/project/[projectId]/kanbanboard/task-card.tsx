@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, CheckSquare } from "lucide-react";
+import { CalendarDays, CheckSquare, Lock, Repeat } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { LabelChips } from "@/components/ui/LabelChip";
@@ -114,6 +114,23 @@ export function TaskCard({
                         >
                             <CalendarDays className="size-3" aria-hidden="true" />
                             {task.dueLabel}
+                        </span>
+                    )}
+
+                    {(task.openBlockers ?? 0) > 0 && task.status !== "DONE" && (
+                        <span
+                            className={cn(CHIP, "bg-amber-500/12 text-amber-700 dark:text-amber-300")}
+                            title={`Waiting on ${task.openBlockers} open ${task.openBlockers === 1 ? "task" : "tasks"}`}
+                        >
+                            <Lock className="size-3" aria-hidden="true" />
+                            Blocked
+                        </span>
+                    )}
+
+                    {task.recurrence && (
+                        <span className={cn(CHIP, "bg-muted px-1 text-muted-foreground")} title="Repeats">
+                            <Repeat className="size-3" aria-hidden="true" />
+                            <span className="sr-only">Repeats</span>
                         </span>
                     )}
 

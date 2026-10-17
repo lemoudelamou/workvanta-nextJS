@@ -64,6 +64,16 @@ export const TaskStatus = {
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
 
 
+export const TaskRecurrence = {
+  DAILY: 'DAILY',
+  WEEKDAYS: 'WEEKDAYS',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY'
+} as const
+
+export type TaskRecurrence = (typeof TaskRecurrence)[keyof typeof TaskRecurrence]
+
+
 export const TaskPriority = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',

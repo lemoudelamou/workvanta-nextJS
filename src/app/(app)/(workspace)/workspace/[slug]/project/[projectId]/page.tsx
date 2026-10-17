@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Globe2, LayoutGrid, List, Lock, UsersRound } from "lucide-react";
+import { CalendarDays, Globe2, LayoutGrid, List, Lock, UsersRound } from "lucide-react";
 
 import { getSession } from "@/lib/auth/session";
 import {
@@ -19,6 +19,9 @@ import {
 } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { KanbanBoard, type BoardTask } from "./kanbanboard/kanban-board";
 import { ProjectListView } from "./listview/project-list-view";
+import { ProjectCalendar } from "./calendar/project-calendar";
+import { parseMonth } from "./calendar/calendar-utils";
+import { openBlockerCount } from "@/lib/tasks/dependencies";
 import { sortLabels } from "@/lib/labels/label-colors";
 import { PageBody } from "@/components/ui/PageBody";
 import { ProjectMark } from "@/components/ui/ProjectMark";
@@ -40,10 +43,11 @@ export default async function ProjectPage({
                                               searchParams,
                                           }: {
     params: Promise<{ slug: string; projectId: string }>;
-    searchParams?: Promise<{ view?: string }>;
+    searchParams?: Promise<{ view?: string; month?: string }>;
 }) {
     const { slug, projectId } = await params;
-    const view = (await searchParams)?.view === "list" ? "list" : "board";
+    const query = (await searchParams) ?? {};
+    const view = query.view === "list" ? "list" : query.view === "calendar" ? "calendar" : "board";
 
     let access: ProjectAccessResult;
 
@@ -113,6 +117,8 @@ export default async function ProjectPage({
                 assignee: { select: { name: true, email: true, image: true } },
                 subtasks: { select: { completed: true } },
                 labels: { select: { label: { select: { id: true, name: true, color: true } } } },
+                recurrence: true,
+                blockedBy: { select: { blockingTask: { select: { status: true } } } },
             },
         }),
         // Only people who can open this project can be assigned to it.
@@ -143,6 +149,8 @@ export default async function ProjectPage({
         subtaskTotal: t.subtasks.length,
         subtaskDone: t.subtasks.filter((s) => s.completed).length,
         labels: sortLabels(t.labels.map((l) => l.label)),
+        recurrence: t.recurrence,
+        openBlockers: openBlockerCount(t.blockedBy.map((d) => d.blockingTask)),
     }));
 
     const doneTasks = tasks.filter((t) => t.status === "DONE").length;
@@ -156,7 +164,7 @@ export default async function ProjectPage({
     const membersHref = `${projectHref}/members`;
     const isPrivate = project.visibility === "PRIVATE";
 
-    const viewTab = (key: "board" | "list") =>
+    const viewTab = (key: "board" | "list" | "calendar") =>
         `inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand ${
             view === key
                 ? "bg-card text-foreground shadow-[0_1px_2px_rgba(23,26,33,0.1)] dark:bg-white/10"
@@ -175,6 +183,14 @@ export default async function ProjectPage({
             >
                 <List className="size-4" aria-hidden="true" />
                 List
+            </Link>
+            <Link
+                href={`${projectHref}?view=calendar`}
+                aria-current={view === "calendar" ? "page" : undefined}
+                className={viewTab("calendar")}
+            >
+                <CalendarDays className="size-4" aria-hidden="true" />
+                Calendar
             </Link>
         </nav>
     );
@@ -279,8 +295,21 @@ export default async function ProjectPage({
                 />
             </div>
 
-            <section aria-label={view === "list" ? "Task list" : "Task board"} className="mt-6">
-                {view === "list" ? (
+            <section
+                aria-label={view === "list" ? "Task list" : view === "calendar" ? "Task calendar" : "Task board"}
+                className="mt-6"
+            >
+                {view === "calendar" ? (
+                    <ProjectCalendar
+                        slug={project.workspace.slug}
+                        projectId={project.id}
+                        tasks={boardTasks}
+                        month={parseMonth(query.month, now)}
+                        today={now.toISOString().slice(0, 10)}
+                        canEdit={canEdit}
+                        leading={viewSwitch}
+                    />
+                ) : view === "list" ? (
                     <ProjectListView
                         slug={project.workspace.slug}
                         projectId={project.id}

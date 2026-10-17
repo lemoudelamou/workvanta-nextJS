@@ -31,6 +31,9 @@ import { publishTaskChanged } from "@/lib/realtime/task-events";
 // ---------- module mocks ----------
 jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 jest.mock("@/lib/realtime/task-events", () => ({ publishTaskChanged: jest.fn() }));
+jest.mock("@/lib/tasks/recurrence", () => ({ createNextOccurrence: jest.fn().mockResolvedValue(null) }));
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockCreateNextOccurrence = require("@/lib/tasks/recurrence").createNextOccurrence as jest.Mock;
 jest.mock("next/navigation", () => ({
     // The real redirect() throws; mirroring that stops execution like production
     redirect: jest.fn((url: string) => {
@@ -544,6 +547,16 @@ describe("moveCardAction", () => {
         });
         expect(tx.task.update).not.toHaveBeenCalled();
         expect(mockRevalidate).not.toHaveBeenCalled();
+    });
+
+    it("brings in the next repeat when a task is moved to done", async () => {
+        tx.task.findFirst.mockResolvedValueOnce({ id: "t1", status: "IN_REVIEW" });
+        mockCreateNextOccurrence.mockResolvedValueOnce("t-next");
+
+        await moveCardAction("acme", "p1", "t1", "DONE");
+
+        expect(mockCreateNextOccurrence).toHaveBeenCalledWith(tx, "t1", expect.any(String));
+        expect(mockPublishTaskChanged).toHaveBeenCalledWith("p1", { taskId: "t-next", kind: "created" });
     });
 
     it("moves the task to the end of the new column and logs the status change", async () => {

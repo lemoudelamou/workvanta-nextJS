@@ -24,6 +24,9 @@ import { DeleteTaskConfirmation } from "./components/delete-task-button";
 import { TaskHeader } from "./components/task-header";
 import { TaskProperties } from "./components/task-properties";
 import { LabelPicker } from "./components/label-picker";
+import { RepeatMenu } from "./components/repeat-menu";
+import { DependenciesSection } from "./components/dependencies-section";
+import { isRecurrence } from "@/lib/tasks/recurrence";
 import { CopyLinkButton } from "./components/copy-link-button";
 import type { TaskValues } from "./components/task-meta";
 import {
@@ -109,6 +112,14 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
             },
             attachments: { orderBy: { createdAt: "desc" } },
             labels: { select: { labelId: true } },
+            blockedBy: {
+                orderBy: { createdAt: "asc" },
+                select: { blockingTask: { select: { id: true, title: true, status: true } } },
+            },
+            blocking: {
+                orderBy: { createdAt: "asc" },
+                select: { blockedTask: { select: { id: true, title: true, status: true } } },
+            },
             activities: {
                 orderBy: { createdAt: "desc" },
                 ...(showAllActivity ? {} : { take: ACTIVITY_PAGE_SIZE }),
@@ -122,16 +133,25 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
 
     // Assignee and @mention suggestions only include people who can open
     // this project.
-    const [people, projectLabels] = await Promise.all([
+    const canEdit = canEditTasks(access);
+
+    const [people, projectLabels, otherTasks] = await Promise.all([
         listProjectAudience(access.project),
         prisma.label.findMany({
             where: { projectId: access.project.id },
             orderBy: { name: "asc" },
             select: { id: true, name: true, color: true },
         }),
+        // Tasks that could be picked as a blocker.
+        canEdit
+            ? prisma.task.findMany({
+                  where: { projectId: access.project.id, id: { not: task.id } },
+                  orderBy: { updatedAt: "desc" },
+                  take: 500,
+                  select: { id: true, title: true, status: true },
+              })
+            : Promise.resolve([]),
     ]);
-
-    const canEdit = canEditTasks(access);
     const canModerate = canProject(access.effectiveRole, "comment.moderate");
 
     const updateTask = updateTaskAction.bind(null, slug, projectId, taskId);
@@ -211,6 +231,15 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                                 overdue={overdue}
                                 canEdit={canEdit}
                                 updateTask={updateTask}
+                                extra={
+                                    <RepeatMenu
+                                        slug={slug}
+                                        projectId={projectId}
+                                        taskId={task.id}
+                                        value={isRecurrence(task.recurrence) ? task.recurrence : null}
+                                        canEdit={canEdit}
+                                    />
+                                }
                             />
                             <LabelPicker
                                 slug={slug}
@@ -227,6 +256,16 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                             subtasks={task.subtasks}
                             slug={slug}
                             projectId={projectId}
+                            canEdit={canEdit}
+                        />
+
+                        <DependenciesSection
+                            slug={slug}
+                            projectId={projectId}
+                            taskId={task.id}
+                            blockedBy={task.blockedBy.map((d) => d.blockingTask)}
+                            blocking={task.blocking.map((d) => d.blockedTask)}
+                            candidates={otherTasks}
                             canEdit={canEdit}
                         />
 

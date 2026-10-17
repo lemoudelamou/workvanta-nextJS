@@ -101,6 +101,13 @@ jest.mock("./listview/project-list-view", () => ({
         return <div data-testid="list-view">{props.leading}</div>;
     },
 }));
+jest.mock("./calendar/project-calendar", () => ({
+    ProjectCalendar: ({ month, today, leading }: any) => (
+        <div data-testid="calendar" data-month={month} data-today={today}>
+            {leading}
+        </div>
+    ),
+}));
 jest.mock("./kanbanboard/kanban-board", () => ({
     KanbanBoard: (props: any) => {
         mockBoardProps = props;
@@ -146,11 +153,13 @@ function makeTask(overrides: Record<string, unknown> = {}) {
         assignee: null,
         subtasks: [],
         labels: [],
+        recurrence: null,
+        blockedBy: [],
         ...overrides,
     };
 }
 
-async function renderPage(query: { view?: string } = {}) {
+async function renderPage(query: { view?: string; month?: string } = {}) {
     const ui = await ProjectPage({
         params: Promise.resolve({ slug: "acme", projectId: "p1" }),
         searchParams: Promise.resolve(query),
@@ -321,6 +330,8 @@ describe("ProjectPage – board tasks", () => {
                 dueDate: new Date("2026-10-20T00:00:00Z"),
                 assignee,
                 subtasks: [{ completed: true }, { completed: false }, { completed: true }],
+                recurrence: "WEEKLY",
+                blockedBy: [{ blockingTask: { status: "TODO" } }, { blockingTask: { status: "DONE" } }],
             }),
         ]);
 
@@ -341,8 +352,17 @@ describe("ProjectPage – board tasks", () => {
                 subtaskTotal: 3,
                 subtaskDone: 2,
                 labels: [],
+                recurrence: "WEEKLY",
+                // Only blockers that aren't done yet count.
+                openBlockers: 1,
             },
         ]);
+    });
+
+    it("shows the calendar for ?view=calendar, on the asked-for month", async () => {
+        await renderPage({ view: "calendar", month: "2026-12" });
+        expect(screen.getByTestId("calendar")).toHaveAttribute("data-month", "2026-12");
+        expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
     });
 
     it("gives the board each task's labels, sorted, and the project's labels for filtering", async () => {
