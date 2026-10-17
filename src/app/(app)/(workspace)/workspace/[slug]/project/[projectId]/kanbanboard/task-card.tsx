@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, CheckSquare } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LabelChips } from "@/components/ui/LabelChip";
 import { useLiveHighlights } from "@/lib/realtime/live-highlight";
 import { cardStyles } from "@/components/ui/Card";
 import { PRIORITY_META } from "@/lib/task-status";
@@ -83,6 +84,12 @@ export function TaskCard({
                     <p className={TITLE_CLASS}>{task.title}</p>
                 )}
             </div>
+
+            {task.labels?.length > 0 && (
+                <div className={cn("mt-2", handle && "pl-6")}>
+                    <LabelChips labels={task.labels} />
+                </div>
+            )}
 
             <div className="mt-3 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5">

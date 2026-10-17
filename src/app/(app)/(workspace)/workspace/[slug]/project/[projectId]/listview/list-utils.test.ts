@@ -13,6 +13,7 @@ function task(id: string, overrides: Partial<BoardTask> = {}): BoardTask {
         assignee: null,
         subtaskTotal: 0,
         subtaskDone: 0,
+        labels: [],
         ...overrides,
     };
 }
@@ -59,7 +60,7 @@ describe("sortTasks", () => {
 });
 
 describe("filterTasks", () => {
-    const none = { search: "", priority: "ALL", status: "ALL", assignee: "ALL" };
+    const none = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL" };
 
     it("matches title search case-insensitively", () => {
         expect(ids(filterTasks(tasks, { ...none, search: "APP" }))).toEqual(["b"]);
@@ -70,6 +71,15 @@ describe("filterTasks", () => {
         expect(ids(filterTasks(tasks, { ...none, priority: "HIGH" }))).toEqual(["c"]);
         expect(ids(filterTasks(tasks, { ...none, assignee: "ada@x.com" }))).toEqual(["b"]);
         expect(ids(filterTasks(tasks, { ...none, assignee: "UNASSIGNED" }))).toEqual(["c"]);
+    });
+
+    it("filters by label", () => {
+        const bug = { id: "l-bug", name: "Bug", color: "red" };
+        const design = { id: "l-design", name: "Design", color: "violet" };
+        const labelled = [task("x", { labels: [bug] }), task("y", { labels: [bug, design] }), task("z")];
+        expect(ids(filterTasks(labelled, { ...none, label: "l-design" }))).toEqual(["y"]);
+        expect(ids(filterTasks(labelled, { ...none, label: "l-bug" }))).toEqual(["x", "y"]);
+        expect(ids(filterTasks(labelled, none))).toEqual(["x", "y", "z"]);
     });
 });
 

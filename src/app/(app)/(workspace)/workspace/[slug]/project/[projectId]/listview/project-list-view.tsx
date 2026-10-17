@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Plus, Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Filter, Plus, Search, Tag, UserRound } from "lucide-react";
 
 import { buttonStyles } from "@/app/style/button-style";
 import { useLiveHighlights } from "@/lib/realtime/live-highlight";
@@ -13,6 +13,8 @@ import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/proje
 
 import { Avatar } from "../kanbanboard/avatar";
 import { FilterSelect } from "../kanbanboard/filter-select";
+import { LabelChips } from "@/components/ui/LabelChip";
+import type { TaskLabelView } from "@/lib/labels/label-colors";
 import { COLUMN_DOTS } from "../kanbanboard/board-utils";
 import { getPriorityLabel } from "../kanbanboard/kanban-helpers";
 import type { BoardTask, Filters } from "../kanbanboard/kanban-types";
@@ -24,7 +26,7 @@ import {
     type SortKey,
 } from "./list-utils";
 
-const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL" };
+const EMPTY_FILTERS: Filters = { search: "", priority: "ALL", status: "ALL", assignee: "ALL", label: "ALL" };
 
 const PRIORITY_DOTS: Record<string, string> = {
     URGENT: "bg-danger",
@@ -48,12 +50,15 @@ export function ProjectListView({
     members,
     canEdit,
     leading,
+    labels = [],
 }: {
     slug: string;
     projectId: string;
     tasks: BoardTask[];
     members: TaskFormMember[];
     canEdit: boolean;
+    /** The project's labels, for the label filter. */
+    labels?: TaskLabelView[];
     /** Shown at the start of the toolbar, e.g. the Board/List switch. */
     leading?: React.ReactNode;
 }) {
@@ -95,7 +100,8 @@ export function ProjectListView({
         filters.search.trim() !== "" ||
         filters.priority !== "ALL" ||
         filters.status !== "ALL" ||
-        filters.assignee !== "ALL";
+        filters.assignee !== "ALL" ||
+        filters.label !== "ALL";
 
     function update<K extends keyof Filters>(key: K, value: Filters[K]) {
         setFilters((current) => ({ ...current, [key]: value }));
@@ -236,6 +242,21 @@ export function ProjectListView({
                             </option>
                         ))}
                     </FilterSelect>
+                    {labels.length > 0 && (
+                        <FilterSelect
+                            ariaLabel="Filter by label"
+                            value={filters.label}
+                            onChange={(value) => update("label", value)}
+                            icon={<Tag className="size-4 text-muted-foreground" />}
+                        >
+                            <option value="ALL">All labels</option>
+                            {labels.map((label) => (
+                                <option key={label.id} value={label.id}>
+                                    {label.name}
+                                </option>
+                            ))}
+                        </FilterSelect>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -270,6 +291,11 @@ export function ProjectListView({
                             >
                                 {task.title}
                             </Link>
+                            {task.labels.length > 0 && (
+                                <div className="mt-1.5">
+                                    <LabelChips labels={task.labels} />
+                                </div>
+                            )}
                             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                                 {renderStatus(task)}
                                 <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
@@ -349,6 +375,11 @@ export function ProjectListView({
                                             <span className="ml-2 text-xs text-muted-foreground tabular-nums">
                                                 {task.subtaskDone}/{task.subtaskTotal} subtasks
                                             </span>
+                                        )}
+                                        {task.labels.length > 0 && (
+                                            <div className="mt-1">
+                                                <LabelChips labels={task.labels} />
+                                            </div>
                                         )}
                                     </td>
 

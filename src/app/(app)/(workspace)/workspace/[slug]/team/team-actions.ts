@@ -231,6 +231,7 @@ export async function inviteTeamAction(
                 workspaceId,
                 role,
                 expiresAt,
+                invitedById: membership.userId,
             },
         });
     } catch (error) {

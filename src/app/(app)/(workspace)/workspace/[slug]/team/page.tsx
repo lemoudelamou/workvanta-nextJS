@@ -7,6 +7,7 @@ import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { PageBody } from "@/components/ui/PageBody";
 import { AvatarStack } from "@/components/ui/AvatarStack";
 import { PersonAvatar } from "@/components/ui/PersonAvatar";
+import { timeAgo } from "@/helpers/timeAgo";
 import { RowActions, type RowAction } from "@/components/ui/RowActions";
 import { SearchableList } from "@/components/ui/SearchableList";
 import { RolesGuide } from "@/components/ui/RolesGuide";
@@ -115,6 +116,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                   expiresAt: true,
                   createdAt: true,
                   project: { select: { name: true } },
+                  invitedBy: { select: { name: true, email: true } },
               },
           })
         : [];
@@ -331,6 +333,11 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                                                         {invitation.project
                                                             ? `${formatRole(invitation.projectRole ?? "VIEWER")} on ${invitation.project.name}`
                                                             : `Joins as ${formatRole(invitation.role)}`}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground/80">
+                                                        {invitation.invitedBy
+                                                            ? `Invited by ${invitation.invitedBy.name?.trim() || invitation.invitedBy.email} ${timeAgo(invitation.createdAt)}`
+                                                            : `Sent ${timeAgo(invitation.createdAt)}`}
                                                     </p>
                                                 </div>
                                             </div>

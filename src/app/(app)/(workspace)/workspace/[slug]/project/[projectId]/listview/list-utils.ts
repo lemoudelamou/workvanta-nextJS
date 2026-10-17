@@ -32,6 +32,7 @@ export function filterTasks(tasks: BoardTask[], filters: Filters) {
         if (search && !task.title.toLowerCase().includes(search)) return false;
         if (filters.priority !== "ALL" && task.priority !== filters.priority) return false;
         if (filters.status !== "ALL" && task.status !== filters.status) return false;
+        if (filters.label && filters.label !== "ALL" && !task.labels.some((l) => l.id === filters.label)) return false;
 
         if (filters.assignee === "UNASSIGNED") return !task.assignee;
         if (filters.assignee !== "ALL") return task.assignee?.email === filters.assignee;

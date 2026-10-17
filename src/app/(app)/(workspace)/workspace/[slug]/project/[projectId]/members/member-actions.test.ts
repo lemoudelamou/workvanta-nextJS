@@ -336,6 +336,7 @@ describe("inviteToProjectAction – creating the invitation", () => {
                 projectId: "p1",
                 projectRole: "ADMIN",
                 expiresAt: new Date(NOW.getTime() + 7 * 24 * 60 * 60 * 1000),
+                invitedById: "me",
             },
         });
     });

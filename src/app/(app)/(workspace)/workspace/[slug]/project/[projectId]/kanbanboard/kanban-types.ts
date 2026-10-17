@@ -1,4 +1,5 @@
 import type { TaskStatus } from "@/lib/task-status";
+import type { TaskLabelView } from "@/lib/labels/label-colors";
 
 export type BoardTask = {
     id: string;
@@ -16,6 +17,7 @@ export type BoardTask = {
     } | null;
     subtaskTotal: number;
     subtaskDone: number;
+    labels: TaskLabelView[];
 };
 
 export type Columns = Record<TaskStatus, BoardTask[]>;
@@ -25,4 +27,6 @@ export type Filters = {
     priority: string;
     status: string;
     assignee: string;
+    /** A label id, or "ALL". */
+    label: string;
 };

@@ -14,7 +14,7 @@ import {
     type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Filter, Plus, Search, UserRound, X } from "lucide-react";
+import { Filter, Plus, Search, Tag, UserRound, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { buttonStyles } from "@/app/style/button-style";
@@ -30,6 +30,7 @@ import { FilterChip } from "./filter-chip";
 import { FilterSelect } from "./filter-select";
 import { TaskCard } from "./task-card";
 import type { BoardTask, Columns, Filters } from "./kanban-types";
+import type { TaskLabelView } from "@/lib/labels/label-colors";
 import { beginInteraction, endInteraction } from "@/lib/realtime/interaction-lock";
 
 export type { BoardTask } from "./kanban-types";
@@ -39,6 +40,7 @@ const EMPTY_FILTERS: Filters = {
     priority: "ALL",
     status: "ALL",
     assignee: "ALL",
+    label: "ALL",
 };
 
 export function KanbanBoard({
@@ -48,12 +50,15 @@ export function KanbanBoard({
                                 members,
                                 canEdit,
                                 leading,
+                                labels = [],
                             }: {
     slug: string;
     projectId: string;
     tasks: BoardTask[];
     members: TaskFormMember[];
     canEdit: boolean;
+    /** The project's labels, for the label filter. */
+    labels?: TaskLabelView[];
     /** Shown at the start of the toolbar, e.g. the Board/List switch. */
     leading?: React.ReactNode;
 }) {
@@ -117,7 +122,8 @@ export function KanbanBoard({
         filters.search.trim() !== "" ||
         filters.priority !== "ALL" ||
         filters.status !== "ALL" ||
-        filters.assignee !== "ALL";
+        filters.assignee !== "ALL" ||
+        filters.label !== "ALL";
 
     const uniqueAssignees = useMemo(() => {
         const map = new Map<string, { email: string; name: string | null }>();
@@ -292,6 +298,7 @@ export function KanbanBoard({
         filters.priority !== "ALL" ? filters.priority : "",
         filters.status !== "ALL" ? filters.status : "",
         filters.assignee !== "ALL" ? filters.assignee : "",
+        filters.label !== "ALL" ? filters.label : "",
     ].filter(Boolean).length;
     // Search has its own box; this counts the filters behind the Filters button.
     const panelFilterCount = activeFilterCount - (filters.search ? 1 : 0);
@@ -403,6 +410,22 @@ export function KanbanBoard({
                                 </option>
                             ))}
                         </FilterSelect>
+
+                        {labels.length > 0 && (
+                            <FilterSelect
+                                icon={<Tag className="size-3.5 text-slate-400" />}
+                                ariaLabel="Filter by label"
+                                value={filters.label}
+                                onChange={(value) => updateFilter("label", value)}
+                            >
+                                <option value="ALL">All labels</option>
+                                {labels.map((label) => (
+                                    <option key={label.id} value={label.id}>
+                                        {label.name}
+                                    </option>
+                                ))}
+                            </FilterSelect>
+                        )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/[0.06]">
@@ -457,6 +480,13 @@ export function KanbanBoard({
                                     : getAssigneeLabel(filters.assignee, uniqueAssignees)
                             }`}
                             onRemove={() => updateFilter("assignee", "ALL")}
+                        />
+                    )}
+
+                    {filters.label !== "ALL" && (
+                        <FilterChip
+                            label={`Label: ${labels.find((l) => l.id === filters.label)?.name ?? "Removed label"}`}
+                            onRemove={() => updateFilter("label", "ALL")}
                         />
                     )}
 

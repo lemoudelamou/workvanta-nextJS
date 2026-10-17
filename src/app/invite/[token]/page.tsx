@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { logout } from "@/app/(auth)/signin/actions";
 import { acceptInvitationAction } from "@/app/invite/[token]/invitation-actions";
+import { PersonAvatar } from "@/components/ui/PersonAvatar";
 import { WorkspaceBadge } from "@/app/(app)/(workspace)/workspace/components/WorkspaceCard";
 import { PROJECT_ROLE_DESCRIPTIONS, WORKSPACE_ROLE_DESCRIPTIONS, type ProjectRoleName, type WorkspaceRoleName } from "@/lib/auth/permissions";
 
@@ -70,6 +71,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
         include: {
             workspace: { select: { id: true, name: true, _count: { select: { members: true } } } },
             project: { select: { name: true } },
+            invitedBy: { select: { name: true, email: true, image: true } },
         },
     });
 
@@ -103,12 +105,29 @@ export default async function InvitePage({ params }: InvitePageProps) {
     const workspaceRole = invitation.role as WorkspaceRoleName;
     const projectRole = invitation.projectRole as ProjectRoleName | null;
     const memberCount = invitation.workspace._count.members;
+    const inviter = invitation.invitedBy;
+    const inviterName = inviter ? inviter.name?.trim() || inviter.email : null;
 
     const summary = (
         <>
             <div className="flex flex-col items-center text-center">
-                <WorkspaceBadge id={invitation.workspace.id} name={invitation.workspace.name} size="lg" />
-                <p className="mt-5 text-sm text-muted-foreground">You&apos;re invited to join</p>
+                <div className="relative">
+                    <WorkspaceBadge id={invitation.workspace.id} name={invitation.workspace.name} size="lg" />
+                    {inviter && (
+                        <span className="absolute -bottom-2 -right-2 rounded-full ring-4 ring-card">
+                            <PersonAvatar person={inviter} size={28} />
+                        </span>
+                    )}
+                </div>
+                <p className="mt-5 text-sm text-muted-foreground">
+                    {inviterName ? (
+                        <>
+                            <span className="font-semibold text-foreground">{inviterName}</span> invited you to join
+                        </>
+                    ) : (
+                        "You're invited to join"
+                    )}
+                </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{invitation.workspace.name}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                     {memberCount} {memberCount === 1 ? "person" : "people"} already here
