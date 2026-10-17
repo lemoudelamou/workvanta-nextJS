@@ -27,6 +27,7 @@ import { LabelPicker } from "./components/label-picker";
 import { RepeatMenu } from "./components/repeat-menu";
 import { DependenciesSection } from "./components/dependencies-section";
 import { isRecurrence } from "@/lib/tasks/recurrence";
+import { openBlockerCount } from "@/lib/tasks/dependencies";
 import { CopyLinkButton } from "./components/copy-link-button";
 import type { TaskValues } from "./components/task-meta";
 import {
@@ -231,6 +232,7 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                                 overdue={overdue}
                                 canEdit={canEdit}
                                 updateTask={updateTask}
+                                openBlockers={openBlockerCount(task.blockedBy.map((d) => d.blockingTask))}
                                 extra={
                                     <RepeatMenu
                                         slug={slug}

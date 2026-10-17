@@ -129,6 +129,54 @@ describe("ProjectListView", () => {
         expect(table().getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("TODO");
     });
 
+    describe("marking a blocked task done", () => {
+        const blocked = [task("1", { title: "Write copy", openBlockers: 2 })];
+        const setDone = async () =>
+            act(async () => {
+                fireEvent.change(table().getByRole("combobox", { name: "Status of Write copy" }), {
+                    target: { value: "DONE" },
+                });
+            });
+
+        it("asks first, and does nothing if the editor backs out", async () => {
+            render(<ProjectListView slug="acme" projectId="p1" tasks={blocked} members={[]} canEdit />);
+            await setDone();
+
+            expect(screen.getByRole("alertdialog")).toHaveTextContent("“Write copy” is still waiting on 2 open tasks.");
+            fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+            expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+            expect(mockMove).not.toHaveBeenCalled();
+            expect(table().getByRole("combobox", { name: "Status of Write copy" })).toHaveValue("TODO");
+        });
+
+        it("saves once the editor confirms", async () => {
+            mockMove.mockResolvedValue(undefined);
+            render(<ProjectListView slug="acme" projectId="p1" tasks={blocked} members={[]} canEdit />);
+            await setDone();
+
+            await act(async () => {
+                fireEvent.click(screen.getByRole("button", { name: "Mark done anyway" }));
+            });
+
+            expect(mockMove).toHaveBeenCalledWith("acme", "p1", "1", "DONE");
+        });
+
+        it("doesn't ask for other moves", async () => {
+            mockMove.mockResolvedValue(undefined);
+            render(<ProjectListView slug="acme" projectId="p1" tasks={blocked} members={[]} canEdit />);
+
+            await act(async () => {
+                fireEvent.change(table().getByRole("combobox", { name: "Status of Write copy" }), {
+                    target: { value: "IN_PROGRESS" },
+                });
+            });
+
+            expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+            expect(mockMove).toHaveBeenCalledWith("acme", "p1", "1", "IN_PROGRESS");
+        });
+    });
+
     it("shows each task as a compact row on phones", () => {
         renderList();
 

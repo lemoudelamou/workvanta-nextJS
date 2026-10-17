@@ -32,6 +32,7 @@ import { TaskCard } from "./task-card";
 import type { BoardTask, Columns, Filters } from "./kanban-types";
 import type { TaskLabelView } from "@/lib/labels/label-colors";
 import { beginInteraction, endInteraction } from "@/lib/realtime/interaction-lock";
+import { useConfirmDone } from "../components/useConfirmDone";
 
 export type { BoardTask } from "./kanban-types";
 
@@ -77,6 +78,7 @@ export function KanbanBoard({
     const [showFilters, setShowFilters] = useState(false);
 
     const [, startTransition] = useTransition();
+    const confirmDone = useConfirmDone();
 
     const dragStart = useRef<{
         status: TaskStatus;
@@ -259,24 +261,38 @@ export function KanbanBoard({
             return;
         }
 
-        startTransition(async () => {
-            try {
-                // Persist the exact order the user dropped into, for both the
-                // column it left and the column it landed in.
-                await reorderTasksAction({
-                    slug,
-                    projectId,
-                    taskId,
-                    sourceStatus: from,
-                    destinationStatus: to,
-                    sourceTaskIds: idsOf(next[from]),
-                    destinationTaskIds: idsOf(next[to]),
-                });
-            } catch {
-                setColumns(start.snapshot);
-                setError("Couldn't move that task. Please try again.");
-            }
-        });
+        const persist = () =>
+            startTransition(async () => {
+                try {
+                    // Persist the exact order the user dropped into, for both the
+                    // column it left and the column it landed in.
+                    await reorderTasksAction({
+                        slug,
+                        projectId,
+                        taskId,
+                        sourceStatus: from,
+                        destinationStatus: to,
+                        sourceTaskIds: idsOf(next[from]),
+                        destinationTaskIds: idsOf(next[to]),
+                    });
+                } catch {
+                    setColumns(start.snapshot);
+                    setError("Couldn't move that task. Please try again.");
+                }
+            });
+
+        if (to === "DONE" && from !== "DONE") {
+            // The card stays in Done while we ask; backing out puts it back.
+            const task = next[to].find((t) => t.id === taskId);
+            confirmDone.guard({
+                title: task?.title ?? "This task",
+                openBlockers: task?.openBlockers ?? 0,
+                confirm: persist,
+                cancel: () => setColumns(start.snapshot),
+            });
+            return;
+        }
+        persist();
     }
 
     function handleDragCancel() {
@@ -574,6 +590,7 @@ export function KanbanBoard({
                     members={members}
                 />
             )}
+            {confirmDone.dialog}
         </div>
     );
 }

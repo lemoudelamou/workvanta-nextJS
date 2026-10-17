@@ -10,6 +10,7 @@ import type { TaskFormMember } from "@/components/ui/TaskFormFields";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/task-status";
 import { moveCardAction } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/project-actions";
 import { CreateTaskDialog } from "@/app/(app)/(workspace)/workspace/[slug]/project/[projectId]/create-task-dialog";
+import { useConfirmDone } from "../components/useConfirmDone";
 
 import { Avatar } from "../kanbanboard/avatar";
 import { FilterSelect } from "../kanbanboard/filter-select";
@@ -80,6 +81,7 @@ export function ProjectListView({
     const [dialogOpen, setDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [, startTransition] = useTransition();
+    const confirmDone = useConfirmDone();
 
     const visible = useMemo(
         () => sortTasks(filterTasks(rows, filters), sort.key, sort.direction),
@@ -109,7 +111,18 @@ export function ProjectListView({
 
     function changeStatus(task: BoardTask, status: TaskStatus) {
         if (status === task.status) return;
+        if (status === "DONE") {
+            confirmDone.guard({
+                title: task.title,
+                openBlockers: task.openBlockers ?? 0,
+                confirm: () => saveStatus(task, status),
+            });
+            return;
+        }
+        saveStatus(task, status);
+    }
 
+    function saveStatus(task: BoardTask, status: TaskStatus) {
         const previous = rows;
         setError(null);
         setRows((current) =>
@@ -455,6 +468,7 @@ export function ProjectListView({
                     members={members}
                 />
             )}
+            {confirmDone.dialog}
         </div>
     );
 }
