@@ -176,11 +176,12 @@ test("owner invites a teammate by email", async () => {
     const page = ownerPage;
 
     await page.goto(`${workspaceUrl}/team`);
-    await page.getByPlaceholder("teammate@example.com").fill(teammate.email);
+    await page.getByLabel("Email address").fill(teammate.email);
     await page.getByRole("button", { name: "Send invitation" }).click();
 
     await expect(page.getByText(`Invitation sent successfully to ${teammate.email}.`)).toBeVisible();
-    await expect(page.getByText("Pending invitations")).toBeVisible();
+    const invitations = page.getByRole("region", { name: /Invitations/ });
+    await expect(invitations.getByText(teammate.email)).toBeVisible();
 });
 
 test("teammate accepts the invitation and sees the work", async () => {
@@ -190,8 +191,10 @@ test("teammate accepts the invitation and sees the work", async () => {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    // New user: the invite sends them to sign up, with their email filled in.
+    // New user: the invite shows what they're joining, then sign-up with their email filled in.
     await page.goto(inviteLink);
+    await expect(page.getByRole("heading", { name: workspaceName })).toBeVisible();
+    await page.getByRole("link", { name: "Create account and join" }).click();
     await page.waitForURL(/\/signup\?/);
     await signUp(page, teammate);
 
@@ -200,7 +203,7 @@ test("teammate accepts the invitation and sees the work", async () => {
     await signIn(page, teammate.email);
 
     await page.waitForURL(/\/invite\//);
-    await page.getByRole("button", { name: "Accept invitation" }).click();
+    await page.getByRole("button", { name: `Accept and join ${workspaceName}` }).click();
 
     await page.waitForURL(/\/workspace\/[^/]+$/);
     await expect(page.getByRole("heading", { level: 1, name: workspaceName })).toBeVisible();

@@ -6,9 +6,9 @@ import { updateProjectMemberRoleAction } from "@/app/(app)/(workspace)/workspace
 type ProjectRole = "ADMIN" | "EDITOR" | "VIEWER";
 
 const PROJECT_ROLE_OPTIONS: RoleOption<ProjectRole>[] = [
-    { value: "ADMIN", label: "Admin", dotColor: "bg-blue-500" },
-    { value: "EDITOR", label: "Editor", dotColor: "bg-emerald-500" },
-    { value: "VIEWER", label: "Viewer", dotColor: "bg-slate-400" },
+    { value: "ADMIN", label: "Admin", dotColor: "bg-brand" },
+    { value: "EDITOR", label: "Editor", dotColor: "bg-status-done" },
+    { value: "VIEWER", label: "Viewer", dotColor: "bg-muted-foreground/60" },
 ];
 
 interface ProjectMemberRoleSelectProps {

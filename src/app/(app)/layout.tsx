@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { getMyOpenTaskCount, getShellWorkspaces } from "@/lib/navigation/shell-data";
 import { RealtimeProvider } from "@/lib/publisher/realtime-provider";
+import { buildNotificationViews } from "@/lib/notifications/notification-feed";
 
 export default async function AppLayout({
                                             children,
@@ -42,6 +43,8 @@ export default async function AppLayout({
         cookies(),
     ]);
 
+    const notificationViews = await buildNotificationViews(userId, notifications);
+
     const name =
         session.user.name?.trim() || session.user.email?.split("@")[0] || "User";
 
@@ -59,7 +62,7 @@ export default async function AppLayout({
                 unreadCount={unreadCount}
                 myOpenTasks={myOpenTasks}
                 initiallyCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}
-                notifications={notifications}
+                notifications={notificationViews}
             >
                 {children}
             </AppShell>
