@@ -24,6 +24,7 @@ import {
     WORKSPACE_ROLE_DESCRIPTIONS,
 } from "@/lib/auth/permissions";
 import { updateWorkspaceDetailsAction } from "@/app/(app)/(workspace)/workspace/workspace-actions";
+import { workspaceTitle } from "@/lib/navigation/page-titles";
 
 const USER = { id: true, name: true, email: true, image: true } as const;
 
@@ -269,4 +270,9 @@ export default async function WorkspacePage({
             </div>
         </PageBody>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    return workspaceTitle(slug);
 }

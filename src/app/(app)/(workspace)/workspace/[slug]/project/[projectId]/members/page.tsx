@@ -25,6 +25,7 @@ import { PersonAvatar } from "@/components/ui/PersonAvatar";
 import { RowActions } from "@/components/ui/RowActions";
 import { RolesGuide } from "@/components/ui/RolesGuide";
 import { SearchableList } from "@/components/ui/SearchableList";
+import { projectTitle } from "@/lib/navigation/page-titles";
 
 const ROLE_RANK: Record<ProjectRoleName, number> = { ADMIN: 0, EDITOR: 1, VIEWER: 2 };
 
@@ -284,4 +285,9 @@ export default async function ProjectMembersPage({ params }: { params: Promise<{
             </div>
         </PageBody>
     );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; projectId: string }> }) {
+    const { slug, projectId } = await params;
+    return projectTitle(slug, projectId, "Members");
 }

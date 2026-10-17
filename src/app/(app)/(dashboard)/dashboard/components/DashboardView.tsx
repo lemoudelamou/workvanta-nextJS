@@ -104,7 +104,7 @@ export function DashboardView({
                             </div>
                             <Link
                                 href="/workspace"
-                                className="group inline-flex shrink-0 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                                className="group relative inline-flex shrink-0 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-[''] hover:text-foreground"
                             >
                                 Browse all
                                 <ArrowRight

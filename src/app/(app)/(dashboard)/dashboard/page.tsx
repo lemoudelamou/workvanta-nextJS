@@ -11,6 +11,7 @@ import type { Focus, RecentProject } from "@/app/(app)/(dashboard)/dashboard/com
 import { groupByDue, myTasksWhere } from "@/lib/tasks/my-tasks";
 import type { WorkspaceRoleName } from "@/lib/auth/permissions";
 import { DashboardView } from "@/app/(app)/(dashboard)/dashboard/components/DashboardView";
+import { pageTitle } from "@/lib/navigation/page-titles";
 
 
 
@@ -215,4 +216,4 @@ export default async function DashboardPage() {
     );
 }
 
-
+export const metadata = pageTitle("Home");

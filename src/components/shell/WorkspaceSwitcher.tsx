@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronsUpDown, LayoutGrid, Plus } from "lucide-react";
+import { useRailTooltip } from "./RailTooltip";
 
 import type { ShellWorkspace } from "@/lib/navigation/shell-data";
 import { useDismiss } from "./use-dismiss";
@@ -33,6 +34,7 @@ export function WorkspaceSwitcher({
     compact?: boolean;
 }) {
     const [open, setOpen] = useState(false);
+    const tip = useRailTooltip(current?.name ?? "Workspaces", compact && !open);
     const containerRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const close = useCallback(() => setOpen(false), []);
@@ -51,11 +53,14 @@ export function WorkspaceSwitcher({
             <button
                 ref={triggerRef}
                 type="button"
-                onClick={() => setOpen((value) => !value)}
+                onClick={() => {
+                    tip.hide();
+                    setOpen((value) => !value);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label={current ? `Workspace: ${current.name}. Switch workspace` : "Choose a workspace"}
-                title={compact ? current?.name ?? "Workspaces" : undefined}
+                {...tip.handlers}
                 className={`flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left outline-none transition-colors hover:bg-sidebar-hover focus-visible:ring-2 focus-visible:ring-brand ${compact ? "justify-center" : ""}`}
             >
                 <span
@@ -64,6 +69,7 @@ export function WorkspaceSwitcher({
                 >
                     {current ? workspaceInitials(current.name) : "W"}
                 </span>
+                {tip.tooltip}
                 {!compact && (
                 <>
                 <span className="min-w-0 flex-1">

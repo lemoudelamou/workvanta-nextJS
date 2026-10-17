@@ -53,6 +53,7 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
                 id="attachment"
                 name="file"
                 type="file"
+                aria-label="Choose a file to attach"
                 required
                 disabled={isUploading}
                 onChange={handleFileChange}
