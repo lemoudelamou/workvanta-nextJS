@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { act, render, screen, within, fireEvent } from "@testing-library/react";
 
 import TaskPage from "./page";
 import { notFound, redirect } from "next/navigation";
@@ -32,11 +32,7 @@ jest.mock("next/image", () => ({
     __esModule: true,
     default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
-jest.mock("lucide-react", () => ({
-    ChevronDown: () => null,
-    FileText: () => null,
-    Pencil: () => null,
-}));
+
 
 jest.mock("@/lib/auth/session", () => ({ getSession: jest.fn() }));
 jest.mock("@/lib/auth/members", () => ({
@@ -79,27 +75,26 @@ jest.mock("./components/comment-form", () => ({
         </button>
     ),
 }));
-jest.mock("./components/comment-section", () => ({
-    CommentsSection: ({
-                          form,
-                          comments,
-                          currentUserId,
-                          members,
-                          deleteComment,
-                          updateComment,
-                          totalCount,
-                          showAllHref,
-                      }: any) => (
+jest.mock("./components/activity-feed", () => ({
+    ActivityFeed: ({
+        items,
+        composer,
+        commentCount,
+        currentUserId,
+        members,
+        deleteComment,
+        updateComment,
+        showEarlierHref,
+    }: any) => (
         <div
-            data-testid="comments"
+            data-testid="feed"
             data-user={currentUserId}
-            data-count={comments.length}
-            data-total={totalCount}
-            data-href={showAllHref}
-            data-order={comments.map((c: any) => c.id).join(",")}
+            data-order={items.map((i: any) => `${i.kind}:${i.id}`).join(",")}
+            data-comments={commentCount}
+            data-href={showEarlierHref ?? ""}
             data-members={members.length}
         >
-            {form}
+            {composer}
             <button data-testid="delete-comment" onClick={() => deleteComment("c1")} />
             <button data-testid="update-comment" onClick={() => updateComment("c1")} />
         </div>
@@ -113,16 +108,6 @@ jest.mock("./components/subtasks-section", () => ({
             data-count={subtasks.length}
             data-slug={slug}
             data-project={projectId}
-        />
-    ),
-}));
-jest.mock("./components/activity-section", () => ({
-    ActivitySection: ({ activities, totalCount, showAllHref }: any) => (
-        <div
-            data-testid="activity"
-            data-count={activities.length}
-            data-total={totalCount}
-            data-href={showAllHref}
         />
     ),
 }));
@@ -302,12 +287,13 @@ describe("TaskPage – guards", () => {
 });
 
 describe("TaskPage – header", () => {
-    it("renders the title, status and priority pills", async () => {
+    it("renders the title, status and priority", async () => {
         await renderPage();
 
         expect(screen.getByRole("heading", { level: 1, name: "Ship it" })).toBeInTheDocument();
-        expect(screen.getByText("In progress")).toBeInTheDocument();
-        expect(screen.getByText("High priority")).toBeInTheDocument();
+        const properties = within(screen.getByRole("complementary", { name: "Task properties" }));
+        expect(properties.getByText("In progress")).toBeInTheDocument();
+        expect(properties.getByText("High")).toBeInTheDocument();
     });
 
     it("humanises unknown status and priority values", async () => {
@@ -318,7 +304,7 @@ describe("TaskPage – header", () => {
         await renderPage();
 
         expect(screen.getByText("On hold")).toBeInTheDocument();
-        expect(screen.getByText("Critical plus priority")).toBeInTheDocument();
+        expect(screen.getByText("Critical plus")).toBeInTheDocument();
     });
 
     it("renders the breadcrumb with workspace, project and task", async () => {
@@ -343,15 +329,23 @@ describe("TaskPage – header", () => {
         expect(screen.getByText(/No description yet\./)).not.toHaveTextContent("edit panel");
     });
 
-    it("hints at the edit panel for editors", async () => {
+    it("invites editors to add a description in place", async () => {
         mockCanEditTasks.mockReturnValue(true);
         db.task.findFirst.mockResolvedValue(makeTask({ description: null }));
 
         await renderPage();
 
-        expect(screen.getByText(/No description yet\./)).toHaveTextContent(
-            "Add one from the edit panel.",
-        );
+        fireEvent.click(screen.getByRole("button", { name: "Add a description…" }));
+        expect(screen.getByLabelText("Description")).toHaveValue("");
+    });
+
+    it("lets editors rename the task by clicking the title", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
+        await renderPage();
+
+        fireEvent.click(within(screen.getByRole("heading", { level: 1 })).getByRole("button", { name: "Ship it" }));
+        expect(screen.getByLabelText("Title")).toHaveValue("Ship it");
     });
 });
 
@@ -460,33 +454,41 @@ describe("TaskPage – meta cells", () => {
 });
 
 describe("TaskPage – attachments", () => {
-    const attachment = (id: string, filename: string) => ({
+    const attachment = (id: string, filename: string, mimeType = "application/pdf") => ({
         id,
         filename,
         url: `https://files.x/${filename}`,
+        size: 2048,
+        mimeType,
         createdAt: new Date("2026-10-01T12:00:00Z"),
     });
 
-    it("shows the empty state with a plural count", async () => {
+    it("shows only the add tile to editors when there are no files", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+
         await renderPage();
 
-        expect(screen.getByText("0 files attached")).toBeInTheDocument();
-        expect(screen.getByText("No attachments yet.")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Attachments" })).toBeInTheDocument();
+        expect(screen.getByTestId("attachment-upload")).toBeInTheDocument();
+    });
+
+    it("leaves the section out for read-only users when there are no files", async () => {
+        await renderPage();
+
+        expect(screen.queryByRole("heading", { name: /Attachments/ })).not.toBeInTheDocument();
     });
 
     it("uses the singular label for one file", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
 
-        expect(screen.getByText("1 file attached")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Attachments 1 file" })).toBeInTheDocument();
     });
 
     it("links attachments through the access-checked route, never the raw file URL", async () => {
         db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf"), attachment("a2", "logo.png")] }),
+            makeTask({ attachments: [attachment("a1", "spec.pdf"), attachment("a2", "logo.png", "image/png")] }),
         );
 
         await renderPage();
@@ -495,14 +497,13 @@ describe("TaskPage – attachments", () => {
         expect(link).toHaveAttribute("href", "/api/attachments/a1");
         expect(link).toHaveAttribute("target", "_blank");
         expect(link).toHaveAttribute("rel", "noreferrer");
-        expect(screen.getByText("2 files attached")).toBeInTheDocument();
-        expect(screen.getAllByText("Added Oct 1, 2026")).toHaveLength(2);
+        expect(screen.getByRole("heading", { name: "Attachments 2 files" })).toBeInTheDocument();
+        expect(screen.getByText("PDF, 2 KB, added Oct 1")).toBeInTheDocument();
+        expect(screen.getByText("PNG, 2 KB, added Oct 1")).toBeInTheDocument();
     });
 
     it("hides delete and upload controls for read-only users", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
 
@@ -512,9 +513,7 @@ describe("TaskPage – attachments", () => {
 
     it("binds upload and delete actions for editors", async () => {
         mockCanEditTasks.mockReturnValue(true);
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ attachments: [attachment("a1", "spec.pdf")] }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ attachments: [attachment("a1", "spec.pdf")] }));
 
         await renderPage();
         fireEvent.click(screen.getByTestId("attachment-upload"));
@@ -526,14 +525,10 @@ describe("TaskPage – attachments", () => {
 });
 
 describe("TaskPage – child sections", () => {
-    it("passes subtasks, activities and comments to their sections", async () => {
-        db.task.findFirst.mockResolvedValue(
-            makeTask({
-                subtasks: [{ id: "s1" }, { id: "s2" }],
-                activities: [{ id: "act1" }],
-                comments: [{ id: "c1" }, { id: "c2" }, { id: "c3" }],
-            }),
-        );
+    const at = (minute: number) => new Date(`2026-10-01T10:${String(minute).padStart(2, "0")}:00Z`);
+
+    it("passes subtasks to their section", async () => {
+        db.task.findFirst.mockResolvedValue(makeTask({ subtasks: [{ id: "s1" }, { id: "s2" }] }));
 
         await renderPage();
 
@@ -542,19 +537,40 @@ describe("TaskPage – child sections", () => {
         expect(subtasks).toHaveAttribute("data-count", "2");
         expect(subtasks).toHaveAttribute("data-slug", "acme");
         expect(subtasks).toHaveAttribute("data-project", "p1");
-        expect(screen.getByTestId("activity")).toHaveAttribute("data-count", "1");
-        expect(screen.getByTestId("comments")).toHaveAttribute("data-count", "3");
     });
 
-    it("gives the comments section the current user and workspace members", async () => {
+    it("merges comments and history into one stream, oldest first", async () => {
+        db.task.findFirst.mockResolvedValue(
+            makeTask({
+                // Both arrive newest first from the query.
+                comments: [
+                    { id: "c2", createdAt: at(30) },
+                    { id: "c1", createdAt: at(10) },
+                ],
+                activities: [
+                    { id: "a3", action: "TASK_STATUS_CHANGED", createdAt: at(40) },
+                    { id: "a2", action: "COMMENT_CREATED", createdAt: at(10) },
+                    { id: "a1", action: "TASK_CREATED", createdAt: at(0) },
+                ],
+            }),
+        );
+
         await renderPage();
 
-        const comments = screen.getByTestId("comments");
-        expect(comments).toHaveAttribute("data-user", "u1");
-        expect(comments).toHaveAttribute("data-members", "2");
-        expect(within(comments).getByTestId("comment-form")).toHaveTextContent(
-            "2 mentionable",
+        // The "added a comment" event is dropped: the comment itself is there.
+        expect(screen.getByTestId("feed")).toHaveAttribute(
+            "data-order",
+            "event:a1,comment:c1,comment:c2,event:a3",
         );
+    });
+
+    it("gives the feed the current user and the people who can open the project", async () => {
+        await renderPage();
+
+        const feed = screen.getByTestId("feed");
+        expect(feed).toHaveAttribute("data-user", "u1");
+        expect(feed).toHaveAttribute("data-members", "2");
+        expect(within(feed).getByTestId("comment-form")).toHaveTextContent("2 mentionable");
     });
 
     it("only offers people who can open the project for mentions and assignment", async () => {
@@ -578,31 +594,47 @@ describe("TaskPage – child sections", () => {
     });
 });
 
-describe("TaskPage – edit panel and danger zone", () => {
-    it("hides the edit panel and delete section for read-only users", async () => {
+describe("TaskPage – properties and delete", () => {
+    it("shows read-only values and no controls to people who can't edit", async () => {
         await renderPage();
 
-        expect(screen.queryByText("Edit task")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
-        expect(screen.queryByText("Delete this task")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Status")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Ship it" })).not.toBeInTheDocument();
         expect(screen.queryByTestId("delete-task")).not.toBeInTheDocument();
     });
 
-    it("renders the edit form prefilled with the task values", async () => {
+    it("prefills the property controls with the task values", async () => {
         mockCanEditTasks.mockReturnValue(true);
-        db.task.findFirst.mockResolvedValue(
-            makeTask({ assigneeId: "u2", assignee: ada }),
-        );
+        db.task.findFirst.mockResolvedValue(makeTask({ assigneeId: "u2", assignee: ada }));
 
         await renderPage();
 
-        expect(screen.getByLabelText("Title")).toHaveValue("Ship it");
-        expect(screen.getByLabelText("Description")).toHaveValue("Line one\nLine two");
         expect(screen.getByLabelText("Status")).toHaveValue("IN_PROGRESS");
         expect(screen.getByLabelText("Priority")).toHaveValue("HIGH");
         expect(screen.getByLabelText("Assignee")).toHaveValue("u2");
         expect(screen.getByLabelText("Due date")).toHaveValue("2026-10-20");
-        expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+    });
+
+    it("saves a property as soon as it changes, re-sending the other values", async () => {
+        mockCanEditTasks.mockReturnValue(true);
+        const update = updateTaskAction as unknown as jest.Mock;
+        update.mockResolvedValue(undefined);
+
+        await renderPage();
+        await act(async () => {
+            fireEvent.change(screen.getByLabelText("Status"), { target: { value: "DONE" } });
+        });
+
+        expect(update).toHaveBeenCalledWith("acme", "p1", "t1", expect.any(FormData));
+        const sent = Object.fromEntries((update.mock.calls[0][3] as FormData).entries());
+        expect(sent).toEqual({
+            title: "Ship it",
+            description: "Line one\nLine two",
+            status: "DONE",
+            priority: "HIGH",
+            assigneeId: "",
+            dueDate: "2026-10-20",
+        });
     });
 
     it("offers every status and priority as an option", async () => {
@@ -627,17 +659,13 @@ describe("TaskPage – edit panel and danger zone", () => {
         ]);
     });
 
-    it("lists Unassigned plus workspace members as assignee options", async () => {
+    it("lists Unassigned plus project members as assignee options", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
 
         const options = within(screen.getByLabelText("Assignee")).getAllByRole("option");
-        expect(options.map((o) => o.textContent)).toEqual([
-            "Unassigned",
-            "Ada Lovelace",
-            "bob@x.com",
-        ]);
+        expect(options.map((o) => o.textContent)).toEqual(["Unassigned", "Ada Lovelace", "bob@x.com"]);
     });
 
     it("defaults the assignee to Unassigned and due date to empty when unset", async () => {
@@ -648,15 +676,15 @@ describe("TaskPage – edit panel and danger zone", () => {
 
         expect(screen.getByLabelText("Assignee")).toHaveValue("");
         expect(screen.getByLabelText("Due date")).toHaveValue("");
+        expect(screen.getByText("No due date")).toBeInTheDocument();
     });
 
-    it("renders the delete section and binds the delete action", async () => {
+    it("binds the delete action for editors", async () => {
         mockCanEditTasks.mockReturnValue(true);
 
         await renderPage();
         fireEvent.click(screen.getByTestId("delete-task"));
 
-        expect(screen.getByText("Delete this task")).toBeInTheDocument();
         expect(actions.deleteTask).toHaveBeenCalledWith("acme", "p1", "t1");
     });
 });
@@ -679,32 +707,24 @@ describe("TaskPage – long discussions", () => {
         expect(include().activities).not.toHaveProperty("take");
     });
 
-    it("shows comments oldest-first and passes the real totals", async () => {
+    it("passes the real comment total and links to the full history when some is hidden", async () => {
         db.task.findFirst.mockResolvedValue(
             makeTask({
-                comments: [{ id: "c3" }, { id: "c2" }],
+                comments: [{ id: "c3", createdAt: new Date() }],
                 _count: { comments: 120, activities: 45 },
             }),
         );
 
         await renderPage();
 
-        const comments = screen.getByTestId("comments");
-        expect(comments).toHaveAttribute("data-order", "c2,c3");
-        expect(comments).toHaveAttribute("data-total", "120");
-        expect(comments).toHaveAttribute(
-            "data-href",
-            "/workspace/acme/project/p1/tasks/t1?comments=all",
-        );
-        expect(screen.getByTestId("activity")).toHaveAttribute("data-total", "45");
+        const feed = screen.getByTestId("feed");
+        expect(feed).toHaveAttribute("data-comments", "120");
+        expect(feed).toHaveAttribute("data-href", "/workspace/acme/project/p1/tasks/t1?comments=all&activity=all");
     });
 
-    it("keeps the other list expanded when expanding one", async () => {
-        await renderPage({ activity: "all" });
+    it("has no link when everything is loaded", async () => {
+        await renderPage();
 
-        expect(screen.getByTestId("comments")).toHaveAttribute(
-            "data-href",
-            "/workspace/acme/project/p1/tasks/t1?comments=all&activity=all",
-        );
+        expect(screen.getByTestId("feed")).toHaveAttribute("data-href", "");
     });
 });

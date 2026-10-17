@@ -1,7 +1,4 @@
-import { ChevronDown, FileText, Pencil } from "lucide-react";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
-import type { ReactNode } from "react";
 
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
@@ -12,109 +9,33 @@ import {
 } from "@/lib/auth/members";
 import { canProject } from "@/lib/auth/permissions";
 import { AccessDeniedNotice } from "@/components/ui/AccessDenied";
-import { attachmentHref } from "@/lib/storage/attachments";
 import { canEditTasks } from "@/lib/auth/task_permission";
-
 import { Breadcrumb } from "@/components/ui/BreadCrumb";
 import { PageBody } from "@/components/ui/PageBody";
-import { buttonStyles } from "@/app/style/button-style";
-
-import { CommentForm } from "./components/comment-form";
-import { CommentsSection } from "./components/comment-section";
-import { SubtasksSection } from "./components/subtasks-section";
-import { DeleteTaskConfirmation } from "./components/delete-task-button";
-import { ActivitySection } from "./components/activity-section";
-import { AttachmentUpload } from "./components/attachement-upload";
-import { DeleteAttachmentButton } from "./components/delete-attachment-button";
-import {createCommentAction, deleteCommentAction, updateCommentAction, updateTaskAction, deleteTaskAction, uploadAttachmentAction, deleteAttachmentAction } from "./task-actions";
-import { fieldClass, NEUTRAL_DOT} from "@/app/style/ui-tokens";
-import { personColor } from "@/lib/ui/person-color";
 import { projectHex } from "@/lib/navigation/project-color";
 
+import { CommentForm } from "./components/comment-form";
+import { ActivityFeed, type FeedItem } from "./components/activity-feed";
+import { HIDDEN_IN_FEED } from "./components/activity-text";
+import { AttachmentsSection } from "./components/attachments-section";
+import { SubtasksSection } from "./components/subtasks-section";
+import { DeleteTaskConfirmation } from "./components/delete-task-button";
+import { TaskHeader } from "./components/task-header";
+import { PropertyRow, TaskProperties } from "./components/task-properties";
+import type { TaskValues } from "./components/task-meta";
+import {
+    createCommentAction,
+    deleteAttachmentAction,
+    deleteCommentAction,
+    deleteTaskAction,
+    updateCommentAction,
+    updateTaskAction,
+    uploadAttachmentAction,
+} from "./task-actions";
 
-
-const STATUSES: Record<string, { label: string; dot: string }> = {
-    TODO: { label: "To do", dot: NEUTRAL_DOT },
-    IN_PROGRESS: { label: "In progress", dot: "bg-blue-500" },
-    IN_REVIEW: { label: "In review", dot: "bg-amber-500" },
-    DONE: { label: "Done", dot: "bg-emerald-500" },
-};
-
-const PRIORITIES: Record<string, { label: string; dot: string }> = {
-    URGENT: { label: "Urgent", dot: "bg-danger" },
-    HIGH: { label: "High", dot: "bg-orange-500" },
-    MEDIUM: { label: "Medium", dot: "bg-amber-400" },
-    LOW: { label: "Low", dot: "bg-sky-400" },
-};
-
-const DATE = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+const DATE = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
 const USER_SELECT = { id: true, name: true, email: true, image: true } as const;
-
-function formatEnum(value: string) {
-    const text = value.replaceAll("_", " ").toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function lookup(table: Record<string, { label: string; dot: string }>, key: string) {
-    return table[key] ?? { label: formatEnum(key), dot: NEUTRAL_DOT };
-}
-
-function getInitials(name: string | null, email: string) {
-    const text = name?.trim() || email;
-    const parts = text.split(/\s+/).filter(Boolean);
-
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return text.slice(0, 2).toUpperCase();
-}
-
-function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-    return (
-        <section className={`rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)] ${className}`}>
-            {children}
-        </section>
-    );
-}
-
-function Pill({ dot, children }: { dot: string; children: ReactNode }) {
-    return (
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground">
-            <span aria-hidden="true" className={`size-1.5 rounded-full ${dot}`} />
-            {children}
-        </span>
-    );
-}
-
-function Avatar({ name, email, image }: { name: string | null; email: string; image: string | null }) {
-    return (
-        <span
-            className={`relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold ${personColor(email)}`}
-        >
-            {image ? <Image src={image} alt="" fill className="object-cover" sizes="24px" /> : getInitials(name, email)}
-        </span>
-    );
-}
-
-/** One label/value row in the details sidebar. */
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
-    return (
-        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3 py-2.5">
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="flex min-h-6 min-w-0 items-center text-sm font-medium text-foreground">{children}</dd>
-        </div>
-    );
-}
-
-function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
-    return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className="text-[13px] font-medium text-foreground">
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
 
 type TaskPageProps = {
     params: Promise<{ slug: string; projectId: string; taskId: string }>;
@@ -135,12 +56,6 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
     const showAllComments = query.comments === "all";
     const showAllActivity = query.activity === "all";
     const taskHref = `/workspace/${slug}/project/${projectId}/tasks/${taskId}`;
-    const withParam = (key: string) => {
-        const next = new URLSearchParams();
-        if (showAllComments || key === "comments") next.set("comments", "all");
-        if (showAllActivity || key === "activity") next.set("activity", "all");
-        return `${taskHref}?${next.toString()}`;
-    };
 
     // Check project access first so private projects never load task data
     // for people who can't open them.
@@ -180,8 +95,8 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
         },
         include: {
             project: { include: { workspace: true } },
-            creator: true,
-            assignee: true,
+            creator: { select: USER_SELECT },
+            assignee: { select: USER_SELECT },
             subtasks: { orderBy: { position: "asc" } },
             // Newest first so "take" keeps the latest; flipped back below.
             comments: {
@@ -216,13 +131,32 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
     const uploadAttachment = uploadAttachmentAction.bind(null, slug, projectId, taskId);
     const deleteAttachment = deleteAttachmentAction.bind(null, slug, projectId, taskId);
 
-    const status = lookup(STATUSES, task.status);
-    const priority = lookup(PRIORITIES, task.priority);
-
-    const attachmentCount = task.attachments.length;
     const overdue = !!task.dueDate && task.status !== "DONE" && task.dueDate < new Date();
 
-    const field = `${fieldClass} py-2`;
+    const values: TaskValues = {
+        title: task.title,
+        description: task.description ?? "",
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assigneeId ?? "",
+        dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : "",
+    };
+    // Reset in-place edits whenever the task changes underneath them.
+    const version = [task.updatedAt?.getTime() ?? 0, ...Object.values(values)].join("|");
+
+    // One stream: comments plus history, oldest first. Comment events are
+    // left out because the comment itself is in the stream.
+    const feed: FeedItem[] = [
+        ...task.comments.map((comment) => ({ kind: "comment" as const, ...comment })),
+        ...task.activities
+            .filter((activity) => !HIDDEN_IN_FEED.has(activity.action))
+            .map((activity) => ({ kind: "event" as const, ...activity })),
+    ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    const truncated =
+        task._count.comments > task.comments.length || task._count.activities > task.activities.length;
+
+    const currentUser = people.find((person) => person.id === userId) ?? null;
 
     return (
         <PageBody glow={projectHex(projectId)}>
@@ -238,263 +172,72 @@ export default async function TaskPage({ params, searchParams }: TaskPageProps) 
                 ]}
             />
 
-            {/* Phones: header, details, the work, then delete. Wide screens: details in a sticky column
-                (the aside is display:contents below xl so its cards can be ordered in the grid). */}
-            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:grid-rows-[auto_1fr] xl:gap-x-10">
+            {/* Phones: header, properties, the work, then delete. Wide screens: properties in a
+                sticky column (the aside is display:contents below xl so its parts can be ordered). */}
+            <div className="mt-6 grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px] xl:grid-rows-[auto_1fr] xl:gap-x-12">
                 <header className="min-w-0 xl:col-start-1 xl:row-start-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Pill dot={status.dot}>{status.label}</Pill>
-                        <Pill dot={priority.dot}>{priority.label} priority</Pill>
-                    </div>
-
-                    <h1 className="mt-3 break-words text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                        {task.title}
-                    </h1>
-
-                    {task.description ? (
-                        <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
-                            {task.description}
-                        </p>
-                    ) : (
-                        <p className="mt-3 text-sm text-muted-foreground">
-                            No description yet.{canEdit ? " Add one from the edit panel." : ""}
-                        </p>
-                    )}
+                    <TaskHeader key={`h-${version}`} values={values} canEdit={canEdit} updateTask={updateTask} />
                 </header>
 
                 <aside
-                    aria-label="Task details"
-                    className="contents xl:sticky xl:top-6 xl:z-10 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:block xl:min-w-0 xl:space-y-4 xl:self-start"
+                    aria-label="Task properties"
+                    className="contents xl:sticky xl:top-6 xl:z-10 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:block xl:min-w-0 xl:self-start"
                 >
-                    <Card>
-                        <h2 className="border-b border-border px-4 py-3 text-sm font-semibold text-foreground">Details</h2>
-                        <dl className="divide-y divide-border px-4">
-                            <DetailRow label="Assignee">
-                                {task.assignee ? (
-                                    <span className="flex min-w-0 items-center gap-2">
-                                        <Avatar
-                                            name={task.assignee.name}
-                                            email={task.assignee.email}
-                                            image={task.assignee.image}
-                                        />
-                                        <span className="truncate">{task.assignee.name ?? task.assignee.email}</span>
-                                    </span>
-                                ) : (
-                                    <span className="font-normal text-muted-foreground">Unassigned</span>
-                                )}
-                            </DetailRow>
-
-                            <DetailRow label="Due date">
-                                {task.dueDate ? (
-                                    <span className={overdue ? "text-danger" : undefined}>
-                                        {DATE.format(task.dueDate)}
-                                        {overdue ? " (overdue)" : ""}
-                                    </span>
-                                ) : (
-                                    <span className="font-normal text-muted-foreground">No due date</span>
-                                )}
-                            </DetailRow>
-
-                            <DetailRow label="Created by">
-                                <span className="truncate">
-                                    {task.creator ? (task.creator.name ?? task.creator.email) : "Unknown"}
-                                </span>
-                            </DetailRow>
-
-                            <DetailRow label="Created">{DATE.format(task.createdAt)}</DetailRow>
-                        </dl>
-
-                        {canEdit && (
-                            <details className="group border-t border-border">
-                                <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand [&::-webkit-details-marker]:hidden">
-                                    <Pencil className="size-4 text-muted-foreground" aria-hidden="true" />
-                                    <span className="flex-1">Edit task</span>
-                                    <ChevronDown
-                                        className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
-                                        aria-hidden="true"
-                                    />
-                                </summary>
-
-                                <form action={updateTask} className="space-y-4 border-t border-border px-4 pb-4 pt-4">
-                                    <Field id="task-title" label="Title">
-                                        <input
-                                            id="task-title"
-                                            name="title"
-                                            defaultValue={task.title}
-                                            className={field}
-                                            required
-                                        />
-                                    </Field>
-
-                                    <Field id="task-description" label="Description">
-                                        <textarea
-                                            id="task-description"
-                                            name="description"
-                                            defaultValue={task.description ?? ""}
-                                            rows={4}
-                                            className={`${field} resize-y`}
-                                            placeholder="Add a description…"
-                                        />
-                                    </Field>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Field id="task-status" label="Status">
-                                            <select id="task-status" name="status" defaultValue={task.status} className={field}>
-                                                {Object.entries(STATUSES).map(([value, { label }]) => (
-                                                    <option key={value} value={value}>
-                                                        {label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </Field>
-
-                                        <Field id="task-priority" label="Priority">
-                                            <select
-                                                id="task-priority"
-                                                name="priority"
-                                                defaultValue={task.priority}
-                                                className={field}
-                                            >
-                                                {Object.entries(PRIORITIES).map(([value, { label }]) => (
-                                                    <option key={value} value={value}>
-                                                        {label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </Field>
-                                    </div>
-
-                                    <Field id="task-assignee" label="Assignee">
-                                        <select
-                                            id="task-assignee"
-                                            name="assigneeId"
-                                            defaultValue={task.assigneeId ?? ""}
-                                            className={field}
-                                        >
-                                            <option value="">Unassigned</option>
-                                            {people.map((person) => (
-                                                <option key={person.id} value={person.id}>
-                                                    {person.name ?? person.email}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </Field>
-
-                                    <Field id="task-due" label="Due date">
-                                        <input
-                                            id="task-due"
-                                            type="date"
-                                            name="dueDate"
-                                            defaultValue={task.dueDate ? task.dueDate.toISOString().slice(0, 10) : ""}
-                                            className={field}
-                                        />
-                                    </Field>
-
-                                    <button type="submit" className={`${buttonStyles()} w-full justify-center`}>
-                                        Save changes
-                                    </button>
-                                </form>
-                            </details>
-                        )}
-                    </Card>
+                    <div className="rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)]">
+                        <TaskProperties
+                            key={`p-${version}`}
+                            values={values}
+                            people={people}
+                            assignee={task.assignee}
+                            overdue={overdue}
+                            canEdit={canEdit}
+                            updateTask={updateTask}
+                            footer={
+                                <>
+                                    <PropertyRow label="Created by">
+                                        {task.creator ? (task.creator.name ?? task.creator.email) : "Unknown"}
+                                    </PropertyRow>
+                                    <PropertyRow label="Created">{DATE.format(task.createdAt)}</PropertyRow>
+                                </>
+                            }
+                        />
+                    </div>
 
                     {canEdit && (
-                        <section
-                            aria-labelledby="danger-zone"
-                            className="order-last flex items-center justify-between gap-4 rounded-xl border border-danger/20 px-4 py-3 xl:order-none"
-                        >
-                            <div className="min-w-0">
-                                <h2 id="danger-zone" className="text-sm font-medium text-foreground">
-                                    Delete this task
-                                </h2>
-                                <p className="mt-0.5 text-xs text-muted-foreground">This can&apos;t be undone.</p>
-                            </div>
+                        <div className="order-last -mt-4 xl:order-none xl:mt-3 xl:px-2">
                             <DeleteTaskConfirmation action={deleteTask} />
-                        </section>
+                        </div>
                     )}
                 </aside>
 
-                <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-2">
-                    <SubtasksSection taskId={task.id} subtasks={task.subtasks} slug={slug} projectId={projectId} />
+                <div className="min-w-0 space-y-10 xl:col-start-1 xl:row-start-2">
+                    <SubtasksSection
+                        taskId={task.id}
+                        subtasks={task.subtasks}
+                        slug={slug}
+                        projectId={projectId}
+                        canEdit={canEdit}
+                    />
 
-                    <Card>
-                        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                                <h2 className="text-sm font-semibold text-foreground">Attachments</h2>
-                                <span className="whitespace-nowrap text-xs text-muted-foreground">
-                                    {attachmentCount} {attachmentCount === 1 ? "file" : "files"} attached
-                                </span>
-                            </div>
-                            {canEdit && <AttachmentUpload action={uploadAttachment} />}
-                        </div>
+                    <AttachmentsSection
+                        attachments={task.attachments}
+                        canEdit={canEdit}
+                        upload={uploadAttachment}
+                        remove={deleteAttachment}
+                    />
 
-                        {attachmentCount === 0 ? (
-                            <p className="border-t border-border px-4 py-4 text-sm text-muted-foreground sm:px-5">
-                                No attachments yet.
-                            </p>
-                        ) : (
-                            <ul className="divide-y divide-border border-t border-border">
-                                {task.attachments.map((attachment) => (
-                                    <li
-                                        key={attachment.id}
-                                        className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:px-5"
-                                    >
-                                        <div className="flex min-w-0 items-center gap-3">
-                                            <span
-                                                aria-hidden="true"
-                                                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
-                                            >
-                                                <FileText className="size-4" />
-                                            </span>
-                                            <div className="min-w-0">
-                                                <a
-                                                    href={attachmentHref(attachment.id)}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="block truncate text-sm font-medium text-foreground hover:underline"
-                                                >
-                                                    {attachment.filename}
-                                                </a>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Added {DATE.format(attachment.createdAt)}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {canEdit && (
-                                            <DeleteAttachmentButton
-                                                filename={attachment.filename}
-                                                action={deleteAttachment.bind(null, attachment.id)}
-                                            />
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-
-                    {/* Above Activity so the @mention list can overlap it. */}
-                    <div className="relative z-20">
-                        <CommentsSection
-                            form={<CommentForm action={createComment} members={people} />}
-                            comments={[...task.comments].reverse()}
-                            totalCount={task._count.comments}
-                            showAllHref={withParam("comments")}
-                            currentUserId={userId}
-                            deleteComment={deleteComment}
-                            updateComment={updateComment}
-                            members={people}
-                            canModerate={canModerate}
-                        />
-                    </div>
-
-                    <div className="relative z-0">
-                        <ActivitySection
-                            activities={task.activities}
-                            totalCount={task._count.activities}
-                            showAllHref={withParam("activity")}
-                        />
-                    </div>
+                    <ActivityFeed
+                        items={feed}
+                        commentCount={task._count.comments}
+                        composer={<CommentForm action={createComment} members={people} />}
+                        currentUser={currentUser}
+                        currentUserId={userId}
+                        members={people}
+                        deleteComment={deleteComment}
+                        updateComment={updateComment}
+                        canModerate={canModerate}
+                        showEarlierHref={truncated ? `${taskHref}?comments=all&activity=all` : null}
+                    />
                 </div>
             </div>
         </PageBody>

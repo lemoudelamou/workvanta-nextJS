@@ -1,8 +1,8 @@
 "use client";
 
-import { AtSign, Send, User } from "lucide-react";
+import { AtSign, Send } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
-import { commentButton, iconTile } from "@/app/style/ui-tokens";
+import { formatNumber } from "./task-meta";
 import { personColor } from "@/lib/ui/person-color";
 
 type Member = {
@@ -146,70 +146,82 @@ export function CommentForm({ action, members }: CommentFormProps) {
   }
 
   return (
-      <form action={handleSubmit} className={`relative space-y-3 ${lifted}`}>
-        <div className={`group relative ${lifted}`}>
-        <textarea
-            ref={textareaRef}
-            name="content"
-            value={content}
-            onChange={handleChange}
-            rows={3}
-            placeholder="Write a comment. Type @ to mention someone."
-            required
-            maxLength={MAX_LENGTH}
-            className="relative w-full resize-none rounded-xl border border-slate-200 bg-white/70 px-3.5 py-3 text-sm leading-6 text-slate-950 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-400/15 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/[0.16] dark:focus:border-white/25 dark:focus:bg-white/[0.06] dark:focus:ring-white/10"
-        />
+      <form action={handleSubmit} className={`relative ${lifted}`}>
+        <div
+            className={`group relative rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,33,0.04)] transition-shadow focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15 ${lifted}`}
+        >
+          <label htmlFor="new-comment" className="sr-only">
+            Comment
+          </label>
+          <textarea
+              id="new-comment"
+              ref={textareaRef}
+              name="content"
+              value={content}
+              onChange={handleChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && content.trim()) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+                if (event.key === "Escape") closeMentions();
+              }}
+              rows={content ? 3 : 2}
+              placeholder="Leave a comment…"
+              required
+              maxLength={MAX_LENGTH}
+              className="block w-full resize-none rounded-t-xl bg-transparent px-3.5 pt-3 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground"
+          />
+
+          <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-1">
+            <span className="flex min-w-0 items-center gap-1.5 pl-1 text-xs text-muted-foreground">
+              {content.length > WARNING_THRESHOLD ? (
+                  <span className="tabular-nums text-amber-700 dark:text-amber-300">
+                    {formatNumber(content.length)} / {formatNumber(MAX_LENGTH)}
+                  </span>
+              ) : (
+                  <>
+                    <AtSign className="size-3.5 shrink-0" aria-hidden="true" />
+                    <span className="truncate">to mention someone</span>
+                  </>
+              )}
+            </span>
+
+            <button
+                type="submit"
+                disabled={!content.trim() || isSubmitting}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3 text-[13px] font-semibold text-white transition-colors hover:bg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-40 dark:text-[#0f1115]"
+            >
+              <Send className="size-3.5" aria-hidden="true" />
+              {isSubmitting ? "Posting..." : "Comment"}
+            </button>
+          </div>
 
           {isMentionListOpen && (
-              <div className="absolute left-0 top-full z-[100] mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10 dark:border-white/[0.1] dark:bg-slate-950 dark:shadow-black/50">
-                <div className="border-b border-slate-200/70 bg-slate-50 px-3 py-2.5 dark:border-white/[0.06] dark:bg-slate-900">
-                  <div className="flex items-center gap-2">
-                <span className={`${iconTile} size-7 rounded-lg`}>
-                  <AtSign className="size-3.5" />
-                </span>
-
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">
-                        Mention a teammate
-                      </p>
-
-                      {mentionQuery && (
-                          <p className="text-[11px] text-muted-foreground">
-                            Matching “{mentionQuery}”
-                          </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="max-h-64 overflow-y-auto p-1.5">
+              <div className="absolute left-0 top-full z-[100] mt-2 w-full max-w-sm overflow-hidden rounded-xl border border-border bg-card shadow-[0_16px_40px_-12px_rgba(15,17,21,0.3)]">
+                <p className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+                  {mentionQuery ? `People matching “${mentionQuery}”` : "Mention someone"}
+                </p>
+                <div className="max-h-64 overflow-y-auto p-1">
                   {suggestions.map((member) => (
                       <button
                           key={member.id}
                           type="button"
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => selectMember(member)}
-                          className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors duration-200 hover:bg-slate-500/[0.07]"
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
                       >
-                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${personColor(member.email)}`}>
-                    {getInitials(member.name, member.email)}
-                  </span>
-
+                        <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${personColor(member.email)}`}>
+                          {getInitials(member.name, member.email)}
+                        </span>
                         <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-foreground">
-                      {member.name ?? member.email}
-                    </span>
-
+                          <span className="block truncate text-[13px] font-medium text-foreground">
+                            {member.name ?? member.email}
+                          </span>
                           {member.name && (
-                              <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                        {member.email}
-                      </span>
+                              <span className="block truncate text-[11px] text-muted-foreground">{member.email}</span>
                           )}
-                  </span>
-
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-all duration-200 group-hover:opacity-100">
-                    <User className="size-3" />
-                  </span>
+                        </span>
                       </button>
                   ))}
                 </div>
@@ -218,36 +230,10 @@ export function CommentForm({ action, members }: CommentFormProps) {
         </div>
 
         {error && (
-            <div
-                role="alert"
-                className="rounded-xl border border-danger/25 bg-danger/10 px-3 py-2.5 text-xs text-danger"
-            >
+            <p role="alert" className="mt-2 text-xs font-medium text-danger">
               {error}
-            </div>
+            </p>
         )}
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {content.length.toLocaleString()} / {MAX_LENGTH.toLocaleString()}
-          </span>
-
-            {content.length > WARNING_THRESHOLD && (
-                <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-              Almost at limit
-            </span>
-            )}
-          </div>
-
-          <button
-              type="submit"
-              disabled={!content.trim() || isSubmitting}
-              className={commentButton}
-          >
-            <Send className="size-4" />
-            {isSubmitting ? "Posting..." : "Comment"}
-          </button>
-        </div>
       </form>
   );
 }

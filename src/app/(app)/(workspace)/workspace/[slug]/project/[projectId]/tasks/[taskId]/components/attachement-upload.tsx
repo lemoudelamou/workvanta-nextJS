@@ -1,8 +1,7 @@
 "use client";
 
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
-import { uploadButton } from "@/app/style/ui-tokens";
 
 type AttachmentUploadProps = {
     action: (formData: FormData) => void | Promise<void>;
@@ -11,7 +10,7 @@ type AttachmentUploadProps = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,application/zip,.zip";
 
-/** "Upload file" opens the picker; choosing a file uploads it straight away. */
+/** A dashed "Add file" tile: choosing a file uploads it straight away. */
 export function AttachmentUpload({ action }: AttachmentUploadProps) {
     const formRef = useRef<HTMLFormElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +47,7 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
     }
 
     return (
-        <form ref={formRef} action={handleSubmit} className="flex shrink-0 flex-col items-end gap-1">
+        <form ref={formRef} action={handleSubmit} className="h-full">
             <input
                 ref={inputRef}
                 id="attachment"
@@ -67,24 +66,22 @@ export function AttachmentUpload({ action }: AttachmentUploadProps) {
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={isUploading}
-                title="Images, PDF, ZIP or text files up to 10 MB"
-                className={`${uploadButton} h-8 px-3 text-[13px]`}
+                title="Images, PDF, ZIP or text files"
+                className="flex h-full min-h-[62px] w-full items-center gap-3 rounded-xl border border-dashed border-foreground/20 p-2.5 text-left outline-none transition-colors hover:border-brand hover:bg-brand-soft/40 focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait dark:hover:bg-brand/10"
             >
-                {isUploading ? (
-                    <>
-                        <Loader2 className="size-3.5 motion-safe:animate-spin" aria-hidden="true" />
-                        Uploading...
-                    </>
-                ) : (
-                    <>
-                        <Upload className="size-3.5" aria-hidden="true" />
-                        Upload file
-                    </>
-                )}
+                <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    {isUploading ? <Loader2 className="size-5 motion-safe:animate-spin" /> : <Plus className="size-5" />}
+                </span>
+                <span className="min-w-0">
+                    <span className="block text-[13px] font-medium text-foreground">
+                        {isUploading ? "Uploading..." : "Add file"}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">Up to 10 MB</span>
+                </span>
             </button>
 
             {error && (
-                <p role="alert" className="max-w-56 text-right text-xs font-medium text-danger">
+                <p role="alert" className="mt-1.5 text-xs font-medium text-danger">
                     {error}
                 </p>
             )}
