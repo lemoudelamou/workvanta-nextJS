@@ -21,6 +21,8 @@ import { FocusPanel, focusSummary } from "./FocusPanel";
 import { ProjectRow } from "./ProjectRow";
 import { SectionTitle } from "./SectionTitle";
 import { WorkspaceCard } from "./WorkspaceCard";
+import { WelcomeCard } from "./WelcomeCard";
+import type { FirstStep } from "@/lib/onboarding/first-steps";
 
 
 
@@ -32,6 +34,7 @@ export function DashboardView({
     recentProjects,
     accessibleProjectCountByWorkspace,
     totalAccessibleProjectCount,
+    welcome = null,
 }: {
     session: { user: { name?: string | null; email?: string | null } };
     focus: Focus;
@@ -39,6 +42,8 @@ export function DashboardView({
     recentProjects: RecentProject[];
     accessibleProjectCountByWorkspace: Map<string, number>;
     totalAccessibleProjectCount: number;
+    /** The getting-started checklist, while it's still useful. */
+    welcome?: FirstStep[] | null;
 }) {
     const teammateCount = memberships.reduce(
         (total, m) => total + m.workspace._count.members,
@@ -72,6 +77,8 @@ export function DashboardView({
                     </div>
                 }
             />
+
+            {welcome && <WelcomeCard steps={welcome} />}
 
             <FocusPanel
                 focus={focus}
