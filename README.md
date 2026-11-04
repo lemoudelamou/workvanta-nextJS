@@ -164,12 +164,34 @@ Two routes need calling on a schedule. [Upstash QStash](https://console.upstash.
 
 On Vercel, Vercel Cron can call the same routes and sends the `CRON_SECRET` header for you; its free Hobby plan allows only daily jobs, so use QStash for the 15-minute reminders.
 
+## Deployment
+
+The app is deployed on [Vercel](https://vercel.com), connected to this repository:
+
+- **Every pull request** gets a preview deployment, with its link posted on the PR.
+- **Every merge to `main`** deploys to production.
+- **Only checked code reaches `main`.** Branch protection requires a pull request, and all four CI checks (type-check and tests, lint, migrations, end-to-end) must pass before it can be merged.
+- **Production deploys migrate the database first.** Vercel runs `npm run vercel-build` ([`scripts/vercel-build.mjs`](scripts/vercel-build.mjs)). On production builds it runs `prisma migrate deploy`, then `next build`. Preview builds skip the migrations, so a preview never changes the production database. If a migration fails, the build fails and the current production deployment stays live.
+
+Settings in Vercel (**Project → Settings**):
+
+- **Build Command:** leave it empty (the default), so Vercel picks up `vercel-build`. A custom build command would skip the migrations.
+- **Environment variables (Production):** `DATABASE_URL` is required. If it goes through a connection pooler, also set `DIRECT_DATABASE_URL` to a direct connection; migrations use it. `SKIP_MIGRATIONS=1` builds without migrating, as an escape hatch.
+
+A production database first set up with `prisma db push` has tables but no migration history, and the first migrated deploy stops with `P3005`. Mark the migrations it already has as applied once, from your machine with `DATABASE_URL` pointing at production, then redeploy:
+
+```bash
+npx prisma migrate resolve --applied <migration folder name>   # for each migration already in the database
+npx prisma migrate status                                      # should list only the ones still to apply
+```
+
 ## Scripts
 
 | Command | Description |
 |---|---|
 | `npm run dev` | Start the Next.js dev server |
 | `npm run build` | Build for production |
+| `npm run vercel-build` | Vercel's build: migrates the database on production deploys, then builds |
 | `npm run start` | Start the production server |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run the Jest test suite |
@@ -259,7 +281,7 @@ Use a separate database: the test creates real users and workspaces. Set `E2E_DE
 
 ### Continuous integration
 
-GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the unit tests, runs the end-to-end journey, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error.
+GitHub Actions runs on every push to `main` and every pull request (`.github/workflows/ci.yml`). It type-checks, runs the unit tests, runs the end-to-end journey, applies every migration to a fresh PostgreSQL, and fails if `schema.prisma` has changes that no migration covers. Lint runs there too and fails the build on any error. Branch protection on `main` requires all four checks to pass before a pull request can be merged; see [Deployment](#deployment).
 
 Tests sit next to the code they cover, as `*.test.ts(x)` files. Pages and server actions are tested with mocked Prisma and auth. The permission rules have their own unit tests in `src/lib/auth/permissions.test.ts`.
 
