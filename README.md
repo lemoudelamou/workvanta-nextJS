@@ -171,11 +171,11 @@ The app is deployed on [Vercel](https://vercel.com), connected to this repositor
 - **Every pull request** gets a preview deployment, with its link posted on the PR.
 - **Every merge to `main`** deploys to production.
 - **Only checked code reaches `main`.** Branch protection requires a pull request, and all four CI checks (type-check and tests, lint, migrations, end-to-end) must pass before it can be merged.
-- **Production deploys migrate the database first.** Vercel runs `npm run vercel-build` ([`scripts/vercel-build.mjs`](scripts/vercel-build.mjs)). On production builds it runs `prisma migrate deploy`, then `next build`. Preview builds skip the migrations, so a preview never changes the production database. If a migration fails, the build fails and the current production deployment stays live.
+- **Production deploys migrate the database first.** Vercel's build command is `npm run vercel-build` ([`scripts/vercel-build.mjs`](scripts/vercel-build.mjs)). On production builds it runs `prisma migrate deploy`, then `next build`. Preview builds skip the migrations, so a preview never changes the production database. If a migration fails, the build fails and the current production deployment stays live.
 
 Settings in Vercel (**Project → Settings**):
 
-- **Build Command:** leave it empty (the default), so Vercel picks up `vercel-build`. A custom build command would skip the migrations.
+- **Build Command:** turn on **Override** and set it to `npm run vercel-build`. With the default (`next build`), Vercel builds without migrating. The script runs `next build` itself after migrating.
 - **Environment variables (Production):** `DATABASE_URL` is required. If it goes through a connection pooler, also set `DIRECT_DATABASE_URL` to a direct connection; migrations use it. `SKIP_MIGRATIONS=1` builds without migrating, as an escape hatch.
 
 A production database first set up with `prisma db push` has tables but no migration history, and the first migrated deploy stops with `P3005`. Mark the migrations it already has as applied once, from your machine with `DATABASE_URL` pointing at production, then redeploy:
